@@ -1,0 +1,391 @@
+{
+  "BACHELOR-COMPUTER PROGRAMMING": {
+    "major": "BACHELOR-COMPUTER PROGRAMMING",
+    "courses": [
+      {
+        "code": "CSIT3014",
+        "title": "Discrete Mathematics for Information Technology",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3111",
+        "title": "Advanced Networking Technologies",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3115",
+        "title": "Data Structure",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3271",
+        "title": "System Security",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3280",
+        "title": "Information Technology Project Management",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3345",
+        "title": "Advanced Web Application Development",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4105",
+        "title": "Search Engine Principles",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4190",
+        "title": "Integration Project I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4330",
+        "title": "Data Warehousing and Data Mining",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-BUSINESS MAN. & ENTR.": {
+    "major": "BACHELOR-BUSINESS MAN. & ENTR.",
+    "courses": [
+      {
+        "code": "BUAD3090",
+        "title": "Business Law",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAD3091",
+        "title": "Employment Law",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUCO3005",
+        "title": "Management Information Systems",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3025",
+        "title": "Enterprise Development and Business Planning",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3100",
+        "title": "Business Analysis and Decision Making",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3230",
+        "title": "Supply Chain & Logistics Management",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4150",
+        "title": "Management of Innovation",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4250",
+        "title": "Entrepreneurial Leadership Practicum I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4251",
+        "title": "Entrepreneurial leadership Practicum II",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUHR4120",
+        "title": "HR Management for Entrepreneurs",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3015",
+        "title": "Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3105",
+        "title": "Operations Management",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3110",
+        "title": "Advanced Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUMT3030",
+        "title": "Business Statistics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-ACCOUNTING": {
+    "major": "BACHELOR-ACCOUNTING",
+    "courses": [
+      {
+        "code": "BUAC3005",
+        "title": "Intermediate Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC3050",
+        "title": "Accounting for Government and Not for Profit Organization",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC3100",
+        "title": "Principles of Financial Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC3120",
+        "title": "Managerial Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC3380",
+        "title": "Managerial Finance",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4380",
+        "title": "Intermediate Corporate Finance",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4455",
+        "title": "Advanced Financial Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4720",
+        "title": "Cost Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4780",
+        "title": "Advanced Corporate Finance",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3150",
+        "title": "Principles of Microeconomics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3250",
+        "title": "Principles of Macroeconomics \u200b",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-BME (MARKETING STREAM)": {
+    "major": "BACHELOR-BME (MARKETING STREAM)",
+    "courses": [
+      {
+        "code": "BUEN4150",
+        "title": "Management of Innovation",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4250",
+        "title": "Entrepreneurial Leadership Practicum I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4251",
+        "title": "Entrepreneurial leadership Practicum II",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3015",
+        "title": "Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3105",
+        "title": "Operations Management",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3110",
+        "title": "Advanced Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUMK3099",
+        "title": "Introduction to Marketing",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      }
+    ]
+  }
+}

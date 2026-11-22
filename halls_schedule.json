@@ -1,0 +1,167 @@
+[
+  {
+    "hall": "B2-023",
+    "day": "Sunday",
+    "from_time": "08:00:00",
+    "to_time": "09:00:00",
+    "course": "ACC0012-Business Project",
+    "section": "independent",
+    "method": "Lab",
+    "student_count": 20,
+    "instructor": "Mr. Mohamed Awad Farhan Sanhat"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Sunday",
+    "from_time": "12:00:00",
+    "to_time": "13:50:00",
+    "course": "ENL001-English for Foundation 1",
+    "section": "01",
+    "method": "Lecture",
+    "student_count": 20,
+    "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Sunday",
+    "from_time": "19:00:00",
+    "to_time": "19:50:00",
+    "course": "CST2234-Systems Analysis & Design",
+    "section": "Independent",
+    "method": "Lab",
+    "student_count": 1,
+    "instructor": "Sulaiman Mohammad Alraqum"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Monday",
+    "from_time": "08:00:00",
+    "to_time": "09:00:00",
+    "course": "ACC0012-Business Project",
+    "section": "independent",
+    "method": "Lab",
+    "student_count": 20,
+    "instructor": "Mr. Mohamed Awad Farhan Sanhat"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Monday",
+    "from_time": "12:00:00",
+    "to_time": "13:50:00",
+    "course": "ENL001-English for Foundation 1",
+    "section": "01",
+    "method": "Lecture",
+    "student_count": 20,
+    "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Monday",
+    "from_time": "16:30:00",
+    "to_time": "18:20:00",
+    "course": "CST8334-Software Development Project",
+    "section": "01",
+    "method": "Lecture",
+    "student_count": 20,
+    "instructor": "Sulaiman Mohammad Alraqum"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Monday",
+    "from_time": "18:00:00",
+    "to_time": "18:50:00",
+    "course": "CST2234-Systems Analysis & Design",
+    "section": "Independent",
+    "method": "Lecture",
+    "student_count": 1,
+    "instructor": "Sulaiman Mohammad Alraqum"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Tuesday",
+    "from_time": "08:00:00",
+    "to_time": "09:00:00",
+    "course": "ACC0012-Business Project",
+    "section": "independent",
+    "method": "Lab",
+    "student_count": 20,
+    "instructor": "Mr. Mohamed Awad Farhan Sanhat"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Tuesday",
+    "from_time": "12:00:00",
+    "to_time": "13:50:00",
+    "course": "ENL001-English for Foundation 1",
+    "section": "01",
+    "method": "Lecture",
+    "student_count": 20,
+    "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Wednesday",
+    "from_time": "08:00:00",
+    "to_time": "09:00:00",
+    "course": "ACC0012-Business Project",
+    "section": "independent",
+    "method": "Lab",
+    "student_count": 20,
+    "instructor": "Mr. Mohamed Awad Farhan Sanhat"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Wednesday",
+    "from_time": "12:00:00",
+    "to_time": "13:50:00",
+    "course": "ENL001-English for Foundation 1",
+    "section": "01",
+    "method": "Lecture",
+    "student_count": 20,
+    "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Wednesday",
+    "from_time": "16:30:00",
+    "to_time": "18:20:00",
+    "course": "CST8334-Software Development Project",
+    "section": "01",
+    "method": "Lab",
+    "student_count": 20,
+    "instructor": "Sulaiman Mohammad Alraqum"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Wednesday",
+    "from_time": "18:00:00",
+    "to_time": "18:50:00",
+    "course": "CST2234-Systems Analysis & Design",
+    "section": "Independent",
+    "method": "Lecture",
+    "student_count": 1,
+    "instructor": "Sulaiman Mohammad Alraqum"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Thursday",
+    "from_time": "12:00:00",
+    "to_time": "13:50:00",
+    "course": "ENL001-English for Foundation 1",
+    "section": "01",
+    "method": "Lecture",
+    "student_count": 20,
+    "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi"
+  },
+  {
+    "hall": "B2-023",
+    "day": "Thursday",
+    "from_time": "17:00:00",
+    "to_time": "18:50:00",
+    "course": "CST8215-Introduction to Database",
+    "section": "Independent",
+    "method": "Lab",
+    "student_count": 35,
+    "instructor": "Sulaiman Mohammad Alraqum"
+  }
+]

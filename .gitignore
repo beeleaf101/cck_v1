@@ -1,0 +1,8 @@
+# Private data – never commit (real student records)
+students.json
+enrollments.json
+historical_grades.json
+
+# Local secrets
+.env
+.env.*

@@ -1,0 +1,349 @@
+[
+  {
+    "id": "INS001",
+    "name": "Mrs. Anusha Zulfiqar Ali Shalwani",
+    "title": "Mrs.",
+    "department": "Business",
+    "email": "mrs__anusha_zulfiqar@cck.edu.kw",
+    "courses": [
+      "BUAD3091",
+      "BUEN4150",
+      "BUAD3090",
+      "LAW1702",
+      "RET2213",
+      "MKT2218",
+      "MGT2204",
+      "MGT2223",
+      "MKT2208",
+      "MKT2216"
+    ]
+  },
+  {
+    "id": "INS002",
+    "name": "Dr. Fahad Awad Aber S. Al-Enezi",
+    "title": "Dr.",
+    "department": "Business",
+    "email": "dr__fahad_awad_aber_@cck.edu.kw",
+    "courses": [
+      "BUEN4250",
+      "BUEN4251",
+      "BUEN3230",
+      "BUMK3099",
+      "BUEN3100",
+      "MGT2228",
+      "MGT2008",
+      "MGT2232",
+      "MKT0018",
+      "MKT2205"
+    ]
+  },
+  {
+    "id": "INS003",
+    "name": "Dr. Omar Jaber Radwan Aburumman",
+    "title": "Dr.",
+    "department": "Business",
+    "email": "dr__omar_jaber_radwa@cck.edu.kw",
+    "courses": [
+      "BUMG3110",
+      "BUHR4120",
+      "BUS2301",
+      "BUMG3015",
+      "MKT2260",
+      "MKT2261"
+    ]
+  },
+  {
+    "id": "INS004",
+    "name": "Mr. Mohamed Awad Farhan Sanhat",
+    "title": "Mr.",
+    "department": "Business",
+    "email": "mr__mohamed_awad_far@cck.edu.kw",
+    "courses": [
+      "BUAC3005",
+      "BUAC3120",
+      "ACC0012",
+      "ACC2385",
+      "ACC2209",
+      "ACC2234",
+      "ACC2214",
+      "ACC2233"
+    ]
+  },
+  {
+    "id": "INS005",
+    "name": "Ms. Farah Faisal Fahad Al-Yaqout",
+    "title": "Ms.",
+    "department": "Computer Science",
+    "email": "ms__farah_faisal_fah@cck.edu.kw",
+    "courses": [
+      "GEPH3033",
+      "GED2234",
+      "GEN2003",
+      "ENL1813",
+      "ENL002"
+    ]
+  },
+  {
+    "id": "INS006",
+    "name": "Mr. Eisa Adel Hasan H. Shamsah",
+    "title": "Mr.",
+    "department": "Business",
+    "email": "mr__eisa_adel_hasan_@cck.edu.kw",
+    "courses": [
+      "BUMT3030",
+      "MAT8001",
+      "QUA0008",
+      "QUA2210",
+      "ICT002"
+    ]
+  },
+  {
+    "id": "INS007",
+    "name": "Ms. Maria I. Al-Sendah",
+    "title": "Ms.",
+    "department": "Business",
+    "email": "ms__maria_i__al-send@cck.edu.kw",
+    "courses": [
+      "BUCO3005",
+      "CSIT4330",
+      "CST8276",
+      "CSIT4105",
+      "CST2355",
+      "CST8259"
+    ]
+  },
+  {
+    "id": "INS008",
+    "name": "Dr. Adel Thamer Shaher",
+    "title": "Dr.",
+    "department": "Business",
+    "email": "dr__adel_thamer_shah@cck.edu.kw",
+    "courses": [
+      "GEEC3150",
+      "MGT2224",
+      "MGT2201",
+      "MKT2283",
+      "RET2223"
+    ]
+  },
+  {
+    "id": "INS009",
+    "name": "Naser Mohammad S. Al-Selahi",
+    "title": "",
+    "department": "Business",
+    "email": "naser_mohammad_s__al@cck.edu.kw",
+    "courses": [
+      "BUAC3100",
+      "GEEC3250",
+      "ACC0014",
+      "ACC2265",
+      "ECO2200",
+      "MGT2203",
+      "ACC2201"
+    ]
+  },
+  {
+    "id": "INS010",
+    "name": "Mrs. Rana Khan Moh'd Ishaque",
+    "title": "Mrs.",
+    "department": "Business",
+    "email": "mrs__rana_khan_moh'd@cck.edu.kw",
+    "courses": [
+      "BUEN3025",
+      "ENL1823",
+      "RET2214",
+      "GED0022",
+      "MKT2291",
+      "MKT2292",
+      "MGT2202",
+      "GEN2003"
+    ]
+  },
+  {
+    "id": "INS011",
+    "name": "Hussain Jassim Mohammad Alali",
+    "title": "",
+    "department": "Business",
+    "email": "hussain_jassim_moham@cck.edu.kw",
+    "courses": [
+      "BUAC4720",
+      "BUAC4455",
+      "BUAC4780",
+      "BUAC4380"
+    ]
+  },
+  {
+    "id": "INS012",
+    "name": "Mrs. Huda Ahmad Amin Abu Mousa",
+    "title": "Mrs.",
+    "department": "Business",
+    "email": "mrs__huda_ahmad_amin@cck.edu.kw",
+    "courses": [
+      "BUAC3050",
+      "ACC2343",
+      "ACC2202",
+      "ACC2262",
+      "ACC2201",
+      "ACC2211"
+    ]
+  },
+  {
+    "id": "INS013",
+    "name": "Sheena Ray Varghese",
+    "title": "",
+    "department": "Business",
+    "email": "sheena_ray_varghese@cck.edu.kw",
+    "courses": [
+      "BUMG3105",
+      "MGT2225"
+    ]
+  },
+  {
+    "id": "INS014",
+    "name": "Mr. Mohamad Ahmad Yousuf Dawaoud",
+    "title": "Mr.",
+    "department": "Business",
+    "email": "mr__mohamad_ahmad_yo@cck.edu.kw",
+    "courses": [
+      "FIN2230",
+      "BUAC3380",
+      "QUA2210",
+      "QUA0002"
+    ]
+  },
+  {
+    "id": "INS015",
+    "name": "Ms. Bshaier Jasem Mohamad Al-Buloshi",
+    "title": "Ms.",
+    "department": "Computer Science",
+    "email": "ms__bshaier_jasem_mo@cck.edu.kw",
+    "courses": [
+      "GECU4100",
+      "CST8300",
+      "ENL1813",
+      "ENL002",
+      "ENL001"
+    ]
+  },
+  {
+    "id": "INS016",
+    "name": "Mr. Saad Ali Husain Kakouli",
+    "title": "Mr.",
+    "department": "Business",
+    "email": "mr__saad_ali_husain_@cck.edu.kw",
+    "courses": [
+      "MKT0019",
+      "MKT2213",
+      "MKT2207",
+      "MKT2285"
+    ]
+  },
+  {
+    "id": "INS017",
+    "name": "Sulaiman Mohammad Alraqum",
+    "title": "",
+    "department": "Computer Science",
+    "email": "sulaiman_mohammad_al@cck.edu.kw",
+    "courses": [
+      "CSIT3014",
+      "CSIT3280",
+      "CST2234",
+      "CST8333",
+      "CST8334",
+      "CST8101",
+      "CST8215",
+      "CST8265"
+    ]
+  },
+  {
+    "id": "INS018",
+    "name": "Dr. Ahad Al-Otaibi",
+    "title": "Dr.",
+    "department": "Computer Science",
+    "email": "dr__ahad_al-otaibi@cck.edu.kw",
+    "courses": [
+      "CSIT3111",
+      "CST8288",
+      "CST8284"
+    ]
+  },
+  {
+    "id": "INS019",
+    "name": "Dr. Seyed Ghasem Saatchi",
+    "title": "Dr.",
+    "department": "Computer Science",
+    "email": "dr__seyed_ghasem_saa@cck.edu.kw",
+    "courses": [
+      "CSIT3115",
+      "CSIT3271",
+      "CSIT4190",
+      "CST8277",
+      "CST2335",
+      "CST8109",
+      "CST8116"
+    ]
+  },
+  {
+    "id": "INS020",
+    "name": "Tareq Ahmad Ali Al-Zayyat",
+    "title": "",
+    "department": "Computer Science",
+    "email": "tareq_ahmad_ali_al-z@cck.edu.kw",
+    "courses": [
+      "CSIT3345",
+      "CST8283",
+      "CST8116",
+      "CST8102",
+      "CST8300",
+      "CST8117"
+    ]
+  },
+  {
+    "id": "INS021",
+    "name": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+    "title": "Mr.",
+    "department": "Computer Science",
+    "email": "mr__roshdi_hussam_ro@cck.edu.kw",
+    "courses": [
+      "MAT8001",
+      "ICT002",
+      "ICT001"
+    ]
+  },
+  {
+    "id": "INS022",
+    "name": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+    "title": "Dr.",
+    "department": "Computer Science",
+    "email": "dr__khaled_jamal_abd@cck.edu.kw",
+    "courses": [
+      "CST8285",
+      "CST8279",
+      "CST8254",
+      "CST8256",
+      "CST8260",
+      "CST8209"
+    ]
+  },
+  {
+    "id": "INS023",
+    "name": "Mr. Omar Samir El Borno",
+    "title": "Mr.",
+    "department": "Computer Science",
+    "email": "mr__omar_samir_el_bo@cck.edu.kw",
+    "courses": [
+      "ENL002"
+    ]
+  },
+  {
+    "id": "INS024",
+    "name": "Ms. Abrar Maneef  Al-Enezi",
+    "title": "Ms.",
+    "department": "Computer Science",
+    "email": "ms__abrar_maneef__al@cck.edu.kw",
+    "courses": [
+      "MAT002",
+      "MAT001"
+    ]
+  }
+]

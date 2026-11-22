@@ -1,0 +1,2007 @@
+[
+  {
+    "code": "ACC0012",
+    "name": "Business Project",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:00 - 13:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lab"
+      },
+      {
+        "section": "independent",
+        "time": "Su,M,T,W(08:00 - 09:00)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "ACC0014",
+    "name": "Accounting for Small Business",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(17:30 - 18:45)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2201",
+    "name": "Financial Accounting I",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Arabic -02",
+        "time": "M,W(14:00 - 15:50)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      },
+      {
+        "section": "English",
+        "time": "M,W(09:00 - 10:50)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2202",
+    "name": "Financial Accounting II",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(13:30 - 14:50)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2209",
+    "name": "Financial Accounting III",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(12:00 - 12:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2211",
+    "name": "Payroll and Compliance",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(18:00 - 18:50)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2214",
+    "name": "Financial Information for Marketing",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(14:00 - 14:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2233",
+    "name": "Management Accounting I",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(14:00 - 15:05)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2234",
+    "name": "Management Accounting II",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(14:00 - 15:30)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2262",
+    "name": "Introduction to  Personal Taxation",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(10:00 - 11:05)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2265",
+    "name": "Audit Principles and Business Issues",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(16:00 - 17:05)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ACC2343",
+    "name": "Spreadsheet Applications",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(15:00 - 16:50)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(11:30 - 13:20)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "ACC2385",
+    "name": "Accounting Software Applications",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T,Th(09:00 - 09:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(12:00 - 13:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lab"
+      },
+      {
+        "section": "Independent",
+        "time": "M,T(18:00 - 18:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Th(17:30 - 19:20)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "BUAC3005",
+    "name": "Intermediate Accounting",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T,Th(10:30 - 11:45)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC3050",
+    "name": "Accounting for Government and Not for Profit Organization",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(13:30 - 14:45)",
+        "instructor": "Mrs. Huda Ahmad Amin Abu Mousa",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC3100",
+    "name": "Principles of Financial Accounting",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(17:30 - 18:45)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC3120",
+    "name": "Managerial Accounting",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(14:00 - 14:50)",
+        "instructor": "Mr. Mohamed Awad Farhan Sanhat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC3380",
+    "name": "Managerial Finance",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(16:00 - 17:15)",
+        "instructor": "Mr. Mohamad Ahmad Yousuf Dawaoud",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC4380",
+    "name": "Intermediate Corporate Finance",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(17:00 - 18:15)",
+        "instructor": "Hussain Jassim Mohammad Alali",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC4455",
+    "name": "Advanced Financial Accounting",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(10:30 - 11:45)",
+        "instructor": "Hussain Jassim Mohammad Alali",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC4720",
+    "name": "Cost Accounting",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(12:30 - 13:45)",
+        "instructor": "Hussain Jassim Mohammad Alali",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAC4780",
+    "name": "Advanced Corporate Finance",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(15:30 - 16:45)",
+        "instructor": "Hussain Jassim Mohammad Alali",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAD3090",
+    "name": "Business Law",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(12:00 - 12:50)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUAD3091",
+    "name": "Employment Law",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:00 - 13:15)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUCO3005",
+    "name": "Management Information Systems",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T,Th(10:00 - 11:15)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUEN3025",
+    "name": "Enterprise Development and Business Planning",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:30 - 10:45)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUEN3100",
+    "name": "Business Analysis and Decision Making",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(09:00 - 09:50)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUEN3230",
+    "name": "Supply Chain & Logistics Management",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Independent",
+        "time": "M,W(08:00 - 09:00)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUEN4150",
+    "name": "Management of Innovation",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "W,Th(10:30 - 11:45)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUEN4250",
+    "name": "Entrepreneurial Leadership Practicum I",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(11:00 - 12:15)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUEN4251",
+    "name": "Entrepreneurial leadership Practicum II",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Independent",
+        "time": "M,W(15:00 - 16:30)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUHR4120",
+    "name": "HR Management for Entrepreneurs",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(13:30 - 14:45)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUMG3015",
+    "name": "Organizational Behaviour",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(12:30 - 13:45)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUMG3105",
+    "name": "Operations Management",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(14:00 - 15:15)",
+        "instructor": "Sheena Ray Varghese",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUMG3110",
+    "name": "Advanced Organizational Behaviour",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(12:30 - 13:45)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUMK3099",
+    "name": "Introduction to Marketing",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:30 - 10:45)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUMT3030",
+    "name": "Business Statistics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "W,Th(15:00 - 16:15)",
+        "instructor": "Mr. Eisa Adel Hasan H. Shamsah",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "BUS2301",
+    "name": "Business Computer Applications",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(15:00 - 16:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "T(09:00 - 09:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "Th(09:00 - 09:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "W(15:00 - 16:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lab"
+      },
+      {
+        "section": "03",
+        "time": "M(11:30 - 13:20)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lab"
+      },
+      {
+        "section": "03",
+        "time": "W(11:00 - 11:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "M(08:00 - 09:00)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Th(18:00 - 19:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CSIT3014",
+    "name": "Discrete Mathematics for Information Technology",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(11:00 - 11:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "W(10:00 - 11:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CSIT3111",
+    "name": "Advanced Networking Technologies",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(16:00 - 16:50)",
+        "instructor": "Dr. Ahad Al-Otaibi",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "T(16:00 - 17:50)",
+        "instructor": "Dr. Ahad Al-Otaibi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CSIT3115",
+    "name": "Data Structure",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(13:00 - 14:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "T(15:00 - 15:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CSIT3271",
+    "name": "System Security",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(13:00 - 13:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "W(13:00 - 14:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CSIT3280",
+    "name": "Information Technology Project Management",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(14:00 - 14:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "Th(09:00 - 10:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CSIT3345",
+    "name": "Advanced Web Application Development",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(11:00 - 11:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "T(12:00 - 13:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CSIT4105",
+    "name": "Search Engine Principles",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Th(14:00 - 15:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "W(11:00 - 11:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CSIT4190",
+    "name": "Integration Project I",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(15:00 - 16:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(09:00 - 09:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CSIT4330",
+    "name": "Data Warehousing and Data Mining",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Th(12:00 - 13:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "W(12:00 - 12:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CST2234",
+    "name": "Systems Analysis & Design",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:00 - 09:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(11:00 - 12:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      },
+      {
+        "section": "Independent",
+        "time": "M,W(18:00 - 18:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Su(19:00 - 19:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST2335",
+    "name": "Mobile Graphical Interface Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(10:00 - 11:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "T,Th(10:00 - 10:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CST2355",
+    "name": "Database Systems",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(10:00 - 10:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Su(13:00 - 14:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8101",
+    "name": "Computer Essentials",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(14:00 - 14:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "Su,T(12:00 - 13:15)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CST8102",
+    "name": "Operating System Fundamentals (GNU/Linux)",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(10:00 - 11:15)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(10:00 - 11:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lab"
+      },
+      {
+        "section": "Independent",
+        "time": "Su,T(08:00 - 09:00)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Th(18:00 - 19:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8109",
+    "name": "Network Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(10:00 - 11:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "W(10:00 - 11:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8116",
+    "name": "Intro to Computer Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:30 - 10:45)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "W(14:00 - 15:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lab"
+      },
+      {
+        "section": "Indp",
+        "time": "M(16:00 - 17:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lab"
+      },
+      {
+        "section": "Indp",
+        "time": "T(12:00 - 13:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CST8117",
+    "name": "Cross-Platform Design",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(15:00 - 16:10)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CST8209",
+    "name": "Web Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,Th(16:30 - 18:20)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8215",
+    "name": "Introduction to Database",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(15:00 - 16:20)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "T,Th(15:00 - 16:15)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Su,T(09:00 - 10:15)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Th(17:00 - 18:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8254",
+    "name": "Network Operating Systems",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Indp",
+        "time": "M(10:00 - 11:50)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8256",
+    "name": "Web Programming Languages",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Indp",
+        "time": "M(10:00 - 11:50)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8259",
+    "name": "Web Programming Languages II",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Indp",
+        "time": "T,W(15:00 - 16:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8260",
+    "name": "Database Systems and Concepts",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(15:00 - 16:15)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8265",
+    "name": "Web Security Basics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "Indp",
+        "time": "M(11:00 - 12:30)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8276",
+    "name": "Advanced Database Topics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(14:30 - 16:20)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "W(14:00 - 15:50)",
+        "instructor": "Ms. Maria I. Al-Sendah",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8277",
+    "name": "Enterprise Application Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(11:00 - 12:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(11:00 - 12:50)",
+        "instructor": "Dr. Seyed Ghasem Saatchi",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8279",
+    "name": "Intro to Comp Programming using Python",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(16:30 - 17:20)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8283",
+    "name": "Business Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:30 - 13:45)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "T(14:00 - 14:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8284",
+    "name": "Object-Oriented Programming (Java)",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(15:00 - 16:15)",
+        "instructor": "Dr. Ahad Al-Otaibi",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(14:00 - 15:50)",
+        "instructor": "Dr. Ahad Al-Otaibi",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8285",
+    "name": "Web Programming",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(16:30 - 18:20)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Th(16:30 - 18:20)",
+        "instructor": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8288",
+    "name": "Object-Oriented Programming with Design Patterns",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(14:00 - 14:50)",
+        "instructor": "Dr. Ahad Al-Otaibi",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "Su(14:00 - 15:50)",
+        "instructor": "Dr. Ahad Al-Otaibi",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8300",
+    "name": "Achieving Success in Changing Environments",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,M,W(11:00 - 11:50)",
+        "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi",
+        "method": "Lecture"
+      },
+      {
+        "section": "Indp",
+        "time": "T,W(11:00 - 11:50)",
+        "instructor": "Tareq Ahmad Ali Al-Zayyat",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "CST8333",
+    "name": "Programming Language Research Project",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(12:00 - 13:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "W(12:00 - 13:50)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "CST8334",
+    "name": "Software Development Project",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(16:30 - 18:20)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lecture"
+      },
+      {
+        "section": "01",
+        "time": "W(16:30 - 18:20)",
+        "instructor": "Sulaiman Mohammad Alraqum",
+        "method": "Lab"
+      }
+    ]
+  },
+  {
+    "code": "ECO2200",
+    "name": "Economic Issues",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:00 - 13:15)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ENL001",
+    "name": "English for Foundation 1",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,M,T,W,Th(12:00 - 13:50)",
+        "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ENL002",
+    "name": "English for Foundation 2",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,M,T,W,Th(09:00 - 10:50)",
+        "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "Su,M,T,W,Th(14:30 - 16:20)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      },
+      {
+        "section": "03",
+        "time": "Su,M,T,W,Th(09:30 - 10:50)",
+        "instructor": "Mr. Omar Samir El Borno",
+        "method": "Lecture"
+      },
+      {
+        "section": "04",
+        "time": "Su,M,T,W,Th(12:30 - 14:20)",
+        "instructor": "Mr. Omar Samir El Borno",
+        "method": "Lecture"
+      },
+      {
+        "section": "05",
+        "time": "Su,M,T,W,Th(14:30 - 16:20)",
+        "instructor": "Mr. Omar Samir El Borno",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ENL1813",
+    "name": "Communications I",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(11:00 - 11:50)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      },
+      {
+        "section": "02E",
+        "time": "M,W(12:00 - 13:00)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      },
+      {
+        "section": "03",
+        "time": "Su,T,Th(14:00 - 14:50)",
+        "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ENL1823",
+    "name": "Communications II",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(13:30 - 14:45)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "FIN2230",
+    "name": "Business Finance",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M(16:00 - 17:15)",
+        "instructor": "Mr. Mohamad Ahmad Yousuf Dawaoud",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Su,M(09:00 - 10:15)",
+        "instructor": "Mr. Mohamad Ahmad Yousuf Dawaoud",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GECU4100",
+    "name": "Technologies ,Cultures &Societies",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(15:00 - 15:50)",
+        "instructor": "Ms. Bshaier Jasem Mohamad Al-Buloshi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GED0022",
+    "name": "Positive Psychology \u2013 The Science of Happiness and Well-Being",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:00 - 13:15)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GED2234",
+    "name": "Contemporary Ethical Issues",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(10:00 - 10:50)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GEEC3150",
+    "name": "Principles of Microeconomics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(11:30 - 12:45)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Su,T,Th(19:00 - 19:50)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GEEC3250",
+    "name": "Principles of Macroeconomics \u200b",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(16:00 - 17:15)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GEN2003",
+    "name": "Healthy Lifestyle",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:30 - 10:45)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      },
+      {
+        "section": "Indp",
+        "time": "Su,T(11:00 - 11:50)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "GEPH3033",
+    "name": "Professional Integrity & Ethics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(13:00 - 14:15)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      },
+      {
+        "section": "Indp",
+        "time": "M,W(09:00 - 10:15)",
+        "instructor": "Ms. Farah Faisal Fahad Al-Yaqout",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ICT001",
+    "name": "Computer Skills for Foundation 1",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,Th(14:00 - 15:15)",
+        "instructor": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "ICT002",
+    "name": "Computer Skills for Foundation 2",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:00 - 13:15)",
+        "instructor": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "T,Th(10:30 - 11:45)",
+        "instructor": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+        "method": "Lecture"
+      },
+      {
+        "section": "03",
+        "time": "Su,T(13:00 - 14:15)",
+        "instructor": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+        "method": "Lecture"
+      },
+      {
+        "section": "04",
+        "time": "Th(09:00 - 10:15)",
+        "instructor": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+        "method": "Lecture"
+      },
+      {
+        "section": "05",
+        "time": "T,Th(16:30 - 17:45)",
+        "instructor": "Mr. Eisa Adel Hasan H. Shamsah",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "LAW1702",
+    "name": "Business Law",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(12:00 - 12:50)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MAT001",
+    "name": "Core Math for Foundation 1",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T,Th(09:30 - 10:45)",
+        "instructor": "Ms. Abrar Maneef  Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MAT002",
+    "name": "Core Math for Foundation 2",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(11:00 - 12:15)",
+        "instructor": "Ms. Abrar Maneef  Al-Enezi",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "M,W(12:00 - 13:15)",
+        "instructor": "Ms. Abrar Maneef  Al-Enezi",
+        "method": "Lecture"
+      },
+      {
+        "section": "03",
+        "time": "Th(13:00 - 14:15)",
+        "instructor": "Ms. Abrar Maneef  Al-Enezi",
+        "method": "Lecture"
+      },
+      {
+        "section": "04",
+        "time": "M,W(09:00 - 10:15)",
+        "instructor": "Ms. Abrar Maneef  Al-Enezi",
+        "method": "Lecture"
+      },
+      {
+        "section": "05",
+        "time": "Su,T(13:00 - 14:15)",
+        "instructor": "Ms. Abrar Maneef  Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MAT8001",
+    "name": "Technical Mathematics for Computer Science",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T(18:00 - 19:50)",
+        "instructor": "Mr. Eisa Adel Hasan H. Shamsah",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "Su(09:00 - 10:50)",
+        "instructor": "Mr. Roshdi Hussam Roshdi Al-Debeki",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2008",
+    "name": "Business Plan Applied",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(13:30 - 14:35)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2201",
+    "name": "Business Fundamentals",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su(13:30 - 14:20)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lab"
+      },
+      {
+        "section": "01",
+        "time": "Th(14:00 - 15:50)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "Su(19:00 - 19:50)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lab"
+      },
+      {
+        "section": "Independent",
+        "time": "T(13:30 - 15:20)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2202",
+    "name": "Emerging Technology for Business",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(14:00 - 15:15)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2203",
+    "name": "Financial Management for Small Business",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(14:00 - 15:15)",
+        "instructor": "Naser Mohammad S. Al-Selahi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2204",
+    "name": "Social Innovation",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(09:00 - 09:50)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2223",
+    "name": "Career Preparation for Entrepreneurs",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,W(19:00 - 19:50)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2224",
+    "name": "Managing for Business Success",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(10:00 - 11:05)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2225",
+    "name": "Project Management for Business Start-Ups",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(11:00 - 12:15)",
+        "instructor": "Sheena Ray Varghese",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2228",
+    "name": "Global Entrepreneurship",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(13:00 - 14:15)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MGT2232",
+    "name": "Entrepreneurship & Innovation",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(10:00 - 10:50)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      },
+      {
+        "section": "Independent",
+        "time": "M,W(11:00 - 12:50)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT0018",
+    "name": "Marketing for Management & Entrepreneurship",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:30 - 10:45)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT0019",
+    "name": "Marketing Research",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(16:00 - 17:15)",
+        "instructor": "Mr. Saad Ali Husain Kakouli",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2205",
+    "name": "Marketing Foundations",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:30 - 11:20)",
+        "instructor": "Dr. Fahad Awad Aber S. Al-Enezi",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2207",
+    "name": "Marketing Channels",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(14:00 - 15:50)",
+        "instructor": "Mr. Saad Ali Husain Kakouli",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2208",
+    "name": "Digital Marketing",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(13:00 - 14:05)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      },
+      {
+        "section": "Indp",
+        "time": "M,W(10:00 - 10:50)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2213",
+    "name": "Skills for the Workplace",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(12:00 - 12:50)",
+        "instructor": "Mr. Saad Ali Husain Kakouli",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2216",
+    "name": "Skills Transferable to Business",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(13:30 - 14:45)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2218",
+    "name": "Digital Marketing",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(13:00 - 13:50)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2260",
+    "name": "Industry Marketing Plan",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Th(10:00 - 10:50)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2261",
+    "name": "Marketing Plan Project Field Work",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "T,Th(11:30 - 12:45)",
+        "instructor": "Dr. Omar Jaber Radwan Aburumman",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2283",
+    "name": "Sales Management",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:00 - 10:50)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2285",
+    "name": "Marketing Research",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(16:00 - 17:50)",
+        "instructor": "Mr. Saad Ali Husain Kakouli",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2291",
+    "name": "Integrated Marketing Communications 1",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,Th(11:00 - 12:50)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "MKT2292",
+    "name": "Integrated Marketing Communications II New Media",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(08:00 - 09:00)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "QUA0002",
+    "name": "Business Mathematics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "02",
+        "time": "T,Th(16:00 - 17:20)",
+        "instructor": "Mr. Mohamad Ahmad Yousuf Dawaoud",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "QUA0008",
+    "name": "Statistics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "W,Th(15:00 - 16:15)",
+        "instructor": "Mr. Eisa Adel Hasan H. Shamsah",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "QUA2210",
+    "name": "Basic Business Mathematics",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01- ENG",
+        "time": "T,Th(16:00 - 17:50)",
+        "instructor": "Mr. Mohamad Ahmad Yousuf Dawaoud",
+        "method": "Lecture"
+      },
+      {
+        "section": "02",
+        "time": "Su,M(16:00 - 17:50)",
+        "instructor": "Mr. Eisa Adel Hasan H. Shamsah",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "RET2213",
+    "name": "eCommerce",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "M,W(09:00 - 10:15)",
+        "instructor": "Mrs. Anusha Zulfiqar Ali Shalwani",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "RET2214",
+    "name": "Retail Management",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T(15:30 - 17:20)",
+        "instructor": "Mrs. Rana Khan Moh'd Ishaque",
+        "method": "Lecture"
+      }
+    ]
+  },
+  {
+    "code": "RET2223",
+    "name": "Professional Selling",
+    "credits": 3,
+    "sections": [
+      {
+        "section": "01",
+        "time": "Su,T,Th(12:00 - 12:50)",
+        "instructor": "Dr. Adel Thamer Shaher",
+        "method": "Lecture"
+      }
+    ]
+  }
+]

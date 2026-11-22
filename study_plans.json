@@ -1,0 +1,1464 @@
+{
+  "DIPLOMA-MAN. & ENTR.": {
+    "major": "DIPLOMA-MAN. & ENTR.",
+    "courses": [
+      {
+        "code": "BUS2301",
+        "title": "Business Comp Apps",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ACC0014",
+        "title": "Accounting for Small Businesses",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1813",
+        "title": "Communications I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1823",
+        "title": "Communications II",
+        "credits": 3,
+        "prerequisite": "ENL1813",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2232",
+        "title": "Entrepreneurship & Innovation",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "LAW1702",
+        "title": "Business Law",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MKT0018",
+        "title": "Marketing for Mgmt & Entrep",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "GED2234",
+        "title": "Contemporary Ethical Issues",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2216",
+        "title": "Skills Transferable to Bus",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2202",
+        "title": "Emerging Technology for Business",
+        "credits": 3,
+        "prerequisite": "MGT2232",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "QUA0002",
+        "title": "Business Mathematics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "MKT0019",
+        "title": "Marketing Research",
+        "credits": 3,
+        "prerequisite": "MKT0018",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "RET2213",
+        "title": "eCommerce",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2203",
+        "title": "Financial Mgmt for Small Businesses",
+        "credits": 4,
+        "prerequisite": "ACC0014",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "GEN2003",
+        "title": "Healthy Lifestyle",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2204",
+        "title": "Social Innovation",
+        "credits": 3,
+        "prerequisite": "MGT2232",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2008",
+        "title": "Business Plan Applied",
+        "credits": 3,
+        "prerequisite": "ACC0014, MGT2225, MGT2232, MKT0019 & RET2214",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2225",
+        "title": "Project Mgmt for Business Start-ups",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2223",
+        "title": "Career Preparation for Entrepreneurs",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2218",
+        "title": "Digital Marketing",
+        "credits": 3,
+        "prerequisite": "MKT0019",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2224",
+        "title": "Managing for Business Success",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "RET2214",
+        "title": "Retail Management",
+        "credits": 3,
+        "prerequisite": "RET2213",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2228",
+        "title": "Global Entrepreneurship",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "GED0022",
+        "title": "Positive Psychology - Sc. of Well Being",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "RET2223",
+        "title": "Professional Selling",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      }
+    ]
+  },
+  "DIPLOMA-MARKETING": {
+    "major": "DIPLOMA-MARKETING",
+    "courses": [
+      {
+        "code": "ACC2214",
+        "title": "Financial Information for Marketing",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1823",
+        "title": "Communications II",
+        "credits": 3,
+        "prerequisite": "ENL1813",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "BUS2301",
+        "title": "Business Comp Apps",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "GED2234",
+        "title": "Contemporary Ethical Issues",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1813",
+        "title": "Communications I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2206",
+        "title": "Product & Pricing Strategies",
+        "credits": 4,
+        "prerequisite": "MKT2205",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2205",
+        "title": "Marketing Foundations",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2217",
+        "title": "Global Marketing",
+        "credits": 3,
+        "prerequisite": "MKT2205",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2216",
+        "title": "Skills Transferable to Bus",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2282",
+        "title": "Professional Selling",
+        "credits": 4,
+        "prerequisite": "MKT2205",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "QUA0002",
+        "title": "Basic Mathematics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "QUA0008",
+        "title": "Statistics",
+        "credits": 3,
+        "prerequisite": "QUA0002",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2207",
+        "title": "Marketing Channels",
+        "credits": 4,
+        "prerequisite": "MKT2206",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "GEN2003",
+        "title": "Healthy Lifestyle",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2283",
+        "title": "Sales Management",
+        "credits": 4,
+        "prerequisite": "MKT2282",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2208",
+        "title": "Digital Marketing",
+        "credits": 4,
+        "prerequisite": "MKT2291",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2285",
+        "title": "Marketing Research",
+        "credits": 4,
+        "prerequisite": "MKT2206 & QUA0008",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2213",
+        "title": "Skills for the Workplace",
+        "credits": 2,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2291",
+        "title": "Integrated Marketing Communications I",
+        "credits": 4,
+        "prerequisite": "MKT2205 & MKT2206",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2260",
+        "title": "Industry Marketing Plan",
+        "credits": 4,
+        "prerequisite": "MKT2207, MKT2283, MKT2285 & MKT2291",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "GED0022",
+        "title": "Positive Psychology - Sc. of Well Being",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2261",
+        "title": "Mktg Plan Project Field Work",
+        "credits": 3,
+        "prerequisite": "MKT2207, MKT2283",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "MKT2292",
+        "title": "Integrated Marketing Communications II",
+        "credits": 4,
+        "prerequisite": "MKT2291",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      }
+    ]
+  },
+  "DIPLOMA-ACCOUNTING": {
+    "major": "DIPLOMA-ACCOUNTING",
+    "courses": [
+      {
+        "code": "ACC2201",
+        "title": "Financial Accounting I",
+        "credits": 5,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2202",
+        "title": "Financial Accounting II",
+        "credits": 5,
+        "prerequisite": "ACC2201",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "BUS2301",
+        "title": "Business Comp Apps",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2343",
+        "title": "Spreadsheet Applications",
+        "credits": 4,
+        "prerequisite": "ACC2201 & BUS2301",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1813",
+        "title": "Communications I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ECO2200",
+        "title": "Economic Issues",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MGT2201",
+        "title": "Business Fundamentals",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1823",
+        "title": "Communications II",
+        "credits": 3,
+        "prerequisite": "ENL1813",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "QUA2210",
+        "title": "Business Mathematics",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "FIN2230",
+        "title": "Business Finance",
+        "credits": 4,
+        "prerequisite": "ACC2201",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2209",
+        "title": "Financial Accounting III",
+        "credits": 5,
+        "prerequisite": "ACC2202",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2211",
+        "title": "Payroll and Compliance",
+        "credits": 4,
+        "prerequisite": "ACC2202",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2233",
+        "title": "Management Accounting I",
+        "credits": 4,
+        "prerequisite": "ACC2202 & ACC2343",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2234",
+        "title": "Management Accounting II",
+        "credits": 4,
+        "prerequisite": "ACC2233 &  ACC2343",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2262",
+        "title": "Introduction to Personal Taxation",
+        "credits": 4,
+        "prerequisite": "ACC2202",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2265",
+        "title": "Audit Principles & Bus Issues",
+        "credits": 4,
+        "prerequisite": "ACC2209",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "ACC2385",
+        "title": "Accounting Software Applications",
+        "credits": 4,
+        "prerequisite": "ACC2202",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "ACC0012",
+        "title": "Business Project",
+        "credits": 4,
+        "prerequisite": "ACC2209, ACC2233 &  ACC2385",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "GEN2003",
+        "title": "Healthy Lifestyle",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "GED0022",
+        "title": "Positive Psychology - Sc. of Well Being",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      }
+    ]
+  },
+  "DIPLOMA-COMPUTER PROGRAMMING": {
+    "major": "DIPLOMA-COMPUTER PROGRAMMING",
+    "courses": [
+      {
+        "code": "CST8101",
+        "title": "Computer Essentials",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "CST2355",
+        "title": "Database Systems",
+        "credits": 4,
+        "prerequisite": "CST8215",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "CST8116",
+        "title": "Introduction to Comp. Programming",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "CST8102",
+        "title": "Oper System Fundamentals (GNU/Linux)",
+        "credits": 4,
+        "prerequisite": "CST8101",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "CST8215",
+        "title": "Intro to Database",
+        "credits": 5,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "CST8284",
+        "title": "Object-Oriented Programming (Java)",
+        "credits": 4,
+        "prerequisite": "CST8116",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "CST8300",
+        "title": "Achieving Success in Changing Environment",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "CST8285",
+        "title": "Web Programming",
+        "credits": 4,
+        "prerequisite": "CST8116",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1813",
+        "title": "Communications I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "ENL1823",
+        "title": "Communications II",
+        "credits": 3,
+        "prerequisite": "ENL1813",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "MAT8001",
+        "title": "Technical Maths for Computer Science",
+        "credits": 4,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 1",
+        "type": "Major"
+      },
+      {
+        "code": "GED0022",
+        "title": "Positive Psychology - Sc. of Well Being",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "First Year",
+        "semester": "Semester 2",
+        "type": "Major"
+      },
+      {
+        "code": "CST2234",
+        "title": "Systems Analysis and Design",
+        "credits": 4,
+        "prerequisite": "CST8215 & CST8284",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "CST8276",
+        "title": "Advanced Database Topics",
+        "credits": 4,
+        "prerequisite": "CST2355 & CST8109",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "CST2335",
+        "title": "Mobile Graphical Interface Programming",
+        "credits": 4,
+        "prerequisite": "CST8215 & CST8284",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "CST8277",
+        "title": "Enterprise Application Programming",
+        "credits": 4,
+        "prerequisite": "CST8109 & CST8288",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "CST8109",
+        "title": "Network Programming",
+        "credits": 4,
+        "prerequisite": "CST8116 & MAT8001",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "CST8333",
+        "title": "Programming Language Research Project",
+        "credits": 4,
+        "prerequisite": "CST8284",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "CST8283",
+        "title": "Business Programming",
+        "credits": 4,
+        "prerequisite": "CST8116",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "CST8334",
+        "title": "Software Development Project",
+        "credits": 4,
+        "prerequisite": "CST2234, CST2335, CST8109, CST8285 & CST8288",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      },
+      {
+        "code": "CST8288",
+        "title": "Obj-Orient Pgm with Dsgn Patterns",
+        "credits": 4,
+        "prerequisite": "CST8215 & CST8284",
+        "year": "Second Year",
+        "semester": "Semester 3",
+        "type": "Major"
+      },
+      {
+        "code": "GEN2003",
+        "title": "Healthy Lifestyle",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Second Year",
+        "semester": "Semester 4",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-COMPUTER PROGRAMMING": {
+    "major": "BACHELOR-COMPUTER PROGRAMMING",
+    "courses": [
+      {
+        "code": "CSIT3014",
+        "title": "Discrete Mathematics for Information Technology",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3111",
+        "title": "Advanced Networking Technologies",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3115",
+        "title": "Data Structure",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3280",
+        "title": "Information Technology Project Management",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4330",
+        "title": "Data Warehousing and Data Mining",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3211",
+        "title": "Foundations of Computer Security",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3216",
+        "title": "Server Operating Systems",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3225",
+        "title": "Introduction to Programming with Python",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3235",
+        "title": "Software Quality Assurance",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3271",
+        "title": "System Security",
+        "credits": 3,
+        "prerequisite": "CSIT3211",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4125",
+        "title": "Website & Cloud Security",
+        "credits": 3,
+        "prerequisite": "CSIT3211",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT3345",
+        "title": "Advanced Web Application Development",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4235",
+        "title": "Special Topics in Web & Mobile App Development",
+        "credits": 2,
+        "prerequisite": "CSIT3345",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4105",
+        "title": "Search Engine Principles",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "GECU4100",
+        "title": "Technologies, Cultures & Societies",
+        "credits": 1,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4190",
+        "title": "Integration Project I",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "CSIT4290",
+        "title": "Integration Project II",
+        "credits": 3,
+        "prerequisite": "CSIT4190",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-BUSINESS MAN. & ENTR.": {
+    "major": "BACHELOR-BUSINESS MAN. & ENTR.",
+    "courses": [
+      {
+        "code": "BUAC3120",
+        "title": "Managerial Accounting \u200b",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUCO3160",
+        "title": "Information Technology for Business",
+        "credits": 3,
+        "prerequisite": "BUCO3005",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUCO3005",
+        "title": "Management Information Systems",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3100",
+        "title": "Business Analysis and Decision Making \u200b",
+        "credits": 3,
+        "prerequisite": "BUMT3030",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUHR4120",
+        "title": "HR Management for Entrepreneurs",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3110",
+        "title": "Advanced Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "BUHR4120",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMT3030",
+        "title": "Business Statistics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3250",
+        "title": "Principles of Macroeconomics \u200b",
+        "credits": 3,
+        "prerequisite": "GEEC3150",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3150",
+        "title": "Principles of Microeconomics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUAD3091",
+        "title": "Employment Law",
+        "credits": 3,
+        "prerequisite": "BUHR4120",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4200",
+        "title": "Business Strategy",
+        "credits": 3,
+        "prerequisite": "BUEN3100, BUAC3120, GEEC3250",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4150",
+        "title": "Management of Innovation",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3230",
+        "title": "Supply Chain & Logistics Management",
+        "credits": 3,
+        "prerequisite": "BUAC3120 & BUEN3100",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4250",
+        "title": "Entrepreneurial Leadership Practicum I",
+        "credits": 3,
+        "prerequisite": "BUEN3100",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "GECU4100",
+        "title": "Technologies, Cultures & Societies",
+        "credits": 1,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3105",
+        "title": "Operations Management",
+        "credits": 3,
+        "prerequisite": "BUMT3030 & GEEC3150",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4251",
+        "title": "Entrepreneurial Leadership Practicum II",
+        "credits": 2,
+        "prerequisite": "BUEN 4250",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-ACCOUNTING": {
+    "major": "BACHELOR-ACCOUNTING",
+    "courses": [
+      {
+        "code": "BUAC3005",
+        "title": "Intermediate Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4380",
+        "title": "Intermediate Corporate Finance",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAD3090",
+        "title": "Business Law",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3100",
+        "title": "Business Analysis and Decision Making",
+        "credits": 3,
+        "prerequisite": "BUMT3030",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUMK3099",
+        "title": "Introduction to Marketing",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3015",
+        "title": "Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMT3030",
+        "title": "Business Statistics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3150",
+        "title": "Principles of Microeconomics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "GEPH3033",
+        "title": "Professional Integrity & Ethics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC3050",
+        "title": "Accounting for Government and Not for Profit Organization",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4120",
+        "title": "Financial Statement Presentation and Analysis",
+        "credits": 2,
+        "prerequisite": "BUAC3005",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4455",
+        "title": "Advanced Financial Accounting",
+        "credits": 3,
+        "prerequisite": "BUAC3005",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4780",
+        "title": "Advanced Corporate Finance",
+        "credits": 3,
+        "prerequisite": "BUAC4380",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC4720",
+        "title": "Cost Accounting",
+        "credits": 3,
+        "prerequisite": "CO REQUISITE: BUAC4455",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "GECU4100",
+        "title": "Technologies, Cultures & Societies",
+        "credits": 1,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3105",
+        "title": "Operations Management",
+        "credits": 3,
+        "prerequisite": "BUMT3030, BUMK3099, BUMG3015, GEEC3150",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4200",
+        "title": "Business Strategy",
+        "credits": 3,
+        "prerequisite": "BUEN3100\nBUAC4380",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      }
+    ]
+  },
+  "BACHELOR-BME (MARKETING STREAM)": {
+    "major": "BACHELOR-BME (MARKETING STREAM)",
+    "courses": [
+      {
+        "code": "BUAC3100",
+        "title": "Principles of Financial Accounting",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAC3380",
+        "title": "Managerial Finance",
+        "credits": 3,
+        "prerequisite": "BUAC3100",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUAD3090",
+        "title": "Business Law",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3100",
+        "title": "Business Analysis and Decision Making",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 5",
+        "type": "Major"
+      },
+      {
+        "code": "BUCO3005",
+        "title": "Management Information Systems",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3110",
+        "title": "Advanced Organizational Behaviour",
+        "credits": 3,
+        "prerequisite": "BUHR4120",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3025",
+        "title": "Enterprise Development and Business Planning",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3150",
+        "title": "Principles of Microeconomics",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUHR4120",
+        "title": "HR Management for Entrepreneurs",
+        "credits": 3,
+        "prerequisite": "None",
+        "year": "Third Year",
+        "semester": "Semester 6",
+        "type": "Major"
+      },
+      {
+        "code": "BUCO3160",
+        "title": "Information Technology for Business",
+        "credits": 3,
+        "prerequisite": "BUCO3005",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN3230",
+        "title": "Supply Chain & Logistics Management",
+        "credits": 3,
+        "prerequisite": "BUEN3100",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4250",
+        "title": "Entrepreneurial Leadership Practicum I",
+        "credits": 3,
+        "prerequisite": "BUEN3100",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4200",
+        "title": "Business Strategy",
+        "credits": 3,
+        "prerequisite": "BUEN3100, BUAC3380, GEEC3250",
+        "year": "Fourth Year",
+        "semester": "Semester 7",
+        "type": "Major"
+      },
+      {
+        "code": "BUMG3105",
+        "title": "Operations Management",
+        "credits": 3,
+        "prerequisite": "GEEC3150",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "GECU4100",
+        "title": "Technologies, Cultures & Societies",
+        "credits": 1,
+        "prerequisite": "None",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "GEEC3250",
+        "title": "Principles of Macroeconomics \u200b",
+        "credits": 3,
+        "prerequisite": "GEEC3150",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      },
+      {
+        "code": "BUEN4251",
+        "title": "Entrepreneurial Leadership Practicum II",
+        "credits": 2,
+        "prerequisite": "BUEN4250",
+        "year": "Fourth Year",
+        "semester": "Semester 8",
+        "type": "Major"
+      }
+    ]
+  }
+}

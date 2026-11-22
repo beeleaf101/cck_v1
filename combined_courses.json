@@ -1,0 +1,58 @@
+[
+  {
+    "combined": "BUMG3110+BUMG3015",
+    "names": "Advanced Organizational Behaviour , Organizational Behaviour"
+  },
+  {
+    "combined": "BUAD3090+LAW1702",
+    "names": "Business Law , Business Law"
+  },
+  {
+    "combined": "BUMK3099+MKT0018+MKT2205",
+    "names": "Introduction to Marketing, Marketing for Management & Entrepreneurship, Marketing Foundations"
+  },
+  {
+    "combined": "ACC2214+BUAC3120+ACC2233",
+    "names": "Financial Information for Marketing, Managerial Accounting, Management Accounting I"
+  },
+  {
+    "combined": "QUA0008 + BUMT3030",
+    "names": "Statistics, Business Statistics"
+  },
+  {
+    "combined": "ACC0014+BUAC3100+ACC2201",
+    "names": "Accounting for Small Business, Principles of Financial Accounting, Financial Accounting 1"
+  },
+  {
+    "combined": "FIN2230+BUAC3380",
+    "names": "Business Finance, Managerial Finance"
+  },
+  {
+    "combined": "MKT0019 + MKT2285",
+    "names": "Marketing Research, Marketing Research"
+  },
+  {
+    "combined": "MKT2208 + MKT2218",
+    "names": "Digital Marketing, Digital Marketing"
+  },
+  {
+    "combined": "CST8285+CST8209",
+    "names": "Web Programming, Web Programming"
+  },
+  {
+    "combined": "QUA0002+QUA2210",
+    "names": "Business Mathematics, Basic Business Mathematics"
+  },
+  {
+    "combined": "RET2223+MKT2282",
+    "names": "Professional Selling , Professional Selling"
+  },
+  {
+    "combined": "MKT2260+MKT2261",
+    "names": "Industry Marketing Plan, MKTG Plan Field Work"
+  },
+  {
+    "combined": "CST8334+CST8333",
+    "names": "Software Development Project, Programming Language Research Project"
+  }
+]

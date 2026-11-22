@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCK Institution - Timetable & Scheduling System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ==================== LOGIN SCREEN ==================== -->
+        <div id="login-screen" class="screen active">
+            <div class="login-wrapper">
+                <div class="login-card">
+                    <div class="login-logo">
+                        <img src="images/cck-logo-full.png" alt="Canadian College of Kuwait" class="cck-logo-full" style="max-width: 280px; height: auto; margin-bottom: 16px;">
+                        <p class="login-subtitle">Student Information System</p>
+                    </div>
+                    
+                    <form id="login-form" class="login-form">
+                        <div class="form-group">
+                            <label>STUDENT / STAFF ID</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <input type="text" id="login-id" placeholder="Ex: 202400123" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="label-row">
+                                <label>CIVIL ID</label>
+                                <a href="#" class="forgot-link">Forgot password?</a>
+                            </div>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                    <line x1="2" y1="10" x2="22" y2="10"/>
+                                </svg>
+                                <input type="password" id="login-password" placeholder="Enter your Civil ID" required>
+                                <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
+                                    <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn-login">
+                            <span>Secure Login</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10 17 15 12 10 7"/>
+                                <line x1="15" y1="12" x2="3" y2="12"/>
+                            </svg>
+                        </button>
+                        
+                        <div class="login-divider">
+                            <span>OR ACCESS WITH</span>
+                        </div>
+                        
+                        <div class="alt-login-buttons">
+                            <button type="button" class="btn-alt">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <rect x="3" y="3" width="7" height="7"/>
+                                    <rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/>
+                                    <rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                                SSO
+                            </button>
+                            <button type="button" class="btn-alt">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7z"/>
+                                </svg>
+                                QR Code
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <p class="login-warning">Unauthorized access is prohibited. All activities are monitored and logged.</p>
+                </div>
+                
+                <div class="login-footer">
+                    <div class="footer-item">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>Secure System</span>
+                    </div>
+                    <div class="footer-item">
+                        <span>v3.4.1 (Build 209)</span>
+                    </div>
+                    <div class="footer-item">
+                        <span>Support: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="89e1ece5f9edecfae2c9eaeae2a7ecedfca7e2fe">[email&#160;protected]</a></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== STUDENT PORTAL ==================== -->
+        <div id="student-portal" class="screen">
+            <header class="portal-header">
+                <div class="header-left">
+                    <div class="header-logo">
+                        <img src="images/cck-logo-small.png" alt="CCK" style="width: 40px; height: 40px; object-fit: contain;">
+                    </div>
+                    <div class="header-text">
+                        <h1>Canadian College of Kuwait</h1>
+                        <span>Student Portal</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="btn-logout" id="student-logout">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            <main class="student-main">
+                <!-- Profile Section with Stats -->
+                <div class="profile-section">
+                    <div class="profile-card">
+                        <div class="profile-left">
+                            <div class="profile-avatar" id="student-avatar">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <div class="profile-info">
+                                <h2 id="student-name">Loading...</h2>
+                                <p id="student-id-display">Student ID: ---</p>
+                            </div>
+                        </div>
+                        <div class="profile-badges">
+                            <span class="badge badge-type" id="student-type-badge">Normal</span>
+                            <span class="badge badge-lang" id="student-lang-badge">English</span>
+                        </div>
+                    </div>
+
+                    <!-- Student Stats - Same card -->
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <span class="stat-label">MAJOR</span>
+                            <span class="stat-value" id="student-major">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">GPA</span>
+                            <span class="stat-value" id="student-gpa">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">CURRENT SEMESTER</span>
+                            <span class="stat-value">Spring 2025</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">ACADEMIC YEAR</span>
+                            <span class="stat-value" id="student-year">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="content-wrapper">
+                    <!-- Left: Tabs and Content -->
+                    <div class="content-left">
+                        <!-- Tab Navigation -->
+                        <div class="tab-nav">
+                            <button class="tab-btn active" data-tab="schedule">Current Schedule</button>
+                            <button class="tab-btn" data-tab="registration">Course Registration</button>
+                            <button class="tab-btn" data-tab="prerequisites">Prerequisites</button>
+                            <button class="tab-btn" data-tab="progress">Academic Progress</button>
+                        </div>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content">
+                            <!-- Schedule Tab -->
+                            <div id="tab-schedule" class="tab-panel active">
+                                <div class="weekly-schedule" id="weekly-schedule">
+                                    <!-- Schedule will be generated here -->
+                                </div>
+                            </div>
+
+                            <!-- Registration Tab -->
+                            <div id="tab-registration" class="tab-panel">
+                                <div class="registration-layout">
+                                    <!-- AI Recommendations -->
+                                    <div class="ai-recommendations">
+                                        <div class="ai-icon">
+                                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                            </svg>
+                                        </div>
+                                        <div class="ai-content">
+                                            <h4>AI Course Recommendations</h4>
+                                            <p>Based on your <span id="ai-major">major</span>, GPA <span id="ai-gpa">0.00</span>, and completed prerequisites, we suggest:</p>
+                                            <div class="ai-suggestions" id="ai-suggestions">
+                                                <!-- AI suggestions will be populated -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="registration-grid">
+                                        <!-- Available Courses -->
+                                        <div class="available-courses-panel">
+                                            <h3>Available Courses</h3>
+                                            <div class="course-filters">
+                                                <button class="filter-btn active" data-filter="all">All Courses</button>
+                                                <button class="filter-btn" data-filter="major">Major Requirements</button>
+                                                <button class="filter-btn" data-filter="elective">Elective</button>
+                                                <button class="filter-btn" data-filter="prerequisite">Prerequisites</button>
+                                            </div>
+                                            <div class="search-box">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="11" cy="11" r="8"/>
+                                                    <path d="m21 21-4.35-4.35"/>
+                                                </svg>
+                                                <input type="text" id="course-search" placeholder="Search courses...">
+                                            </div>
+                                            <div class="courses-list" id="available-courses-list">
+                                                <!-- Courses will be populated -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Course Details -->
+                                        <div class="course-details-panel" id="course-details-panel">
+                                            <div class="no-selection">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                <p>Select a course to view details</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Selected Courses -->
+                                        <div class="selected-courses-panel">
+                                            <div class="selected-header">
+                                                <h3>Selected Courses</h3>
+                                                <span class="selected-count"><span id="selected-count">0</span>/6</span>
+                                            </div>
+                                            <div class="selected-courses-list" id="selected-courses-list">
+                                                <div class="empty-selection">
+                                                    <p>No courses selected</p>
+                                                </div>
+                                            </div>
+                                            <div class="selected-footer">
+                                                <div class="total-credits">
+                                                    <span>Total Credits</span>
+                                                    <strong id="total-selected-credits">0</strong>
+                                                </div>
+                                                <div class="conflict-warning" id="conflict-warning" style="display: none;">
+                                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M12 2L1 21h22L12 2zm0 3.5L19.5 19h-15L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/>
+                                                    </svg>
+                                                    <span>Schedule Conflict Detected</span>
+                                                </div>
+                                                <button class="btn-secondary" id="save-draft">Save Draft</button>
+                                                <button class="btn-primary" id="submit-registration" disabled>Submit Registration</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Prerequisites Tab -->
+                            <div id="tab-prerequisites" class="tab-panel">
+                                <div id="prerequisites-container">
+                                    <!-- Prerequisites content -->
+                                </div>
+                            </div>
+
+                            <!-- Progress Tab -->
+                            <div id="tab-progress" class="tab-panel">
+                                <div id="progress-container">
+                                    <!-- Progress content -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Sidebar -->
+                    <div class="content-right">
+                        <div class="sidebar-card">
+                            <div class="sidebar-header">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h3>Today's Classes</h3>
+                            </div>
+                            <div class="today-classes" id="today-classes">
+                                <!-- Today's classes will be listed here -->
+                            </div>
+                        </div>
+
+                        <div class="sidebar-card">
+                            <div class="sidebar-header">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                </svg>
+                                <h3>Semester Credits</h3>
+                            </div>
+                            <div class="credits-info">
+                                <div class="credit-row">
+                                    <span>Enrolled Credits</span>
+                                    <strong id="enrolled-credits">0</strong>
+                                </div>
+                                <div class="credit-row">
+                                    <span>Required Credits</span>
+                                    <strong>12</strong>
+                                </div>
+                                <div class="credit-row progress-row">
+                                    <span>Progress</span>
+                                    <strong id="credit-progress" class="progress-value">0%</strong>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-card">
+                            <div class="sidebar-header">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                                <h3>Registration Status</h3>
+                            </div>
+                            <div class="status-info">
+                                <div class="status-row">
+                                    <span>Current Semester</span>
+                                    <span class="status-badge active">ACTIVE</span>
+                                </div>
+                                <div class="status-row">
+                                    <span>Registration Period</span>
+                                    <span class="status-badge closed">CLOSED</span>
+                                </div>
+                                <p class="status-note">Next registration opens: <strong>March 15, 2025</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        <!-- ==================== ADMIN PORTAL ==================== -->
+        <div id="admin-portal" class="screen">
+            <aside class="admin-sidebar">
+                <div class="sidebar-logo">
+                    <img src="images/cck-logo-small.png" alt="CCK" style="width: 40px; height: 40px; object-fit: contain;">
+                    <div class="sidebar-brand">
+                        <h2>CCK Admin</h2>
+                        <span>Portal</span>
+                    </div>
+                </div>
+
+                <nav class="admin-nav">
+                    <a href="#" class="nav-link active" data-section="dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/>
+                            <rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="#" class="nav-link" data-section="students">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Student Management
+                    </a>
+                    <a href="#" class="nav-link" data-section="allocation">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                        Course Allocation
+                    </a>
+                    <a href="#" class="nav-link" data-section="instructors">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Instructor Management
+                    </a>
+                    <a href="#" class="nav-link" data-section="timetable">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Timetable Generation
+                    </a>
+                    <a href="#" class="nav-link" data-section="analytics">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        Reports & Analytics
+                    </a>
+                    <a href="#" class="nav-link" data-section="predictions">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        Enrollment Predictions
+                    </a>
+                    <a href="#" class="nav-link" data-section="advising">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        Course Advising
+                    </a>
+                </nav>
+            </aside>
+
+            <main class="admin-main">
+                <header class="admin-header">
+                    <div class="admin-header-left">
+                        <h1 id="admin-page-title">Dashboard</h1>
+                        <p id="admin-page-subtitle">Canadian College of Kuwait</p>
+                    </div>
+                    <div class="admin-header-right">
+                        <div class="semester-selector">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                            </svg>
+                            <select id="semester-select" onchange="changeSemester(this.value)">
+                                <option value="fall2026">Fall 2026</option>
+                                <option value="spring2026" selected>Spring 2026</option>
+                                <option value="fall2025">Fall 2025</option>
+                                <option value="spring2025">Spring 2025</option>
+                                <option value="fall2024">Fall 2024</option>
+                                <option value="spring2024">Spring 2024</option>
+                            </select>
+                        </div>
+                        <button class="btn-icon" title="Export PDF" onclick="exportToPDF()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            PDF
+                        </button>
+                        <button class="btn-icon" title="Export Excel" onclick="exportToExcel()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="3" y1="15" x2="21" y2="15"/>
+                                <line x1="9" y1="3" x2="9" y2="21"/>
+                                <line x1="15" y1="3" x2="15" y2="21"/>
+                            </svg>
+                            Excel
+                        </button>
+                        <button class="btn-logout-admin" id="admin-logout">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Logout
+                        </button>
+                    </div>
+                </header>
+
+                <div class="admin-content">
+                    <!-- Dashboard Section -->
+                    <section id="section-dashboard" class="admin-section active">
+                        <!-- Will be populated by JS -->
+                    </section>
+
+                    <!-- Student Management Section -->
+                    <section id="section-students" class="admin-section">
+                        <!-- Will be populated by JS -->
+                    </section>
+
+                    <!-- Course Allocation Section -->
+                    <section id="section-allocation" class="admin-section">
+                        <!-- Will be populated by JS -->
+                    </section>
+
+                    <!-- Instructor Management Section -->
+                    <section id="section-instructors" class="admin-section">
+                        <!-- Will be populated by JS -->
+                    </section>
+
+                    <!-- Timetable Generation Section -->
+                    <section id="section-timetable" class="admin-section">
+                        <!-- Will be populated by JS -->
+                    </section>
+
+                    <!-- Analytics Section -->
+                    <section id="section-analytics" class="admin-section">
+                        <!-- Will be populated by JS -->
+                    </section>
+
+                    <!-- Enrollment Predictions Section -->
+                    <section id="section-predictions" class="admin-section">
+                        <div id="predictions-container">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </section>
+
+                    <!-- Course Advising Section -->
+                    <section id="section-advising" class="admin-section">
+                        <!-- Will be populated by JS -->
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+    
+    <!-- Undo Toast -->
+    <div id="undo-toast" class="undo-toast" style="display: none;">
+        <span id="undo-message">Action completed</span>
+        <button onclick="undoDeleteStudent()" class="undo-btn">Undo</button>
+        <button onclick="hideUndoToast()" class="undo-close">&times;</button>
+    </div>
+    
+    <!-- Database Status Indicator -->
+    <div id="db-status-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+        <div id="db-status-indicator" style="background: white; padding: 8px 16px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-size: 12px; font-weight: 500;">
+            <span style="color: #F59E0B;">● Offline</span>
+        </div>
+        <div id="offline-changes-indicator" style="display: none;"></div>
+    </div>
+
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Database Scripts -->
+    <script src="js/supabase-client.js"></script>
+    <script src="js/database-integration.js"></script>
+    <script src="js/data-migration.js"></script>
+    <script src="js/data-sync.js"></script>
+    
+    <!-- Enrollment Prediction Module -->
+    <script src="js/enrollment-prediction.js"></script>
+    
+    <!-- Main Application -->
+    <script src="app.js"></script>
+</body>
+</html>
