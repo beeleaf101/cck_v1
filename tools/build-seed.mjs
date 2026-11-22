@@ -107,8 +107,8 @@ for (const [k, v, d] of settings) {
 let adminNote = '';
 if (args['admin-password']) {
   const salt = randomBytes(16);
-  const hash = pbkdf2Sync(args['admin-password'], salt, 100000, 32, 'sha256');
-  const stored = `pbkdf2$100000$${salt.toString('base64')}$${hash.toString('base64')}`;
+  const hash = pbkdf2Sync(args['admin-password'], salt, 20000, 32, 'sha256');
+  const stored = `pbkdf2$20000$${salt.toString('base64')}$${hash.toString('base64')}`;
   priv.push(`INSERT OR REPLACE INTO admin_users (username, password_hash) VALUES ('admin', ${q(stored)});`);
   adminNote = ' + admin login';
 }

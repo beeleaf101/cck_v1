@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "cck-sis-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_id": "6d9d4f3a-7408-4e63-ad78-5d2619791e6b"
     }
   ],
   "observability": { "enabled": true }

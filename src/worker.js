@@ -8,7 +8,9 @@ const SESSION_COOKIE = 'cck_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
 const MAX_FAILED_LOGINS = 5;
 const LOCKOUT_SECONDS = 15 * 60;
-const PBKDF2_ITERATIONS = 100000; // Workers' maximum
+// Kept modest so a login fits the Workers Free plan's 10 ms CPU budget.
+// Stored hashes record their own iteration count, so this can be raised later.
+const PBKDF2_ITERATIONS = 20000;
 
 // Tables the admin "query" endpoint may touch. Login tables are never exposed.
 const QUERY_TABLES = new Set([
@@ -339,12 +341,15 @@ function cleanStudent(body, { partial }) {
   for (const f of STUDENT_FIELDS) {
     if (body[f] === undefined) continue;
     let v = body[f];
-    if (f === 'gpa' || f === 'cgpa') v = v === '' || v === null ? null : Number(v);
-    else if (f === 'enrolled_credits') v = parseInt(v, 10) || 0;
+    if (f === 'gpa' || f === 'cgpa') {
+      // Numbers are checked; text such as "Not Given" (used in the college data) is kept as is
+      if (v === '' || v === null) v = null;
+      else if (Number.isFinite(Number(v))) {
+        v = Number(v);
+        if (v < 0 || v > 4.5) throw new HttpError(400, 'GPA must be between 0 and 4.5');
+      } else v = String(v).trim().slice(0, 40);
+    } else if (f === 'enrolled_credits') v = parseInt(v, 10) || 0;
     else v = v === null ? null : String(v).trim();
-    if ((f === 'gpa' || f === 'cgpa') && v !== null && (!Number.isFinite(v) || v < 0 || v > 4.5)) {
-      throw new HttpError(400, 'GPA must be between 0 and 4.5');
-    }
     out[f] = v;
   }
   if (!partial) {
@@ -389,6 +394,69 @@ async function deleteStudent(request, env, studentId) {
   const res = await env.DB.prepare('DELETE FROM students WHERE student_id = ?').bind(studentId).run();
   if (!res.meta.changes) throw new HttpError(404, 'Student not found');
   return json({ ok: true });
+}
+
+// Admin import of the private JSON files, sent from the browser in chunks
+// (students.json, enrollments.json, historical_grades.json).
+const IMPORT_MAX_ROWS = 500;
+const toNumberOrNull = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+async function importData(request, env) {
+  await requireSession(request, env, 'admin');
+  const body = await readJson(request);
+  const rows = Array.isArray(body.rows) ? body.rows : [];
+  if (rows.length > IMPORT_MAX_ROWS) throw new HttpError(400, `Send at most ${IMPORT_MAX_ROWS} rows per request`);
+  const db = env.DB;
+  const stmts = [];
+
+  if (body.kind === 'students') {
+    for (const r of rows) {
+      const data = cleanStudent(r, { partial: false });
+      if (!data.status) data.status = 'active';
+      const cols = Object.keys(data);
+      stmts.push(db.prepare(`INSERT OR REPLACE INTO students (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`)
+        .bind(...cols.map((c) => data[c])));
+    }
+  } else if (body.kind === 'enrollments') {
+    const sem = await enrollmentSemester(env);
+    if (!sem.id) throw new HttpError(400, 'Enrollment semester not found');
+    if (body.replace) stmts.push(db.prepare('DELETE FROM enrollments WHERE semester_id = ?').bind(sem.id));
+    for (const r of rows) {
+      if (!r.student_id || !r.course_code) throw new HttpError(400, 'Each enrollment needs student_id and course_code');
+      stmts.push(db.prepare(
+        `INSERT OR IGNORE INTO enrollments (semester_id, ${ENROLLMENT_FIELDS.join(', ')}) VALUES (?, ${ENROLLMENT_FIELDS.map(() => '?').join(', ')})`
+      ).bind(sem.id, ...ENROLLMENT_FIELDS.map((f) => {
+        const v = r[f];
+        if (v === undefined || v === null) return f === 'time' || f === 'teaching_method' ? '' : (f === 'section' ? '1' : null);
+        return String(v);
+      })));
+    }
+  } else if (body.kind === 'historical_records') {
+    if (body.replace) stmts.push(db.prepare('DELETE FROM historical_grades'));
+    const gp = body.grade_points || {};
+    for (const r of rows) {
+      if (!r.student_id || !r.course_code) throw new HttpError(400, 'Each grade record needs student_id and course_code');
+      stmts.push(db.prepare(
+        `INSERT INTO historical_grades (semester_label, student_id, student_name, course_code, course_name, grade, grade_points, credit_hours, gpa, cgpa)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(r.semester ?? null, String(r.student_id), r.student_name ?? null, String(r.course_code), r.course_name ?? null,
+        r.grade ?? null, gp[r.grade] ?? null, parseInt(r.credit_hours, 10) || 3,
+        toNumberOrNull(r.gpa), toNumberOrNull(r.cgpa)));
+    }
+  } else if (body.kind === 'historical_meta') {
+    const meta = [
+      ['historical_course_stats', body.course_stats || {}, 'Per-course grade statistics (aggregate, no names)'],
+      ['historical_grade_points', body.grade_points || {}, 'Grade to grade-point mapping'],
+      ['historical_summary', body.summary || {}, 'Historical grades summary'],
+    ];
+    for (const [k, v, d] of meta) {
+      stmts.push(db.prepare('INSERT OR REPLACE INTO system_settings (key, value, description) VALUES (?, ?, ?)').bind(k, JSON.stringify(v), d));
+    }
+  } else {
+    throw new HttpError(400, 'Unknown import kind');
+  }
+
+  if (stmts.length) await db.batch(stmts);
+  return json({ ok: true, imported: rows.length });
 }
 
 async function deleteAllData(request, env) {
@@ -550,6 +618,7 @@ async function handleApi(request, env, url) {
   if (sm && m === 'DELETE') return deleteStudent(request, env, sm[1]);
   if (path === '/api/query' && m === 'POST') return runQuery(request, env);
   if (path === '/api/admin/delete-all' && m === 'POST') return deleteAllData(request, env);
+  if (path === '/api/admin/import' && m === 'POST') return importData(request, env);
   throw new HttpError(404, 'Not found');
 }
 

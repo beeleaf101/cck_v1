@@ -666,6 +666,80 @@ function showDeleteDataPrompt() {
     document.getElementById('delete-password-input').focus();
 }
 
+// =====================================================
+// IMPORT PRIVATE DATA FILES (students / enrollments / historical grades)
+// The files are read in the browser and sent to the database in chunks;
+// they are never stored on the website or in GitHub.
+// =====================================================
+function detectImportKind(data) {
+    if (data && !Array.isArray(data) && Array.isArray(data.records)) return 'historical';
+    if (Array.isArray(data) && data.length) {
+        var first = data[0];
+        if ('civil_id' in first || ('name' in first && 'major' in first)) return 'students';
+        if ('course_code' in first && 'student_id' in first) return 'enrollments';
+    }
+    return null;
+}
+
+async function uploadInChunks(kind, rows, extra, label, from, to) {
+    var size = 400;
+    for (var i = 0; i < rows.length; i += size) {
+        var payload = Object.assign({ kind: kind, rows: rows.slice(i, i + size), replace: i === 0 }, extra || {});
+        var res = await window.api.importData(payload);
+        if (res.error) throw new Error(label + ': ' + res.error.message);
+        var done = Math.min(i + size, rows.length);
+        updateSyncStatus('Importing ' + label + ' ' + done + '/' + rows.length + '...', from + Math.round((done / rows.length) * (to - from)));
+    }
+}
+
+async function importDataFiles(fileList) {
+    if (!isDbConnected()) {
+        showToast('Log in as admin first', 'error');
+        return;
+    }
+    var files = Array.prototype.slice.call(fileList || []);
+    if (!files.length) return;
+
+    var parsed = {};
+    for (var i = 0; i < files.length; i++) {
+        try {
+            var data = JSON.parse(await files[i].text());
+            var kind = detectImportKind(data);
+            if (!kind) { showToast('Not a recognised data file: ' + files[i].name, 'error'); return; }
+            parsed[kind] = data;
+        } catch (e) {
+            showToast('Could not read ' + files[i].name + ': ' + e.message, 'error');
+            return;
+        }
+    }
+    var summary = [];
+    if (parsed.students) summary.push(parsed.students.length + ' students');
+    if (parsed.enrollments) summary.push(parsed.enrollments.length + ' enrollment rows (replaces current ones)');
+    if (parsed.historical) summary.push(parsed.historical.records.length + ' grade records (replaces current ones)');
+    if (!confirm('Import into the database:\n- ' + summary.join('\n- ') + '\n\nContinue?')) return;
+
+    showSyncModal();
+    try {
+        if (parsed.students) await uploadInChunks('students', parsed.students, null, 'students', 5, 35);
+        if (parsed.enrollments) await uploadInChunks('enrollments', parsed.enrollments, null, 'enrollments', 35, 65);
+        if (parsed.historical) {
+            var h = parsed.historical;
+            await uploadInChunks('historical_records', h.records, { grade_points: h.grade_points || GRADE_POINTS_FOR_SYNC }, 'grade records', 65, 95);
+            var meta = await window.api.importData({ kind: 'historical_meta', rows: [], course_stats: h.course_stats, grade_points: h.grade_points, summary: h.summary });
+            if (meta.error) throw new Error('grade statistics: ' + meta.error.message);
+        }
+        updateSyncStatus('Import complete!', 100);
+        setTimeout(function () {
+            hideSyncModal();
+            showToast('Data imported. Reloading...', 'success');
+            location.reload();
+        }, 1200);
+    } catch (e) {
+        hideSyncModal();
+        showToast('Import failed: ' + e.message, 'error');
+    }
+}
+
 // Change the admin password (checked and saved by the server)
 function showChangePasswordPrompt() {
     var modal = document.createElement('div');
@@ -760,7 +834,11 @@ function renderDatabaseManagementPanel() {
     // Last sync info + change admin password
     html += '<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; font-size: 13px; color: #6B7280; display: flex; justify-content: space-between; align-items: center;">';
     html += '<span id="last-sync-time">Last sync: Never</span>';
+    html += '<span style="display: flex; gap: 8px;">';
+    html += '<button onclick="document.getElementById(\'import-files-input\').click()" style="padding: 8px 14px; border: 1px solid #10B981; border-radius: 8px; background: #F0FDF4; color: #166534; cursor: pointer; font-size: 13px; font-weight: 600;">Import data files</button>';
+    html += '<input type="file" id="import-files-input" accept=".json,application/json" multiple style="display: none;" onchange="importDataFiles(this.files); this.value = \'\';">';
     html += '<button onclick="showChangePasswordPrompt()" style="padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; background: white; cursor: pointer; font-size: 13px;">Change admin password</button>';
+    html += '</span>';
     html += '</div>';
     
     html += '</div>';
@@ -825,6 +903,7 @@ if (typeof window !== 'undefined') {
     window.deleteAllDatabaseData = deleteAllDatabaseData;
     window.showDeleteDataPrompt = showDeleteDataPrompt;
     window.showChangePasswordPrompt = showChangePasswordPrompt;
+    window.importDataFiles = importDataFiles;
     window.closePasswordModal = closePasswordModal;
     window.closeDeleteModal = closeDeleteModal;
     window.confirmDeleteData = confirmDeleteData;

@@ -57,6 +57,7 @@
         updateStudent(id, s) { return request('PUT', '/api/students/' + encodeURIComponent(id), s); },
         deleteStudent(id) { return request('DELETE', '/api/students/' + encodeURIComponent(id)); },
         deleteAllData(password) { return request('POST', '/api/admin/delete-all', { password: password }); },
+        importData(payload) { return request('POST', '/api/admin/import', payload); },
         isAdmin() { return api.session && api.session.role === 'admin'; },
     };
 
