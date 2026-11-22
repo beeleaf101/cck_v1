@@ -1,226 +1,105 @@
-# CCK Student Information System
+# CCK SIS – Student Information System
 
-A comprehensive Student Information System for Canadian College of Kuwait (CCK) featuring course management, timetable generation, academic advising, and analytics.
+Student Information System for the Canadian College of Kuwait: AI course allocation, timetable
+generation, enrollment predictions, a student portal and an admin dashboard.
 
-## Features
+It runs on **Cloudflare Workers** with a **Cloudflare D1** database. The Worker serves the
+website and a small JSON API; private data (students, enrollments, grades) lives only in D1 and
+is returned only to logged-in users.
 
-- **Student Portal**: View enrolled courses, timetables, study plans, and academic progress
-- **Admin Portal**: Manage students, courses, instructors, and generate timetables
-- **AI Timetable Generation**: Automatic conflict-free schedule generation
-- **Course Advising**: Record student course selections for next semester
-- **Analytics Dashboard**: Real-time insights with modern visualizations
-- **Supabase Integration**: Cloud database with offline support
+## How it fits together
 
-## Quick Start
+```
+Browser ──► Cloudflare Worker (src/worker.js)
+              ├─ /            static site from public/
+              └─ /api/*       login + data API ──► D1 database (cck-sis-db)
+```
 
-### 1. Local Development (No Database)
+| Who | Logs in with | Can see |
+|-----|--------------|---------|
+| Admin | `admin` + admin password | Everything |
+| Student | Student ID + Civil ID | Own record and grades; other students in course lists are anonymous |
 
-Simply open `index.html` in a browser. The system will run with local JSON data.
+Passwords are checked on the server. Sessions use an HttpOnly cookie. After 5 wrong
+passwords from one address, login is locked for 15 minutes.
+
+## Project structure
+
+```
+├── src/worker.js            Cloudflare Worker: website + API
+├── wrangler.jsonc           Worker and D1 settings
+├── database/
+│   ├── schema.sql           D1 schema (all tables, views, settings)
+│   └── schema.postgres.sql  Original Supabase schema, for reference
+├── tools/
+│   ├── build-seed.mjs       Builds SQL to load data into D1
+│   └── generate_excel_timetable.py
+└── public/                  The website
+    ├── index.html, app.js, styles.css
+    ├── courses.json, instructors.json, study_plans*.json, ...   (public data)
+    └── js/
+        ├── d1-client.js             Talks to the API (replaces Supabase)
+        ├── database-integration.js  Allocations, timetables, semesters
+        ├── data-sync.js             "Sync All Data" admin tools
+        └── enrollment-prediction.js AI predictions
+```
+
+`students.json`, `enrollments.json` and `historical_grades.json` are **not** in this repo.
+They contain personal data and are loaded straight into D1.
+
+## Setup
 
 ```bash
-# Using Python
-python -m http.server 8000
+npm install
 
-# Using Node.js
-npx serve .
+# 1. Create the database, then put its id in wrangler.jsonc ("database_id")
+npx wrangler d1 create cck-sis-db
 
-# Then open http://localhost:8000
+# 2. Create the tables
+npm run db:schema
+
+# 3. Load data: put students.json, enrollments.json and historical_grades.json
+#    in a private/ folder (ignored by git), then:
+node tools/build-seed.mjs --admin-password "choose-a-strong-password"
+npm run db:seed
+
+# 4. Deploy
+npm run deploy
 ```
 
-### 2. With Supabase Database
+To run locally: `npm run db:schema:local && npm run db:seed:local && npm run dev`, then open
+http://localhost:8787.
 
-#### Step 1: Create Supabase Project
+### Deploy on every push
 
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Wait for the project to be ready
+In the Cloudflare dashboard: **Workers & Pages → Create → Import a repository**, pick this repo.
+Cloudflare then builds and deploys each push to `main`. To use your own domain:
+**the Worker → Settings → Domains & Routes → Add → Custom domain**.
 
-#### Step 2: Run Database Schema
+## API
 
-1. Go to SQL Editor in your Supabase dashboard
-2. Copy the contents of `database/schema.sql`
-3. Run the SQL to create all tables
+| Method | Path | Who |
+|--------|------|-----|
+| POST | `/api/auth/login` | anyone |
+| POST | `/api/auth/logout` | logged in |
+| GET | `/api/auth/me` | anyone |
+| POST | `/api/auth/password` | admin |
+| GET | `/api/data` | logged in (scoped by role) |
+| GET | `/api/historical-grades` | logged in (scoped by role) |
+| POST / PUT / DELETE | `/api/students[/:id]` | admin |
+| POST | `/api/query` | admin (allocations, timetables, sync) |
+| POST | `/api/admin/delete-all` | admin + password |
+| GET | `/api/health` | anyone |
 
-#### Step 3: Configure Connection
+## Data statistics
 
-Edit `js/supabase-client.js` and replace the placeholder values:
+| Entity | Count |
+|--------|-------|
+| Students | 662 |
+| Courses | 131 |
+| Instructors | 24 |
+| Enrollment rows | 2,527 |
+| Historical grade records | 2,235 |
 
-```javascript
-const SUPABASE_CONFIG = {
-    url: 'https://YOUR_PROJECT_ID.supabase.co',
-    anonKey: 'YOUR_ANON_KEY'
-};
-```
-
-You can find these values in:
-- Supabase Dashboard → Settings → API
-- `url` = Project URL
-- `anonKey` = anon/public key
-
-#### Step 4: Migrate Data
-
-1. Open the application in browser
-2. Open browser console (F12)
-3. Run: `showMigrationUI()`
-4. Click "Start Migration" to import JSON data to database
-
-## Project Structure
-
-```
-cck-sis-v2/
-├── index.html              # Main HTML file
-├── app.js                  # Main application logic (8000+ lines)
-├── styles.css              # All CSS styles
-├── database/
-│   └── schema.sql          # Supabase database schema
-├── js/
-│   ├── supabase-client.js  # Supabase client configuration
-│   ├── database-integration.js  # Database connection layer
-│   └── data-migration.js   # Data migration utilities
-├── students.json           # Student data (private – not in this repo)
-├── courses.json            # Course catalog (131 courses)
-├── instructors.json        # Instructor data (24 instructors)
-├── enrollments.json        # Enrollment records (private – not in this repo)
-├── historical_grades.json  # Grade history (private – not in this repo)
-├── study_plans.json        # Study plans for all programs
-└── README.md               # This file
-```
-
-## Database Schema
-
-### Core Tables
-
-| Table | Description |
-|-------|-------------|
-| `semesters` | Academic semesters (Spring 2025, Fall 2024, etc.) |
-| `programs` | Degree programs (Diploma, Bachelor) |
-| `students` | Student records with academic info |
-| `instructors` | Faculty information |
-| `courses` | Course catalog |
-| `course_sections` | Course offerings per semester |
-| `enrollments` | Student course enrollments |
-
-### Advising & Scheduling
-
-| Table | Description |
-|-------|-------------|
-| `advising_sessions` | Academic advising records |
-| `advising_selections` | Course selections per session |
-| `course_demand` | Aggregated course demand |
-| `timetables` | Generated schedules |
-| `timetable_entries` | Individual schedule entries |
-| `rooms` | Classroom/lab information |
-| `room_bookings` | Room reservations |
-
-### Supporting Tables
-
-| Table | Description |
-|-------|-------------|
-| `study_plans` | Curriculum requirements |
-| `instructor_assignments` | Course assignments |
-| `audit_log` | Change tracking |
-| `system_settings` | Configuration |
-
-## Default Login Credentials
-
-### Student Portal
-- **Username**: Any student ID (e.g., `202401223`)
-- **Password**: `student123`
-
-### Admin Portal
-- **Username**: `admin`
-- **Password**: `admin123`
-
-## API Reference
-
-### Database Service Methods
-
-```javascript
-// Students
-await db.getStudents(filters)
-await db.getStudentById(studentId)
-await db.createStudent(student)
-await db.updateStudent(id, updates)
-
-// Instructors
-await db.getInstructors(filters)
-await db.createInstructor(instructor)
-
-// Courses
-await db.getCourses(filters)
-await db.getCourseByCode(code)
-
-// Enrollments
-await db.getEnrollments(filters)
-await db.createEnrollment(enrollment)
-await db.bulkCreateEnrollments(enrollments)
-
-// Advising
-await db.getAdvisingSessions(filters)
-await db.createAdvisingSession(session, selections)
-
-// Timetables
-await db.getTimetables(filters)
-await db.createTimetable(timetable, entries)
-await db.publishTimetable(id)
-```
-
-### Data Migration
-
-```javascript
-// Run full migration
-await runFullMigration()
-
-// Export data to JSON
-exportDataToJson()
-
-// Import from JSON file
-await importDataFromJson(file)
-```
-
-## Offline Support
-
-The system works offline with the following features:
-
-- **Local Storage**: Changes are queued when offline
-- **Auto-Sync**: Queued changes sync when connection restores
-- **Status Indicator**: Bottom-right shows connection status
-- **Graceful Fallback**: Uses local JSON when database unavailable
-
-## Environment Variables (Optional)
-
-For production deployment, you can use environment variables:
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-```
-
-## Browser Support
-
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
-
-## Technologies Used
-
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3
-- **Database**: Supabase (PostgreSQL)
-- **Icons**: SVG icons (no external dependencies)
-- **Fonts**: Inter, IBM Plex Arabic
-
-## Data Included
-
-- **662 Students** across 10 programs
-- **131 Courses** with full details
-- **24 Instructors** with specializations
-- **2,527 Enrollments** for Spring 2025
-- **8 Study Plans** (4 Diploma + 4 Bachelor programs)
-
-## Support
-
-For issues or questions, please contact the IT department at Canadian College of Kuwait.
-
-## License
-
-Proprietary - Canadian College of Kuwait
+---
+Canadian College of Kuwait

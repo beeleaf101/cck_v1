@@ -294,13 +294,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSavedAllocation(); // Load allocation for current semester
     initializeEventListeners();
     
-    // Load historical grades for enrollment predictions
-    if (typeof loadHistoricalGrades === 'function') {
-        loadHistoricalGrades().then(() => {
-            console.log('Historical grades loaded for predictions');
-        }).catch(err => {
-            console.log('Historical grades not available:', err.message);
-        });
+    // Stay logged in after a page refresh (session cookie checked by the server)
+    try {
+        const session = await window.api.me();
+        if (session && session.role) {
+            await startSession(session.role, session.user);
+        }
+    } catch (err) {
+        console.log('Session check failed:', err.message);
     }
     
     console.log('CCK SIS v2 initialized - Semester:', AppState.currentSemester);
@@ -590,10 +591,11 @@ async function loadAllData() {
         const [students, courses, instructors, enrollments, hallsSchedule, combinedCourses] = await Promise.all([
             // students.json and enrollments.json hold private data and are not in the public repo;
             // fall back to an empty list when they are missing
-            fetch('students.json' + cacheBust).then(r => r.ok ? r.json() : []).catch(() => []),
+            // Students and enrollments are private: they are loaded from the database after login
+            Promise.resolve([]),
             fetch('courses.json' + cacheBust).then(r => r.json()),
             fetch('instructors.json' + cacheBust).then(r => r.json()),
-            fetch('enrollments.json' + cacheBust).then(r => r.ok ? r.json() : []).catch(() => []),
+            Promise.resolve([]),
             fetch('halls_schedule.json' + cacheBust).then(r => r.json()),
             fetch('combined_courses.json' + cacheBust).then(r => r.json())
         ]);
@@ -631,12 +633,69 @@ async function loadAllData() {
     }
 }
 
+// Load students and enrollments from the database (needs a login).
+// Admins get everything; a student gets their own record, and other students
+// in the enrollment list are anonymised by the server.
+async function loadPrivateData() {
+    const res = await window.api.getData();
+    if (res.error) {
+        console.error('Could not load data:', res.error.message);
+        showToast('Could not load student data: ' + res.error.message, 'error');
+        return false;
+    }
+    AppState.students = res.data.students || [];
+    AppState.enrollments = res.data.enrollments || [];
+    AppState.enrollmentSemester = res.data.enrollment_semester || 'spring2026';
+    processCoursesData();
+    console.log(`Loaded from database: ${AppState.students.length} students, ${AppState.enrollments.length} enrollment rows`);
+    return true;
+}
+
+function clearPrivateData() {
+    AppState.students = [];
+    AppState.enrollments = [];
+    if (typeof HistoricalData !== 'undefined') {
+        HistoricalData.records = [];
+        HistoricalData.courseStats = {};
+        HistoricalData.studentStats = {};
+        HistoricalData.loaded = false;
+    }
+    processCoursesData();
+}
+
+// After a successful login (or a restored session): load data and open the portal
+async function startSession(role, user) {
+    const ok = await loadPrivateData();
+    if (!ok) return;
+    
+    if (typeof loadHistoricalGrades === 'function') {
+        loadHistoricalGrades().then(loaded => {
+            if (loaded) console.log('Historical grades loaded for predictions');
+        });
+    }
+    
+    if (role === 'admin') {
+        AppState.isAdmin = true;
+        AppState.currentUser = user;
+        if (typeof initializeDatabase === 'function') initializeDatabase();
+        showAdminPortal();
+    } else {
+        // Use the record from the loaded data so edits stay in sync
+        AppState.isAdmin = false;
+        AppState.currentUser = AppState.students.find(s => s.student_id === user.student_id) || user;
+        showStudentPortal();
+    }
+}
+
 function processCoursesData() {
     // Enhance course data with enrollment counts and random data for demo
     const colors = ['color-blue', 'color-green', 'color-purple', 'color-orange', 'color-yellow'];
     
     AppState.courses.forEach((course, index) => {
-        const enrollmentCount = AppState.enrollments.filter(e => e.course_code === course.code).length;
+        // Count students, not rows: a course with a lecture and a lab has two rows per student
+        const enrollmentCount = new Set(
+            AppState.enrollments.filter(e => e.course_code === course.code).map(e => e.student_id)
+        ).size;
         course.enrollmentCount = enrollmentCount;
         course.capacity = 35;
         course.colorClass = colors[index % colors.length];
@@ -706,48 +765,41 @@ function togglePasswordVisibility() {
 window.togglePasswordVisibility = togglePasswordVisibility;
 
 // ==================== AUTHENTICATION ====================
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const loginId = document.getElementById('login-id').value.trim();
-    const civilId = document.getElementById('login-password').value.trim();
-    
-    // Admin login
-    if (loginId === 'admin' && civilId === 'admin') {
-        AppState.isAdmin = true;
-        AppState.currentUser = {
-            student_id: 'admin',
-            name: 'System Administrator',
-            major: 'Administration',
-            level: 'Admin',
-            gpa: '-',
-            student_type: 'Admin',
-            language: 'English'
-        };
-        showAdminPortal();
-        showToast('Welcome, Administrator!', 'success');
+    const password = document.getElementById('login-password').value.trim();
+    if (!loginId || !password) {
+        showToast('Enter your ID and password.', 'error');
         return;
     }
     
-    // Student login - find by student_id and verify civil_id
-    const student = AppState.students.find(s => s.student_id === loginId);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
     
-    if (student) {
-        // Check if civil_id matches (if student has civil_id field)
-        if (student.civil_id && student.civil_id !== civilId) {
-            showToast('Invalid Civil ID. Please try again.', 'error');
+    try {
+        // The server checks the password (admin password or student Civil ID)
+        const res = await window.api.login(loginId, password);
+        if (res.error) {
+            showToast(res.error.message || 'Login failed. Please try again.', 'error');
             return;
         }
-        
-        AppState.currentUser = student;
-        AppState.isAdmin = false;
-        showStudentPortal();
-        showToast(`Welcome back, ${student.name.split(' ')[0]}!`, 'success');
-    } else {
-        showToast('Invalid Student ID. Please try again.', 'error');
+        await startSession(res.data.role, res.data.user);
+        if (res.data.role === 'admin') {
+            showToast('Welcome, Administrator!', 'success');
+        } else {
+            showToast(`Welcome back, ${String(res.data.user.name || '').split(' ')[0]}!`, 'success');
+        }
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
-function handleLogout() {
+async function handleLogout() {
+    try { await window.api.logout(); } catch (err) { /* still log out locally */ }
+    if (typeof DatabaseState !== 'undefined') DatabaseState.isConnected = false;
+    clearPrivateData();
+    
     AppState.currentUser = null;
     AppState.isAdmin = false;
     AppState.selectedCourses = [];
@@ -4123,7 +4175,7 @@ window.openAddStudentModal = function() {
     modal.classList.add('active');
 };
 
-window.submitNewStudent = function(e) {
+window.submitNewStudent = async function(e) {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData(form);
@@ -4143,8 +4195,15 @@ window.submitNewStudent = function(e) {
         status: 'Active'
     };
     
+    // Save to the database first
+    const res = await window.api.createStudent(newStudent);
+    if (res.error) {
+        showToast('Could not add student: ' + res.error.message, 'error');
+        return;
+    }
+    
     // Add to AppState
-    AppState.students.unshift(newStudent);
+    AppState.students.unshift(res.data.student);
     StudentManagement.filteredStudents = [...AppState.students];
     
     closeModal();
@@ -4330,22 +4389,31 @@ window.editStudent = function(studentId) {
     modal.classList.add('active');
 };
 
-window.submitEditStudent = function(e, studentId) {
+window.submitEditStudent = async function(e, studentId) {
     e.preventDefault();
     const form = e.target;
     const formData = new FormData(form);
     
     const student = AppState.students.find(s => s.student_id === studentId);
     if (student) {
-        student.civil_id = formData.get('civil_id');
-        student.name = formData.get('name');
-        student.name_ar = formData.get('name_ar');
-        student.email = formData.get('email');
-        student.gpa = formData.get('gpa');
-        student.level = formData.get('level');
-        student.student_type = formData.get('student_type');
-        student.language = formData.get('language');
-        student.status = formData.get('status');
+        const changes = {
+            civil_id: formData.get('civil_id'),
+            name: formData.get('name'),
+            name_ar: formData.get('name_ar'),
+            email: formData.get('email'),
+            gpa: formData.get('gpa'),
+            level: formData.get('level'),
+            student_type: formData.get('student_type'),
+            language: formData.get('language'),
+            status: formData.get('status')
+        };
+        // Save to the database, then update the page with what was saved
+        const res = await window.api.updateStudent(studentId, changes);
+        if (res.error) {
+            showToast('Could not save changes: ' + res.error.message, 'error');
+            return;
+        }
+        Object.assign(student, res.data.student);
     }
     
     closeModal();
@@ -4389,10 +4457,17 @@ window.deleteStudent = function(studentId) {
     modal.classList.add('active');
 };
 
-window.confirmDeleteStudent = function(studentId) {
+window.confirmDeleteStudent = async function(studentId) {
     const index = AppState.students.findIndex(s => s.student_id === studentId);
     if (index > -1) {
         const deletedStudent = AppState.students[index];
+        
+        const res = await window.api.deleteStudent(studentId);
+        if (res.error) {
+            closeModal();
+            showToast('Could not delete student: ' + res.error.message, 'error');
+            return;
+        }
         
         // Store for undo
         StudentManagement.deletedStudents.push({
@@ -4414,10 +4489,17 @@ window.confirmDeleteStudent = function(studentId) {
 };
 
 // Undo delete
-window.undoDeleteStudent = function() {
+window.undoDeleteStudent = async function() {
     if (StudentManagement.deletedStudents.length === 0) return;
     
     const lastDeleted = StudentManagement.deletedStudents.pop();
+    
+    // Put the student back in the database
+    const res = await window.api.createStudent(lastDeleted.student);
+    if (res.error) {
+        showToast('Could not restore student: ' + res.error.message, 'error');
+        return;
+    }
     
     // Restore student at original position
     AppState.students.splice(lastDeleted.index, 0, lastDeleted.student);

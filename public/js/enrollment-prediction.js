@@ -32,8 +32,13 @@ let PredictionView = {
 // Load historical grades data
 async function loadHistoricalGrades() {
     try {
-        const response = await fetch('historical_grades.json');
-        const data = await response.json();
+        // Private data: comes from the database API and needs a login
+        const res = await window.api.getHistoricalGrades();
+        if (res.error) {
+            console.log('Historical grades not loaded:', res.error.message);
+            return false;
+        }
+        const data = res.data;
         
         HistoricalData.records = data.records || [];
         HistoricalData.courseStats = data.course_stats || {};

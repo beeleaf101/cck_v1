@@ -6,3 +6,12 @@ historical_grades.json
 # Local secrets
 .env
 .env.*
+
+# Seed SQL with personal data (built by tools/build-seed.mjs)
+private/
+*.private.sql
+
+# Node / Wrangler
+node_modules/
+.wrangler/
+.dev.vars

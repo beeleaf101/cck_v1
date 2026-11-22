@@ -1,0 +1,19 @@
+{
+  "name": "cck-sis",
+  "version": "2.1.0",
+  "private": true,
+  "description": "CCK Student Information System on Cloudflare Workers + D1",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:schema": "wrangler d1 execute cck-sis-db --remote --file=database/schema.sql",
+    "db:schema:local": "wrangler d1 execute cck-sis-db --local --file=database/schema.sql",
+    "seed:build": "node tools/build-seed.mjs",
+    "db:seed": "wrangler d1 execute cck-sis-db --remote --file=private/seed-public.sql && wrangler d1 execute cck-sis-db --remote --file=private/seed-private.sql",
+    "db:seed:local": "wrangler d1 execute cck-sis-db --local --file=private/seed-public.sql && wrangler d1 execute cck-sis-db --local --file=private/seed-private.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.50.0"
+  }
+}

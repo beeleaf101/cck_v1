@@ -1,342 +1,340 @@
 -- =====================================================
--- CCK SIS - COMPREHENSIVE DATABASE SCHEMA WITH SEMESTER SUPPORT
+-- CCK SIS - Cloudflare D1 (SQLite) schema
+-- Converted from the original Supabase/PostgreSQL schema
+-- (database/schema.postgres.sql) and adjusted to match the app code and data.
+--
+-- Postgres -> D1 conversions:
+--   UUID DEFAULT gen_random_uuid()  -> TEXT DEFAULT (lower(hex(randomblob(16))))
+--   BOOLEAN                         -> INTEGER (0/1)
+--   JSONB / TEXT[]                  -> TEXT holding JSON
+--   TIMESTAMPTZ DEFAULT NOW()       -> TEXT DEFAULT (datetime('now'))
+--   SQL functions get_semester_id() / get_current_semester_id()
+--                                   -> handled in the Worker (SQLite has no stored functions)
+--
+-- Changes made so the schema fits the code and data:
+--   students.level is TEXT ('First Year', 'Third Year' ...), not INTEGER
+--   students gets the extra fields the app uses: name_ar, civil_id, phone, gender,
+--     nationality, student_type, language, degree_class, admit_term, enrolled_credits
+--   enrollments gets student_name, course_name, time, teaching_method, instructor,
+--     and its UNIQUE key includes teaching_method + time (a course can have a
+--     Lecture row and a Lab row for the same student and section)
+--   courses gets a sections column (JSON) like courses.json
+--   instructors gets title and courses (JSON) like instructors.json
+--   new tables for login: admin_users, sessions, login_attempts
 -- =====================================================
--- Run this in your Supabase SQL Editor
--- This schema supports multi-semester data management
 
--- =====================================================
--- 1. SEMESTERS TABLE (Core reference table)
--- =====================================================
+PRAGMA foreign_keys = ON;
+
+-- 1. SEMESTERS
 CREATE TABLE IF NOT EXISTS semesters (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_key VARCHAR(20) UNIQUE NOT NULL, -- e.g., 'spring2026', 'fall2025'
-    label VARCHAR(50) NOT NULL,               -- e.g., 'Spring 2026', 'Fall 2025'
-    year INTEGER NOT NULL,                     -- e.g., 2026, 2025
-    term VARCHAR(10) NOT NULL,                 -- 'spring' or 'fall'
-    start_date DATE,
-    end_date DATE,
-    is_current BOOLEAN DEFAULT false,
-    is_planning BOOLEAN DEFAULT false,         -- For future semesters
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_key TEXT UNIQUE NOT NULL,
+    label TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    term TEXT NOT NULL,
+    start_date TEXT,
+    end_date TEXT,
+    is_current INTEGER DEFAULT 0,
+    is_planning INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Insert default semesters
-INSERT INTO semesters (semester_key, label, year, term, is_current, is_planning) VALUES
-('fall2026', 'Fall 2026', 2026, 'fall', false, true),
-('spring2026', 'Spring 2026', 2026, 'spring', true, false),
-('fall2025', 'Fall 2025', 2025, 'fall', false, false),
-('spring2025', 'Spring 2025', 2025, 'spring', false, false),
-('fall2024', 'Fall 2024', 2024, 'fall', false, false),
-('spring2024', 'Spring 2024', 2024, 'spring', false, false)
-ON CONFLICT (semester_key) DO NOTHING;
+INSERT OR IGNORE INTO semesters (semester_key, label, year, term, start_date, end_date, is_current, is_planning) VALUES
+('fall2026',   'Fall 2026',   2026, 'fall',   '2026-09-01', '2026-12-20', 0, 1),
+('spring2026', 'Spring 2026', 2026, 'spring', '2026-01-15', '2026-05-15', 1, 0),
+('fall2025',   'Fall 2025',   2025, 'fall',   '2025-09-01', '2025-12-20', 0, 0),
+('spring2025', 'Spring 2025', 2025, 'spring', '2025-01-15', '2025-05-15', 0, 0),
+('fall2024',   'Fall 2024',   2024, 'fall',   '2024-09-01', '2024-12-20', 0, 0),
+('spring2024', 'Spring 2024', 2024, 'spring', '2024-01-15', '2024-05-15', 0, 0);
 
--- =====================================================
--- 2. STUDENTS TABLE
--- =====================================================
+-- 2. STUDENTS
 CREATE TABLE IF NOT EXISTS students (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id VARCHAR(20) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    major VARCHAR(100),
-    program_code VARCHAR(50),
-    level INTEGER DEFAULT 1,
-    gpa DECIMAL(3,2),
-    cgpa DECIMAL(3,2),
-    status VARCHAR(20) DEFAULT 'active', -- active, inactive, graduated, suspended
-    admission_semester_id UUID REFERENCES semesters(id),
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    student_id TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    name_ar TEXT,
+    civil_id TEXT,
+    email TEXT,
+    phone TEXT,
+    gender TEXT,
+    nationality TEXT,
+    major TEXT,
+    program_code TEXT,
+    level TEXT,
+    gpa REAL,
+    cgpa REAL,
+    enrolled_credits INTEGER DEFAULT 0,
+    student_type TEXT,
+    language TEXT,
+    degree_class TEXT,
+    admit_term TEXT,
+    status TEXT DEFAULT 'active',
+    admission_semester_id TEXT REFERENCES semesters(id),
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- =====================================================
--- 3. COURSES TABLE
--- =====================================================
+-- 3. COURSES
 CREATE TABLE IF NOT EXISTS courses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code VARCHAR(20) NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
     credits INTEGER DEFAULT 3,
-    program_code VARCHAR(50),
-    semester_number INTEGER, -- Which semester in the program (1-8)
-    course_type VARCHAR(20), -- 'core', 'elective', 'general'
-    prerequisites TEXT[],
-    is_active BOOLEAN DEFAULT true,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    program_code TEXT,
+    semester_number INTEGER,
+    course_type TEXT,
+    prerequisites TEXT DEFAULT '[]',
+    sections TEXT DEFAULT '[]',
+    is_active INTEGER DEFAULT 1,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(code, program_code)
 );
 
--- =====================================================
--- 4. INSTRUCTORS TABLE
--- =====================================================
+-- 4. INSTRUCTORS
 CREATE TABLE IF NOT EXISTS instructors (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    instructor_id VARCHAR(20) UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    department VARCHAR(100),
-    specializations TEXT[],
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    instructor_id TEXT UNIQUE,
+    name TEXT NOT NULL,
+    title TEXT,
+    email TEXT,
+    department TEXT,
+    courses TEXT DEFAULT '[]',
+    specializations TEXT DEFAULT '[]',
     max_courses_per_semester INTEGER DEFAULT 4,
-    is_active BOOLEAN DEFAULT true,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    is_active INTEGER DEFAULT 1,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- =====================================================
--- 5. ENROLLMENTS TABLE (Semester-specific)
--- =====================================================
+-- 5. ENROLLMENTS
 CREATE TABLE IF NOT EXISTS enrollments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_id UUID REFERENCES semesters(id) NOT NULL,
-    student_id VARCHAR(20) NOT NULL,
-    course_code VARCHAR(20) NOT NULL,
-    section VARCHAR(10) DEFAULT '1',
-    grade VARCHAR(5),                          -- A+, A, A-, B+, etc.
-    grade_points DECIMAL(3,2),
-    status VARCHAR(20) DEFAULT 'enrolled',     -- enrolled, completed, dropped, failed
-    enrolled_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(semester_id, student_id, course_code, section)
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_id TEXT NOT NULL REFERENCES semesters(id),
+    student_id TEXT NOT NULL,
+    student_name TEXT,
+    course_code TEXT NOT NULL,
+    course_name TEXT,
+    section TEXT DEFAULT '1',
+    time TEXT DEFAULT '',
+    teaching_method TEXT DEFAULT '',
+    instructor TEXT,
+    grade TEXT,
+    grade_points REAL,
+    status TEXT DEFAULT 'enrolled',
+    enrolled_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(semester_id, student_id, course_code, section, teaching_method, time)
 );
-
--- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_enrollments_semester ON enrollments(semester_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_course ON enrollments(course_code);
 
--- =====================================================
--- 6. COURSE ALLOCATIONS TABLE (Semester-specific)
--- =====================================================
+-- 6. COURSE ALLOCATIONS
 CREATE TABLE IF NOT EXISTS course_allocations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_id UUID REFERENCES semesters(id) NOT NULL,
-    course_code VARCHAR(20) NOT NULL,
-    course_name VARCHAR(255),
-    section VARCHAR(10) DEFAULT '1',
-    instructor_id UUID REFERENCES instructors(id),
-    instructor_name VARCHAR(255),
-    room VARCHAR(50),
-    day_of_week VARCHAR(20),
-    start_time TIME,
-    end_time TIME,
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_id TEXT NOT NULL REFERENCES semesters(id),
+    course_code TEXT NOT NULL,
+    course_name TEXT,
+    section TEXT DEFAULT '1',
+    instructor_id TEXT,
+    instructor_name TEXT,
+    room TEXT,
+    day_of_week TEXT,
+    start_time TEXT,
+    end_time TEXT,
     predicted_enrollment INTEGER,
     actual_enrollment INTEGER,
     capacity INTEGER DEFAULT 35,
-    status VARCHAR(20) DEFAULT 'planned',      -- planned, confirmed, cancelled
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    status TEXT DEFAULT 'planned',
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(semester_id, course_code, section)
 );
-
 CREATE INDEX IF NOT EXISTS idx_allocations_semester ON course_allocations(semester_id);
 
--- =====================================================
--- 7. TIMETABLES TABLE (Semester-specific)
--- =====================================================
+-- 7. TIMETABLES
 CREATE TABLE IF NOT EXISTS timetables (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_id UUID REFERENCES semesters(id) NOT NULL,
-    program_code VARCHAR(50) NOT NULL,
-    program_name VARCHAR(255),
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_id TEXT NOT NULL REFERENCES semesters(id),
+    program_code TEXT NOT NULL,
+    program_name TEXT,
     level INTEGER,
-    status VARCHAR(20) DEFAULT 'draft',        -- draft, published, archived
-    generated_at TIMESTAMPTZ DEFAULT NOW(),
-    published_at TIMESTAMPTZ,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    status TEXT DEFAULT 'draft',
+    generated_at TEXT DEFAULT (datetime('now')),
+    published_at TEXT,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(semester_id, program_code, level)
 );
 
--- =====================================================
--- 8. TIMETABLE ENTRIES TABLE
--- =====================================================
+-- 8. TIMETABLE ENTRIES
 CREATE TABLE IF NOT EXISTS timetable_entries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    timetable_id UUID REFERENCES timetables(id) ON DELETE CASCADE,
-    course_code VARCHAR(20) NOT NULL,
-    course_name VARCHAR(255),
-    section VARCHAR(10) DEFAULT '1',
-    instructor_name VARCHAR(255),
-    room VARCHAR(50),
-    day_of_week VARCHAR(20) NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    timetable_id TEXT REFERENCES timetables(id) ON DELETE CASCADE,
+    course_code TEXT NOT NULL,
+    course_name TEXT,
+    section TEXT DEFAULT '1',
+    instructor_name TEXT,
+    room TEXT,
+    day_of_week TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_timetable_entries_timetable ON timetable_entries(timetable_id);
 
--- =====================================================
--- 9. COURSE ADVISING / DEMAND TABLE (Semester-specific)
--- =====================================================
+-- 9. COURSE DEMAND
 CREATE TABLE IF NOT EXISTS course_demand (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_id UUID REFERENCES semesters(id) NOT NULL,
-    course_code VARCHAR(20) NOT NULL,
-    course_name VARCHAR(255),
-    student_id VARCHAR(20) NOT NULL,
-    student_name VARCHAR(255),
-    program_code VARCHAR(50),
-    priority INTEGER DEFAULT 1,                -- 1=must take, 2=should take, 3=want to take
-    status VARCHAR(20) DEFAULT 'requested',    -- requested, approved, enrolled
-    requested_at TIMESTAMPTZ DEFAULT NOW(),
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_id TEXT NOT NULL REFERENCES semesters(id),
+    course_code TEXT NOT NULL,
+    course_name TEXT,
+    student_id TEXT NOT NULL,
+    student_name TEXT,
+    program_code TEXT,
+    priority INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'requested',
+    requested_at TEXT DEFAULT (datetime('now')),
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(semester_id, course_code, student_id)
 );
-
 CREATE INDEX IF NOT EXISTS idx_course_demand_semester ON course_demand(semester_id);
 
--- =====================================================
--- 10. HISTORICAL GRADES TABLE (For predictions)
--- =====================================================
+-- 10. HISTORICAL GRADES
 CREATE TABLE IF NOT EXISTS historical_grades (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_id UUID REFERENCES semesters(id),
-    semester_label VARCHAR(50),                -- e.g., 'Fall 2023-2024'
-    student_id VARCHAR(20) NOT NULL,
-    student_name VARCHAR(255),
-    course_code VARCHAR(20) NOT NULL,
-    course_name VARCHAR(255),
-    grade VARCHAR(5),
-    grade_points DECIMAL(3,2),
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_id TEXT REFERENCES semesters(id),
+    semester_label TEXT,
+    student_id TEXT NOT NULL,
+    student_name TEXT,
+    course_code TEXT NOT NULL,
+    course_name TEXT,
+    grade TEXT,
+    grade_points REAL,
     credit_hours INTEGER DEFAULT 3,
-    gpa DECIMAL(3,2),
-    cgpa DECIMAL(3,2),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    gpa REAL,
+    cgpa REAL,
+    created_at TEXT DEFAULT (datetime('now'))
 );
-
 CREATE INDEX IF NOT EXISTS idx_historical_grades_semester ON historical_grades(semester_id);
 CREATE INDEX IF NOT EXISTS idx_historical_grades_course ON historical_grades(course_code);
+CREATE INDEX IF NOT EXISTS idx_historical_grades_student ON historical_grades(student_id);
 
--- =====================================================
--- 11. ANALYTICS SNAPSHOTS TABLE (Semester-specific)
--- =====================================================
+-- 11. ANALYTICS SNAPSHOTS
 CREATE TABLE IF NOT EXISTS analytics_snapshots (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    semester_id UUID REFERENCES semesters(id) NOT NULL,
-    snapshot_date DATE DEFAULT CURRENT_DATE,
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    semester_id TEXT NOT NULL REFERENCES semesters(id),
+    snapshot_date TEXT DEFAULT (date('now')),
     total_students INTEGER,
     total_courses INTEGER,
     total_sections INTEGER,
     total_instructors INTEGER,
-    avg_gpa DECIMAL(3,2),
-    avg_class_size DECIMAL(5,2),
-    room_utilization DECIMAL(5,2),
-    enrollment_by_program JSONB,
-    grade_distribution JSONB,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    avg_gpa REAL,
+    avg_class_size REAL,
+    room_utilization REAL,
+    enrollment_by_program TEXT,
+    grade_distribution TEXT,
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(semester_id, snapshot_date)
 );
 
--- =====================================================
--- 12. SYSTEM SETTINGS TABLE
--- =====================================================
+-- 12. SYSTEM SETTINGS
 CREATE TABLE IF NOT EXISTS system_settings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    key VARCHAR(100) UNIQUE NOT NULL,
-    value JSONB NOT NULL,
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    key TEXT UNIQUE NOT NULL,
+    value TEXT NOT NULL,
     description TEXT,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Insert default settings
-INSERT INTO system_settings (key, value, description) VALUES
+INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
 ('current_semester', '"spring2026"', 'Currently active semester'),
 ('planning_semester', '"fall2026"', 'Semester for planning/allocation'),
 ('max_students_per_section', '35', 'Maximum students per section'),
-('enrollment_growth_factor', '1.10', 'Default enrollment growth factor')
-ON CONFLICT (key) DO NOTHING;
+('enrollment_growth_factor', '1.10', 'Default enrollment growth factor'),
+('enrollment_data_semester', '"spring2026"', 'Semester whose enrollments the app loads');
 
--- =====================================================
--- HELPER FUNCTIONS
--- =====================================================
+-- 13. LOGIN: admin accounts (password stored as PBKDF2 hash, never plain text)
+CREATE TABLE IF NOT EXISTS admin_users (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 
--- Function to get semester ID from key
-CREATE OR REPLACE FUNCTION get_semester_id(semester_key_param VARCHAR)
-RETURNS UUID AS $$
-    SELECT id FROM semesters WHERE semester_key = semester_key_param;
-$$ LANGUAGE SQL;
+-- 14. LOGIN: sessions (random token kept in an HttpOnly cookie)
+CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    role TEXT NOT NULL CHECK (role IN ('admin', 'student')),
+    user_id TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
--- Function to get current semester ID
-CREATE OR REPLACE FUNCTION get_current_semester_id()
-RETURNS UUID AS $$
-    SELECT id FROM semesters WHERE is_current = true LIMIT 1;
-$$ LANGUAGE SQL;
+-- 15. LOGIN: failed attempts, for lockout after repeated wrong passwords
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT NOT NULL,
+    login_id TEXT,
+    attempted_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip, attempted_at);
 
--- =====================================================
--- ROW LEVEL SECURITY (Optional - for multi-tenant)
--- =====================================================
--- Uncomment if you need RLS
-
--- ALTER TABLE students ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE course_allocations ENABLE ROW LEVEL SECURITY;
-
--- =====================================================
--- VIEWS FOR EASIER QUERYING
--- =====================================================
-
--- View: Enrollment summary by semester
-CREATE OR REPLACE VIEW enrollment_summary AS
-SELECT 
+-- VIEWS
+DROP VIEW IF EXISTS enrollment_summary;
+CREATE VIEW enrollment_summary AS
+SELECT
     s.semester_key,
-    s.label as semester_label,
-    COUNT(DISTINCT e.student_id) as total_students,
-    COUNT(DISTINCT e.course_code) as total_courses,
-    COUNT(*) as total_enrollments,
-    AVG(e.grade_points) as avg_grade_points
+    s.label AS semester_label,
+    COUNT(DISTINCT e.student_id) AS total_students,
+    COUNT(DISTINCT e.course_code) AS total_courses,
+    COUNT(e.id) AS total_enrollments,
+    AVG(e.grade_points) AS avg_grade_points
 FROM semesters s
 LEFT JOIN enrollments e ON s.id = e.semester_id
 GROUP BY s.id, s.semester_key, s.label
 ORDER BY s.year DESC, s.term DESC;
 
--- View: Course statistics by semester
-CREATE OR REPLACE VIEW course_statistics AS
-SELECT 
+DROP VIEW IF EXISTS course_statistics;
+CREATE VIEW course_statistics AS
+SELECT
     s.semester_key,
-    s.label as semester_label,
+    s.label AS semester_label,
     e.course_code,
-    COUNT(*) as total_enrolled,
-    COUNT(CASE WHEN e.grade IN ('A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-') THEN 1 END) as passed,
-    COUNT(CASE WHEN e.grade IN ('F','(FA)') THEN 1 END) as failed,
-    ROUND(COUNT(CASE WHEN e.grade IN ('A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-') THEN 1 END)::DECIMAL / 
-          NULLIF(COUNT(*), 0) * 100, 1) as pass_rate
+    COUNT(*) AS total_enrolled,
+    SUM(CASE WHEN e.grade IN ('A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-') THEN 1 ELSE 0 END) AS passed,
+    SUM(CASE WHEN e.grade IN ('F','(FA)') THEN 1 ELSE 0 END) AS failed,
+    ROUND(SUM(CASE WHEN e.grade IN ('A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-') THEN 1 ELSE 0 END) * 100.0
+          / NULLIF(COUNT(*), 0), 1) AS pass_rate
 FROM semesters s
-LEFT JOIN enrollments e ON s.id = e.semester_id
-WHERE e.course_code IS NOT NULL
+JOIN enrollments e ON s.id = e.semester_id
 GROUP BY s.id, s.semester_key, s.label, e.course_code;
 
--- View: Allocation summary by semester
-CREATE OR REPLACE VIEW allocation_summary AS
-SELECT 
+DROP VIEW IF EXISTS allocation_summary;
+CREATE VIEW allocation_summary AS
+SELECT
     s.semester_key,
-    s.label as semester_label,
-    COUNT(*) as total_sections,
-    COUNT(DISTINCT ca.course_code) as total_courses,
-    COUNT(DISTINCT ca.instructor_name) as total_instructors,
-    SUM(ca.predicted_enrollment) as total_predicted,
-    AVG(ca.predicted_enrollment) as avg_section_size
+    s.label AS semester_label,
+    COUNT(ca.id) AS total_sections,
+    COUNT(DISTINCT ca.course_code) AS total_courses,
+    COUNT(DISTINCT ca.instructor_name) AS total_instructors,
+    SUM(ca.predicted_enrollment) AS total_predicted,
+    AVG(ca.predicted_enrollment) AS avg_section_size
 FROM semesters s
 LEFT JOIN course_allocations ca ON s.id = ca.semester_id
 GROUP BY s.id, s.semester_key, s.label
 ORDER BY s.year DESC, s.term DESC;
-
--- =====================================================
--- GRANT PERMISSIONS (adjust as needed)
--- =====================================================
--- GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
--- GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
--- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;

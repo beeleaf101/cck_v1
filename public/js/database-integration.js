@@ -20,7 +20,7 @@ async function initializeDatabase() {
     console.log('Initializing database connection...');
     
     if (typeof isSupabaseConfigured !== 'function' || !isSupabaseConfigured()) {
-        console.log('Supabase not configured - using local storage mode');
+        console.log('Not logged in as admin - database features use local storage until login');
         DatabaseState.isConnected = false;
         updateConnectionStatus(false);
         return false;
@@ -77,7 +77,9 @@ async function loadCurrentSemesterFromDB() {
             .single();
         
         if (setting) {
-            const semesterKey = JSON.parse(setting.value);
+            // The API already decodes JSON values; older data may still be a JSON string
+            let semesterKey = setting.value;
+            if (typeof semesterKey === 'string' && semesterKey.startsWith('"')) semesterKey = JSON.parse(semesterKey);
             await setSemesterContext(semesterKey);
         }
     } catch (error) {
@@ -122,17 +124,13 @@ async function saveCurrentSemesterToDB(semesterKey) {
         const client = getSupabaseClient();
         if (!client) return;
         
-        // Delete existing setting then insert
+        // Insert or replace the setting in one step (no gap where it is missing)
         await client
             .from('system_settings')
-            .delete()
-            .eq('key', 'current_semester');
-        
-        await client
-            .from('system_settings')
-            .insert({
+            .upsert({
                 key: 'current_semester',
                 value: JSON.stringify(semesterKey),
+                description: 'Currently active semester',
                 updated_at: new Date().toISOString()
             });
         
@@ -816,9 +814,8 @@ function calculateGradeDistribution() {
 // INITIALIZATION
 // =====================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDatabase();
-});
+// initializeDatabase() runs after an admin logs in (see handleLogin in app.js),
+// because the database API only answers logged-in admins.
 
 // Export functions
 if (typeof window !== 'undefined') {

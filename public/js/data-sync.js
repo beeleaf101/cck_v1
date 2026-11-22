@@ -1,5 +1,5 @@
 // CCK SIS - Database Data Sync Module
-// Handles syncing all data to Supabase with semester labels
+// Handles syncing all data to the Cloudflare D1 database with semester labels
 
 // =====================================================
 // DATA SYNC STATE
@@ -14,6 +14,10 @@ const DataSync = {
 // =====================================================
 // SEMESTER DEFINITIONS
 // =====================================================
+// Grade points used when saving historical grades (same scale as historical_grades.json)
+const GRADE_POINTS_FOR_SYNC = { 'A+': 4.0, 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7, 'C+': 2.3, 'C': 2.0,
+    'C-': 1.7, 'D+': 1.3, 'D': 1.0, 'D-': 0.7, 'F': 0.0, '(FA)': 0.0 };
+
 const SEMESTER_DEFINITIONS = {
     'spring2024': { label: 'Spring 2024', year: 2024, term: 'spring', start: '2024-01-15', end: '2024-05-15' },
     'fall2024': { label: 'Fall 2024', year: 2024, term: 'fall', start: '2024-09-01', end: '2024-12-20' },
@@ -23,28 +27,7 @@ const SEMESTER_DEFINITIONS = {
     'fall2026': { label: 'Fall 2026', year: 2026, term: 'fall', start: '2026-09-01', end: '2026-12-20' }
 };
 
-// =====================================================
-// GET SUPABASE CLIENT
-// =====================================================
-function getSupabaseClient() {
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        return supabaseClient;
-    }
-    if (typeof supabase !== 'undefined' && supabase) {
-        return supabase;
-    }
-    if (typeof window !== 'undefined' && window.supabase) {
-        return window.supabase;
-    }
-    return null;
-}
-
-function isDbConnected() {
-    var client = getSupabaseClient();
-    if (!client) return false;
-    if (typeof isSupabaseConfigured === 'function' && !isSupabaseConfigured()) return false;
-    return true;
-}
+// getSupabaseClient() and isDbConnected() come from js/d1-client.js
 
 // =====================================================
 // INITIALIZE SEMESTERS IN DATABASE
@@ -76,12 +59,6 @@ async function initializeSemestersInDB() {
         }
         
         var result = await client.from('semesters').upsert(semesters, { onConflict: 'semester_key', ignoreDuplicates: true });
-        
-        // If upsert fails, try delete then insert
-        if (result.error) {
-            await client.from('semesters').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-            result = await client.from('semesters').insert(semesters);
-        }
         
         if (result.error) throw result.error;
         
@@ -121,7 +98,7 @@ async function getSemesterIdFromKey(semesterKey) {
 // =====================================================
 async function syncStudentsToDatabase(semesterKey) {
     if (!isDbConnected()) return { success: false, error: 'Not connected' };
-    if (!AppState || !AppState.students) return { success: false, error: 'No student data' };
+    if (!AppState || !AppState.students || !AppState.students.length) return { success: false, error: 'No student data loaded' };
     
     var client = getSupabaseClient();
     semesterKey = semesterKey || AppState.currentSemester || 'spring2026';
@@ -134,37 +111,41 @@ async function syncStudentsToDatabase(semesterKey) {
         var students = [];
         for (var i = 0; i < AppState.students.length; i++) {
             var s = AppState.students[i];
+            var gpa = parseFloat(s.gpa);
+            var cgpa = parseFloat(s.cgpa);
             students.push({
                 student_id: s.student_id || s.id || ('STU' + i),
                 name: s.name || 'Unknown',
+                name_ar: s.name_ar || null,
+                civil_id: s.civil_id || null,
                 email: s.email || null,
+                phone: s.phone || null,
+                gender: s.gender || null,
+                nationality: s.nationality || null,
                 major: s.major || s.program || null,
                 program_code: s.program_code || null,
-                level: parseInt(s.level) || 1,
-                gpa: parseFloat(s.gpa) || null,
-                cgpa: parseFloat(s.cgpa) || parseFloat(s.gpa) || null,
-                status: 'active',
+                level: s.level != null ? String(s.level) : null,
+                gpa: isNaN(gpa) ? null : gpa,
+                cgpa: isNaN(cgpa) ? (isNaN(gpa) ? null : gpa) : cgpa,
+                enrolled_credits: parseInt(s.enrolled_credits) || 0,
+                student_type: s.student_type || null,
+                language: s.language || null,
+                degree_class: s.degree_class || null,
+                admit_term: s.admit_term || null,
+                status: s.status || 'active',
                 admission_semester_id: semesterId,
-                metadata: {
-                    language: s.language,
-                    student_type: s.student_type,
-                    section: s.section,
-                    original_data: s,
-                    synced_at: new Date().toISOString(),
-                    semester: semesterKey
-                }
+                metadata: { synced_at: new Date().toISOString(), semester: semesterKey }
             });
         }
         
-        // Delete existing students first
-        await client.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        // Batch insert
+        // Save (insert or replace by student_id). Students are never mass-deleted here,
+        // so a failed sync can't wipe the table; single deletes go through the Students page.
+        // Batch save
         var batchSize = 100;
         var inserted = 0;
         for (var i = 0; i < students.length; i += batchSize) {
             var batch = students.slice(i, i + batchSize);
-            var result = await client.from('students').insert(batch);
+            var result = await client.from('students').upsert(batch);
             if (result.error) throw result.error;
             inserted += batch.length;
             updateSyncStatus('Synced ' + inserted + '/' + students.length + ' students...', 10 + Math.round((inserted / students.length) * 20));
@@ -183,7 +164,7 @@ async function syncStudentsToDatabase(semesterKey) {
 // =====================================================
 async function syncCoursesToDatabase(semesterKey) {
     if (!isDbConnected()) return { success: false, error: 'Not connected' };
-    if (!AppState || !AppState.courses) return { success: false, error: 'No course data' };
+    if (!AppState || !AppState.courses || !AppState.courses.length) return { success: false, error: 'No course data loaded' };
     
     var client = getSupabaseClient();
     semesterKey = semesterKey || AppState.currentSemester || 'spring2026';
@@ -202,6 +183,7 @@ async function syncCoursesToDatabase(semesterKey) {
                 semester_number: parseInt(c.semester) || null,
                 course_type: c.type || 'core',
                 prerequisites: c.prerequisite ? [c.prerequisite] : [],
+                sections: c.sections || [],
                 is_active: true,
                 metadata: {
                     original_data: c,
@@ -248,7 +230,7 @@ async function syncCoursesToDatabase(semesterKey) {
 // =====================================================
 async function syncInstructorsToDatabase(semesterKey) {
     if (!isDbConnected()) return { success: false, error: 'Not connected' };
-    if (!AppState || !AppState.instructors) return { success: false, error: 'No instructor data' };
+    if (!AppState || !AppState.instructors || !AppState.instructors.length) return { success: false, error: 'No instructor data loaded' };
     
     var client = getSupabaseClient();
     semesterKey = semesterKey || AppState.currentSemester || 'spring2026';
@@ -260,8 +242,10 @@ async function syncInstructorsToDatabase(semesterKey) {
         for (var i = 0; i < AppState.instructors.length; i++) {
             var inst = AppState.instructors[i];
             instructors.push({
-                instructor_id: 'INS' + (i + 1).toString().padStart(4, '0'),
+                instructor_id: inst.id || ('INS' + (i + 1).toString().padStart(4, '0')),
                 name: inst.name || 'Unknown Instructor',
+                title: inst.title || null,
+                courses: inst.courses || [],
                 email: inst.email || null,
                 department: inst.department || null,
                 specializations: inst.specializations || [],
@@ -294,11 +278,13 @@ async function syncInstructorsToDatabase(semesterKey) {
 // =====================================================
 async function syncEnrollmentsToDatabase(semesterKey) {
     if (!isDbConnected()) return { success: false, error: 'Not connected' };
-    if (!AppState || !AppState.enrollments) return { success: false, error: 'No enrollment data' };
+    if (!AppState || !AppState.enrollments || !AppState.enrollments.length) return { success: false, error: 'No enrollment data loaded' };
     
     var client = getSupabaseClient();
     semesterKey = semesterKey || AppState.currentSemester || 'spring2026';
     
+    // Enrollments always belong to the semester the app loads them from (see /api/data)
+    semesterKey = AppState.enrollmentSemester || semesterKey;
     updateSyncStatus('Syncing enrollments...', 60);
     
     try {
@@ -314,14 +300,16 @@ async function syncEnrollmentsToDatabase(semesterKey) {
             enrollments.push({
                 semester_id: semesterId,
                 student_id: e.student_id || e.studentId,
+                student_name: e.student_name || null,
                 course_code: e.course_code || e.courseCode || e.code,
+                course_name: e.course_name || null,
                 section: e.section || '1',
+                time: e.time || '',
+                teaching_method: e.teaching_method || '',
+                instructor: e.instructor || null,
                 grade: e.grade || null,
-                status: e.grade ? 'completed' : 'enrolled',
-                metadata: {
-                    original_data: e,
-                    synced_at: new Date().toISOString()
-                }
+                status: e.status || (e.grade ? 'completed' : 'enrolled'),
+                metadata: { synced_at: new Date().toISOString() }
             });
         }
         
@@ -351,7 +339,10 @@ async function syncEnrollmentsToDatabase(semesterKey) {
 // =====================================================
 async function syncHistoricalGradesToDatabase() {
     if (!isDbConnected()) return { success: false, error: 'Not connected' };
-    if (!HistoricalData || !HistoricalData.records) return { success: false, error: 'No historical data' };
+    // Never wipe the table because nothing was loaded
+    if (typeof HistoricalData === 'undefined' || !HistoricalData.records || !HistoricalData.records.length) {
+        return { success: false, error: 'No historical data loaded' };
+    }
     
     var client = getSupabaseClient();
     
@@ -368,12 +359,17 @@ async function syncHistoricalGradesToDatabase() {
                 course_code: r.course_code || r.courseCode,
                 course_name: r.course_name || r.courseName,
                 grade: r.grade,
+                grade_points: (typeof GRADE_POINTS_FOR_SYNC !== 'undefined' && r.grade in GRADE_POINTS_FOR_SYNC) ? GRADE_POINTS_FOR_SYNC[r.grade] : null,
                 credit_hours: parseInt(r.credit_hours) || 3,
                 gpa: parseFloat(r.gpa) || null,
                 cgpa: parseFloat(r.cgpa) || null
             });
         }
         
+        // Replace the existing records instead of adding duplicates on every sync
+        var del = await client.from('historical_grades').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (del.error) throw del.error;
+
         var batchSize = 100;
         var inserted = 0;
         for (var i = 0; i < records.length; i += batchSize) {
@@ -471,7 +467,7 @@ async function syncAllocationToDatabase(semesterKey) {
 // =====================================================
 async function syncAllDataToDatabase() {
     if (!isDbConnected()) {
-        showToast('Database not connected. Please configure Supabase first.', 'error');
+        showToast('Database not connected. Log in as admin first.', 'error');
         return { success: false, error: 'Not connected' };
     }
     
@@ -541,18 +537,14 @@ async function syncAllDataToDatabase() {
 // DELETE ALL DATA (PASSWORD PROTECTED)
 // =====================================================
 async function deleteAllDatabaseData(password) {
-    // Check password
-    if (password !== '2005') {
-        showToast('Incorrect password!', 'error');
-        return { success: false, error: 'Invalid password' };
-    }
-    
     if (!isDbConnected()) {
         showToast('Database not connected', 'error');
         return { success: false, error: 'Not connected' };
     }
-    
-    var client = getSupabaseClient();
+    if (!password) {
+        showToast('Enter the admin password', 'error');
+        return { success: false, error: 'No password' };
+    }
     
     // Confirm deletion
     var confirmed = confirm('⚠️ WARNING: This will DELETE ALL DATA from the database!\n\nThis includes:\n- All students\n- All courses\n- All instructors\n- All enrollments\n- All allocations\n- All historical grades\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?');
@@ -566,36 +558,13 @@ async function deleteAllDatabaseData(password) {
     updateSyncStatus('Deleting all data...', 10);
     
     try {
-        // Delete in order (respect foreign keys)
-        updateSyncStatus('Deleting timetable entries...', 15);
-        await client.from('timetable_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting timetables...', 25);
-        await client.from('timetables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting course allocations...', 35);
-        await client.from('course_allocations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting course demands...', 45);
-        await client.from('course_demand').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting enrollments...', 55);
-        await client.from('enrollments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting historical grades...', 65);
-        await client.from('historical_grades').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting analytics snapshots...', 70);
-        await client.from('analytics_snapshots').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting students...', 80);
-        await client.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting courses...', 85);
-        await client.from('courses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        
-        updateSyncStatus('Deleting instructors...', 90);
-        await client.from('instructors').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        // The server checks the admin password and deletes everything in one batch
+        var res = await window.api.deleteAllData(password);
+        if (res.error) {
+            hideSyncModal();
+            showToast(res.error.status === 403 ? 'Incorrect password!' : 'Delete failed: ' + res.error.message, 'error');
+            return { success: false, error: res.error.message };
+        }
         
         updateSyncStatus('Clearing local storage...', 95);
         // Clear localStorage allocation and timetable data
@@ -697,6 +666,46 @@ function showDeleteDataPrompt() {
     document.getElementById('delete-password-input').focus();
 }
 
+// Change the admin password (checked and saved by the server)
+function showChangePasswordPrompt() {
+    var modal = document.createElement('div');
+    modal.id = 'password-modal';
+    var input = 'width: 100%; padding: 12px 16px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; margin-bottom: 12px; box-sizing: border-box;';
+    modal.innerHTML = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">' +
+        '<form id="password-form" style="background: white; border-radius: 16px; padding: 32px; width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">' +
+        '<h3 style="font-size: 18px; font-weight: 600; color: #1F2937; margin: 0 0 16px;">Change admin password</h3>' +
+        '<input type="password" id="pw-current" placeholder="Current password" autocomplete="current-password" style="' + input + '">' +
+        '<input type="password" id="pw-new" placeholder="New password (at least 10 characters)" autocomplete="new-password" style="' + input + '">' +
+        '<input type="password" id="pw-confirm" placeholder="Repeat new password" autocomplete="new-password" style="' + input + '">' +
+        '<div style="display: flex; gap: 12px; margin-top: 8px;">' +
+        '<button type="button" onclick="closePasswordModal()" style="flex: 1; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; background: white; cursor: pointer;">Cancel</button>' +
+        '<button type="submit" style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: #B91C1C; color: white; cursor: pointer; font-weight: 600;">Save</button>' +
+        '</div></form></div>';
+    document.body.appendChild(modal);
+    document.getElementById('pw-current').focus();
+    document.getElementById('password-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var current = document.getElementById('pw-current').value;
+        var next = document.getElementById('pw-new').value;
+        if (next !== document.getElementById('pw-confirm').value) {
+            showToast('The new passwords do not match', 'error');
+            return;
+        }
+        var res = await window.api.changePassword(current, next);
+        if (res.error) {
+            showToast(res.error.message, 'error');
+            return;
+        }
+        closePasswordModal();
+        showToast('Admin password changed', 'success');
+    });
+}
+
+function closePasswordModal() {
+    var modal = document.getElementById('password-modal');
+    if (modal) modal.remove();
+}
+
 function closeDeleteModal() {
     var modal = document.getElementById('delete-modal');
     if (modal) modal.remove();
@@ -718,7 +727,7 @@ function renderDatabaseManagementPanel() {
     html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
     html += '<div>';
     html += '<h3 style="font-size: 18px; font-weight: 600; margin: 0 0 4px 0;">Database Management</h3>';
-    html += '<p style="font-size: 13px; color: #6B7280; margin: 0;">Sync data to Supabase database or delete all records</p>';
+    html += '<p style="font-size: 13px; color: #6B7280; margin: 0;">Sync data to the Cloudflare D1 database or delete all records</p>';
     html += '</div>';
     html += '<div id="db-connection-status" style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;"></div>';
     html += '</div>';
@@ -748,9 +757,10 @@ function renderDatabaseManagementPanel() {
     
     html += '</div>';
     
-    // Last sync info
-    html += '<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; font-size: 13px; color: #6B7280;">';
+    // Last sync info + change admin password
+    html += '<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; font-size: 13px; color: #6B7280; display: flex; justify-content: space-between; align-items: center;">';
     html += '<span id="last-sync-time">Last sync: Never</span>';
+    html += '<button onclick="showChangePasswordPrompt()" style="padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; background: white; cursor: pointer; font-size: 13px;">Change admin password</button>';
     html += '</div>';
     
     html += '</div>';
@@ -814,6 +824,8 @@ if (typeof window !== 'undefined') {
     window.syncCurrentSemesterToDatabase = syncCurrentSemesterToDatabase;
     window.deleteAllDatabaseData = deleteAllDatabaseData;
     window.showDeleteDataPrompt = showDeleteDataPrompt;
+    window.showChangePasswordPrompt = showChangePasswordPrompt;
+    window.closePasswordModal = closePasswordModal;
     window.closeDeleteModal = closeDeleteModal;
     window.confirmDeleteData = confirmDeleteData;
     window.renderDatabaseManagementPanel = renderDatabaseManagementPanel;
