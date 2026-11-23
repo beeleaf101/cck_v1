@@ -305,7 +305,11 @@ function renderPredictionDashboard(containerId) {
     html += '<div style="background: #FEF2F2; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #DC2626;">' + highRiskCourses.length + '</div><div style="font-size: 11px; color: #991B1B;">High Risk</div></div>';
     html += '<div style="background: #F0FDF4; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #16A34A;">' + (coursePredictions.length - highRiskCourses.length) + '</div><div style="font-size: 11px; color: #166534;">Normal</div></div>';
     html += '<div style="background: #EFF6FF; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #2563EB;">' + coursePredictions.length + '</div><div style="font-size: 11px; color: #1E40AF;">Total Courses</div></div>';
-    html += '<div style="background: #FEF3C7; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #D97706;">' + HistoricalData.records.length + '</div><div style="font-size: 11px; color: #92400E;">Records</div></div>';
+    html += '<div style="background: #FEF3C7; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #D97706;">' + HistoricalData.records.length + '</div><div style="font-size: 11px; color: #92400E;">Records</div>' +
+        (function () {
+            var n = HistoricalData.records.filter(function (r) { return r.verification === 'unverified'; }).length;
+            return n ? '<div title="2015-2020 grades that could not be fully confirmed from the exports" style="font-size: 10px; color: #92400E; margin-top: 2px;">incl. ' + n + ' unverified</div>' : '';
+        })() + '</div>';
     html += '</div></div>';
     
     html += '</div>'; // End stats row

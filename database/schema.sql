@@ -226,6 +226,8 @@ CREATE TABLE IF NOT EXISTS historical_grades (
     credit_hours INTEGER DEFAULT 3,
     gpa REAL,
     cgpa REAL,
+    verification TEXT DEFAULT 'confirmed',  -- 'confirmed' or 'unverified' (see tools/build_full_dataset.py)
+    source_file TEXT,                       -- export the record came from
     created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_historical_grades_semester ON historical_grades(semester_id);

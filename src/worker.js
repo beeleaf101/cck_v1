@@ -317,7 +317,7 @@ function buildStudentStats(records) {
 async function getHistoricalGrades(request, env) {
   const s = await requireSession(request, env);
   const sql = `SELECT student_id, student_name, course_code, course_name, grade, credit_hours, gpa, cgpa,
-               semester_label AS semester FROM historical_grades`;
+               semester_label AS semester, verification FROM historical_grades`;
   const records = s.role === 'admin'
     ? (await env.DB.prepare(`${sql} ORDER BY rowid`).all()).results
     : (await env.DB.prepare(`${sql} WHERE student_id = ? ORDER BY rowid`).bind(s.user_id).all()).results;
@@ -435,12 +435,15 @@ async function importData(request, env) {
     const gp = body.grade_points || {};
     for (const r of rows) {
       if (!r.student_id || !r.course_code) throw new HttpError(400, 'Each grade record needs student_id and course_code');
+      const verification = r.verification === 'unverified' ? 'unverified' : 'confirmed';
+      // per-record grade points win (the 2015-2020 exports use an older scale)
+      const points = r.grade_points !== undefined ? toNumberOrNull(r.grade_points) : (gp[r.grade] ?? null);
       stmts.push(db.prepare(
-        `INSERT INTO historical_grades (semester_label, student_id, student_name, course_code, course_name, grade, grade_points, credit_hours, gpa, cgpa)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO historical_grades (semester_label, student_id, student_name, course_code, course_name, grade, grade_points, credit_hours, gpa, cgpa, verification, source_file)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(r.semester ?? null, String(r.student_id), r.student_name ?? null, String(r.course_code), r.course_name ?? null,
-        r.grade ?? null, gp[r.grade] ?? null, parseInt(r.credit_hours, 10) || 3,
-        toNumberOrNull(r.gpa), toNumberOrNull(r.cgpa)));
+        r.grade ?? null, points, parseInt(r.credit_hours, 10) || 3,
+        toNumberOrNull(r.gpa), toNumberOrNull(r.cgpa), verification, r.source_file ? String(r.source_file).slice(0, 120) : null));
     }
   } else if (body.kind === 'historical_meta') {
     const meta = [

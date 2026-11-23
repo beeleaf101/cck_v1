@@ -643,7 +643,12 @@ async function loadPrivateData() {
         showToast('Could not load student data: ' + res.error.message, 'error');
         return false;
     }
-    AppState.students = res.data.students || [];
+    // Current students drive every page and statistic; former students (graduated /
+    // inactive, from the 2015-2024 records) are kept separately for Student Management.
+    const all = res.data.students || [];
+    const isCurrent = s => !s.status || String(s.status).toLowerCase() === 'active';
+    AppState.students = all.filter(isCurrent);
+    AppState.formerStudents = all.filter(s => !isCurrent(s));
     AppState.enrollments = res.data.enrollments || [];
     AppState.enrollmentSemester = res.data.enrollment_semester || 'spring2026';
     processCoursesData();
@@ -651,8 +656,15 @@ async function loadPrivateData() {
     return true;
 }
 
+// Looks in current and former students
+function findStudentById(studentId) {
+    return AppState.students.find(s => s.student_id === studentId)
+        || (AppState.formerStudents || []).find(s => s.student_id === studentId);
+}
+
 function clearPrivateData() {
     AppState.students = [];
+    AppState.formerStudents = [];
     AppState.enrollments = [];
     if (typeof HistoricalData !== 'undefined') {
         HistoricalData.records = [];
@@ -3679,6 +3691,11 @@ function loadStudentManagement() {
                         <option value="all">All Levels</option>
                         ${Object.keys(levels).sort().map(l => `<option value="${l}">${l}</option>`).join('')}
                     </select>
+                    <select id="admin-status-filter" onchange="applyStudentFilters()" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 150px;">
+                        <option value="current">Current students</option>
+                        <option value="former">Former students (${(AppState.formerStudents || []).length})</option>
+                        <option value="all">All students</option>
+                    </select>
                     <button class="btn-primary" style="padding: 10px 20px;" onclick="applyStudentFilters()">Filter</button>
                     <button class="btn-secondary" style="padding: 10px 16px;" onclick="resetStudentFilters()">Reset</button>
                 </div>
@@ -3938,8 +3955,11 @@ window.applyStudentFilters = function() {
     const typeFilter = document.getElementById('admin-type-filter')?.value || 'all';
     const langFilter = document.getElementById('admin-lang-filter')?.value || 'all';
     const levelFilter = document.getElementById('admin-level-filter')?.value || 'all';
+    const statusFilter = document.getElementById('admin-status-filter')?.value || 'current';
+    const former = AppState.formerStudents || [];
+    const source = statusFilter === 'former' ? former : statusFilter === 'all' ? AppState.students.concat(former) : AppState.students;
     
-    StudentManagement.filteredStudents = AppState.students.filter(student => {
+    StudentManagement.filteredStudents = source.filter(student => {
         // Search filter
         if (search) {
             const matchesSearch = 
@@ -3987,6 +4007,15 @@ function updateStudentTable() {
     const pagination = document.getElementById('pagination-container');
     if (pagination) {
         pagination.innerHTML = renderPagination();
+    }
+    
+    // Keep the "Showing X of Y" label in step with filters and paging
+    const countLabel = document.getElementById('student-count-display');
+    if (countLabel) {
+        const total = StudentManagement.filteredStudents.length;
+        countLabel.textContent = total
+            ? `Showing ${start + 1}-${Math.min(end, total)} of ${total} students`
+            : 'No students match these filters';
     }
 }
 
@@ -4053,6 +4082,8 @@ window.resetStudentFilters = function() {
     document.getElementById('admin-type-filter').value = 'all';
     document.getElementById('admin-lang-filter').value = 'all';
     document.getElementById('admin-level-filter').value = 'all';
+    const statusEl = document.getElementById('admin-status-filter');
+    if (statusEl) statusEl.value = 'current';
     
     StudentManagement.filteredStudents = [...AppState.students];
     StudentManagement.currentPage = 1;
@@ -4213,7 +4244,7 @@ window.submitNewStudent = async function(e) {
 
 // View Student Detail
 window.viewStudentDetail = function(studentId) {
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     if (!student) return;
     
     // Get student's enrollments
@@ -4305,7 +4336,7 @@ window.viewStudentDetail = function(studentId) {
 
 // Edit Student
 window.editStudent = function(studentId) {
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     if (!student) return;
     
     const modal = document.getElementById('modal');
@@ -4394,7 +4425,7 @@ window.submitEditStudent = async function(e, studentId) {
     const form = e.target;
     const formData = new FormData(form);
     
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     if (student) {
         const changes = {
             civil_id: formData.get('civil_id'),
@@ -4423,7 +4454,7 @@ window.submitEditStudent = async function(e, studentId) {
 
 // Delete Student
 window.deleteStudent = function(studentId) {
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     if (!student) {
         showToast('Student not found', 'error');
         return;
@@ -4458,6 +4489,17 @@ window.deleteStudent = function(studentId) {
 };
 
 window.confirmDeleteStudent = async function(studentId) {
+    // Former students live in their own list; remove them from there directly
+    const formerIdx = (AppState.formerStudents || []).findIndex(s => s.student_id === studentId);
+    if (formerIdx > -1) {
+        const res = await window.api.deleteStudent(studentId);
+        closeModal();
+        if (res.error) { showToast('Could not delete student: ' + res.error.message, 'error'); return; }
+        AppState.formerStudents.splice(formerIdx, 1);
+        applyStudentFilters();
+        showToast('Student deleted', 'success');
+        return;
+    }
     const index = AppState.students.findIndex(s => s.student_id === studentId);
     if (index > -1) {
         const deletedStudent = AppState.students[index];
@@ -4537,7 +4579,7 @@ window.hideUndoToast = function() {
 window.filterAdminStudents = applyStudentFilters;
 
 window.viewStudentDetail = function(studentId) {
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     if (!student) return;
     
     const enrollments = AppState.enrollments.filter(e => e.student_id === studentId);
@@ -8344,7 +8386,7 @@ function searchStudents(query) {
 }
 
 function selectStudent(studentId) {
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     if (!student) return;
     
     // Hide search results
@@ -8528,7 +8570,7 @@ function submitAdvisingForm(event) {
         return;
     }
     
-    const student = AppState.students.find(s => s.student_id === studentId);
+    const student = findStudentById(studentId);
     const keepCourses = Array.from(document.querySelectorAll('input[name="keep-course"]:checked')).map(c => c.value);
     const nextCourses = Array.from(document.querySelectorAll('input[name="next-course"]:checked')).map(c => c.value);
     const notes = document.getElementById('advisor-notes').value;
