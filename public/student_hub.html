@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="js/cck-store.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCK Student Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F3EF;
+  --card:#FFFFFF;
+  --sidebar:#0D1117;
+  --accent:#C8102E;
+  --accent2:#1A3A6B;
+  --green:#16A34A;
+  --amber:#D97706;
+  --text:#0D1117;
+  --sub:#64748B;
+  --border:#E5E7EB;
+  --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── LOGIN ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--sidebar);position:relative;overflow:hidden;}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(200,16,46,.18),transparent),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(26,58,107,.25),transparent);}
+.login-box{position:relative;z-index:2;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:44px 40px;width:380px;backdrop-filter:blur(20px);}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.login-logo-icon{width:44px;height:44px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:white;}
+.login-logo-txt{color:white;font-weight:700;font-size:17px;line-height:1.2;}
+.login-logo-txt span{display:block;font-size:11px;font-weight:400;color:rgba(255,255,255,.5);margin-top:1px;}
+.login-title{color:white;font-size:22px;font-weight:700;margin-bottom:6px;}
+.login-sub{color:rgba(255,255,255,.45);font-size:13px;margin-bottom:28px;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;color:rgba(255,255,255,.6);font-size:12px;font-weight:500;margin-bottom:6px;letter-spacing:.03em;text-transform:uppercase;}
+.login-field input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;color:white;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;}
+.login-field input::placeholder{color:rgba(255,255,255,.3);}
+.login-field input:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:10px;color:white;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px;transition:opacity .15s;}
+.login-btn:hover{opacity:.9;}
+.login-err{color:#FCA5A5;font-size:12px;margin-top:10px;display:none;}
+.login-hint{color:rgba(255,255,255,.25);font-size:11px;margin-top:18px;text-align:center;}
+
+/* ── LAYOUT ── */
+#app{display:none;min-height:100vh;display:grid;grid-template-columns:240px 1fr;}
+.sidebar{background:var(--sidebar);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.main{min-height:100vh;overflow-y:auto;}
+
+/* ── SIDEBAR ── */
+.sb-top{padding:20px 18px 10px;}
+.sb-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.sb-logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:white;flex-shrink:0;}
+.sb-logo-txt{color:white;font-size:14px;font-weight:700;line-height:1.2;}
+.sb-logo-txt span{display:block;font-size:10px;color:rgba(255,255,255,.4);font-weight:400;}
+.sb-avatar{background:rgba(255,255,255,.06);border-radius:12px;padding:12px 14px;margin-bottom:6px;}
+.sb-av-name{color:white;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-av-id{color:rgba(255,255,255,.4);font-size:11px;font-family:'DM Mono',monospace;margin-top:2px;}
+.sb-av-gpa{display:inline-block;margin-top:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.sb-section{padding:6px 18px 4px;color:rgba(255,255,255,.25);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-top:8px;}
+.sb-link{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;cursor:pointer;border-radius:0;transition:all .15s;border-left:3px solid transparent;user-select:none;}
+.sb-link:hover{color:white;background:rgba(255,255,255,.05);}
+.sb-link.active{color:white;border-left-color:var(--accent);background:rgba(200,16,46,.1);}
+.sb-link svg{width:16px;height:16px;flex-shrink:0;}
+.sb-bottom{margin-top:auto;padding:16px 18px;}
+.sb-logout{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.3);font-size:12px;cursor:pointer;padding:8px 0;}
+.sb-logout:hover{color:rgba(255,255,255,.6);}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.topbar-title{font-size:18px;font-weight:700;}
+.topbar-sub{font-size:12px;color:var(--sub);}
+
+/* ── VIEWS ── */
+.view{display:none;padding:28px;}
+.view.active{display:block;}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:18px 20px;border:1px solid var(--border);}
+.stat-lbl{font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.stat-val{font-size:26px;font-weight:800;line-height:1;}
+.stat-sub{font-size:11px;color:var(--sub);margin-top:4px;}
+
+/* ── TIMETABLE ── */
+.tt-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.tt-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.tt-title{font-size:15px;font-weight:700;}
+.tt-grid{overflow-x:auto;}
+table.tt{width:100%;border-collapse:collapse;min-width:700px;}
+table.tt th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border);background:#FAFAFA;text-align:left;}
+table.tt td{padding:13px 14px;border-bottom:1px solid #F9FAFB;font-size:13px;vertical-align:top;}
+table.tt tr:last-child td{border-bottom:none;}
+table.tt tr:hover td{background:#FAFAFA;}
+.method-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.mb-lec{background:#DBEAFE;color:#1E40AF;}
+.mb-lab{background:#EDE9FE;color:#5B21B6;}
+.course-code{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);display:block;margin-bottom:2px;}
+.course-name{font-size:12px;color:var(--sub);}
+
+/* ── WEEKLY GRID ── */
+.week-grid{display:grid;grid-template-columns:80px repeat(5,1fr);gap:1px;background:var(--border);border-radius:12px;overflow:hidden;font-size:11px;}
+.wg-cell{background:var(--card);padding:8px 10px;min-height:50px;}
+.wg-head{background:#F8FAFC;padding:10px;font-weight:700;font-size:11px;color:var(--sub);text-transform:uppercase;text-align:center;}
+.wg-time{background:#FAFAFA;color:var(--sub);font-size:10px;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;}
+.wg-session{background:#EFF6FF;border-left:3px solid #3B82F6;border-radius:4px;padding:5px 7px;margin-bottom:3px;cursor:default;}
+.wg-session.lab{background:#F5F3FF;border-left-color:#7C3AED;}
+.wg-session .ws-code{font-weight:700;font-size:10px;color:#1E40AF;}
+.wg-session.lab .ws-code{color:#5B21B6;}
+.wg-session .ws-time{font-size:9px;color:var(--sub);margin-top:1px;}
+
+/* ── CALENDAR ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-head{font-size:10px;font-weight:700;color:var(--sub);text-align:center;padding:8px 0;}
+.cal-day{background:var(--card);border-radius:8px;padding:8px;min-height:52px;border:1px solid var(--border);font-size:12px;}
+.cal-day.empty{background:transparent;border-color:transparent;}
+.cal-day.today{background:#FFF5F5;border-color:var(--accent);}
+.cal-day.has-event{border-color:#BFDBFE;}
+.cal-num{font-weight:600;font-size:12px;margin-bottom:4px;}
+.cal-event{background:#EFF6FF;color:#1E40AF;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-event.holiday{background:#FEF2F2;color:#DC2626;}
+.cal-event.exam{background:#FEF3C7;color:#92400E;}
+.cal-nav{display:flex;align-items:center;gap:10px;}
+.cal-nav button{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.cal-nav button:hover{background:#F1F5F9;}
+
+/* ── GPA CALCULATOR ── */
+.gpa-table{width:100%;}
+.gpa-table th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border);background:#FAFAFA;text-align:left;}
+.gpa-table td{padding:10px 14px;border-bottom:1px solid #F9FAFB;font-size:13px;}
+.gpa-table select,.gpa-table input{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:white;outline:none;}
+.gpa-table select:focus,.gpa-table input:focus{border-color:var(--accent2);}
+.gpa-result{background:var(--card);border-radius:var(--radius);padding:22px 24px;border:1px solid var(--border);display:flex;align-items:center;gap:20px;}
+.gpa-big{font-size:48px;font-weight:800;line-height:1;}
+.gpa-label{color:var(--sub);font-size:13px;}
+.gpa-bar-wrap{flex:1;background:#F1F5F9;border-radius:100px;height:10px;overflow:hidden;}
+.gpa-bar{height:100%;border-radius:100px;transition:width .4s;}
+.grade-ref{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.gr-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center;}
+.gr-letter{font-size:18px;font-weight:800;}
+.gr-range{font-size:10px;color:var(--sub);margin-top:1px;}
+.gr-pts{font-size:12px;font-weight:700;color:var(--accent2);}
+.add-course-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent2);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;}
+.del-btn{background:none;border:none;color:#EF4444;cursor:pointer;font-size:16px;padding:2px 6px;}
+.del-btn:hover{background:#FEF2F2;border-radius:4px;}
+.semester-tab{display:inline-flex;padding:3px;background:#F1F5F9;border-radius:8px;gap:2px;margin-bottom:16px;}
+.st-btn{padding:5px 14px;border:none;background:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;color:var(--sub);}
+.st-btn.active{background:white;color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+
+/* ── CLUBS ── */
+.clubs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.club-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:transform .15s,box-shadow .15s;}
+.club-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08);}
+.club-banner{height:80px;display:flex;align-items:center;justify-content:center;font-size:32px;}
+.club-body{padding:16px;}
+.club-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+.club-desc{font-size:12px;color:var(--sub);line-height:1.5;margin-bottom:12px;}
+.club-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:#F1F5F9;color:var(--sub);margin-right:4px;margin-bottom:4px;}
+.club-join{display:block;width:100%;padding:9px;text-align:center;border:1.5px solid var(--accent2);color:var(--accent2);border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:none;margin-top:12px;transition:all .15s;}
+.club-join:hover,.club-join.joined{background:var(--accent2);color:white;border-color:var(--accent2);}
+.club-join.joined{background:var(--green);border-color:var(--green);}
+.activity-row{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px;padding:16px 18px;display:flex;align-items:center;gap:14px;}
+.act-date{min-width:48px;text-align:center;background:#F1F5F9;border-radius:8px;padding:6px 8px;}
+.act-month{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;}
+.act-day{font-size:20px;font-weight:800;line-height:1;}
+.act-info{flex:1;}
+.act-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.act-club{font-size:11px;color:var(--sub);}
+.act-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:#DCFCE7;color:#166534;}
+
+/* ── GRADES ── */
+.grade-hist-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;}
+.grade-letter-badge{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+.gb-A{background:#DCFCE7;color:#166534;}
+.gb-B{background:#DBEAFE;color:#1E40AF;}
+.gb-C{background:#FEF3C7;color:#92400E;}
+.gb-D{background:#FEE2E2;color:#DC2626;}
+.gb-F{background:#F3F4F6;color:#6B7280;}
+.grade-info{flex:1;}
+.grade-code{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);}
+.grade-name{font-size:13px;font-weight:500;margin-top:1px;}
+.grade-sem{font-size:11px;color:var(--sub);}
+.grade-pts{font-size:13px;font-weight:700;text-align:right;}
+
+/* ── DOWNLOAD BTN ── */
+.btn-dl{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent2);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;}
+.btn-dl:hover{opacity:.85;}
+.btn-dl svg{width:14px;height:14px;}
+.btn-red{background:var(--accent);}
+
+/* ── UTILS ── */
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;}
+.section-sub{font-size:12px;color:var(--sub);margin-top:2px;}
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);}
+.card-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-body{padding:20px;}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;}
+
+#app{display:none;}
+</style>
+<script src="cck_shared.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">CCK</div>
+      <div class="login-logo-txt">Student Hub<span>Canadian College of Kuwait</span></div>
+    </div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in with your student credentials</div>
+    <div class="login-field">
+      <label>Student ID</label>
+      <input type="text" id="li-id" placeholder="e.g. 202300998" autocomplete="off">
+    </div>
+    <div class="login-field">
+      <label>Civil ID</label>
+      <input type="password" id="li-pw" placeholder="Your Civil ID">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="login-err">Invalid student ID or password.</div>
+    <div class="login-hint">Password: your Civil ID</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">
+        <div class="sb-logo-icon">CCK</div>
+        <div class="sb-logo-txt">Student Hub<span>Canadian College of Kuwait</span></div>
+      </div>
+      <div class="sb-avatar">
+        <div class="sb-av-name" id="sb-name">—</div>
+        <div class="sb-av-id" id="sb-id">—</div>
+        <div class="sb-av-gpa" id="sb-gpa">GPA —</div>
+      </div>
+    </div>
+    <div class="sb-section">Overview</div>
+    <div class="sb-link active" onclick="showView('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+    </div>
+    <div class="sb-section">Academics</div>
+    <div class="sb-link" onclick="showView('timetable',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Timetable
+    </div>
+    <div class="sb-link" onclick="showView('grades',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Grades
+    </div>
+    <div class="sb-link" onclick="showView('gpa',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>GPA Calculator
+    </div>
+    <div class="sb-section">Campus</div>
+    <div class="sb-link" onclick="showView('calendar',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Academic Calendar
+    </div>
+    <div class="sb-link" onclick="showView('clubs',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clubs & Activities
+    </div>
+    <div class="sb-bottom">
+      <div class="sb-logout" onclick="doLogout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="view-title">Dashboard</div>
+        <div class="topbar-sub" id="view-sub">Welcome to CCK Student Hub</div>
+      </div>
+      <div style="display:flex;gap:8px;" id="topbar-actions"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="v-dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-lbl">Enrolled Credits</div>
+          <div class="stat-val" id="d-credits">—</div>
+          <div class="stat-sub">this semester</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Courses</div>
+          <div class="stat-val" id="d-courses">—</div>
+          <div class="stat-sub">active enrollments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Current GPA</div>
+          <div class="stat-val" id="d-gpa">—</div>
+          <div class="stat-sub">cumulative</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Year Level</div>
+          <div class="stat-val" id="d-level" style="font-size:16px;line-height:1.4">—</div>
+          <div class="stat-sub" id="d-major" style="white-space:normal;line-height:1.4"></div>
+        </div>
+      </div>
+
+      <!-- Today's classes -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-head">
+          <div>
+            <div class="section-title" style="margin:0">Today's Classes</div>
+            <div class="section-sub" id="today-date"></div>
+          </div>
+        </div>
+        <div class="card-body" id="today-classes"></div>
+      </div>
+
+      <!-- Quick timetable preview -->
+      <div class="card">
+        <div class="card-head">
+          <div class="section-title" style="margin:0">Weekly Schedule</div>
+          <button class="btn-dl btn-red" onclick="showView('timetable',document.querySelector('[onclick*=timetable]'))">View Full →</button>
+        </div>
+        <div style="padding:16px;overflow-x:auto;">
+          <div class="week-grid" id="week-preview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMETABLE -->
+    <div class="view" id="v-timetable">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-head">
+          <div>
+            <div class="section-title" style="margin:0">Course Schedule</div>
+            <div class="section-sub">Summer 2024–2025 semester</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-dl" onclick="downloadICS()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Import to Google Calendar
+            </button>
+            <button class="btn-dl btn-red" onclick="downloadTTPDF()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF
+            </button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="tt">
+            <thead><tr><th>Course</th><th>Name</th><th>Section</th><th>Days & Time</th><th>Method</th><th>Instructor</th></tr></thead>
+            <tbody id="tt-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="section-title" style="margin:0">Weekly View</div></div>
+        <div style="padding:16px;overflow-x:auto;">
+          <div class="week-grid" id="week-full"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRADES -->
+    <div class="view" id="v-grades">
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card">
+          <div class="stat-lbl">Courses Completed</div>
+          <div class="stat-val" id="g-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Total Credits Earned</div>
+          <div class="stat-val" id="g-credits">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">CGPA (from records)</div>
+          <div class="stat-val" id="g-cgpa">—</div>
+        </div>
+      </div>
+      <div id="grades-by-sem"></div>
+    </div>
+
+    <!-- GPA CALCULATOR -->
+    <div class="view" id="v-gpa">
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;">
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-head">
+              <div>
+                <div class="section-title" style="margin:0">GPA Calculator</div>
+                <div class="section-sub">Add courses and grades to calculate your semester GPA</div>
+              </div>
+              <button class="add-course-btn" onclick="addGpaRow()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Course
+              </button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="gpa-table">
+                <thead><tr><th>Course Name</th><th>Credits</th><th>Grade</th><th>Points</th><th></th></tr></thead>
+                <tbody id="gpa-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Pre-fill from enrolled courses -->
+          <div class="card">
+            <div class="card-head">
+              <div class="section-title" style="margin:0">Load from Current Semester</div>
+            </div>
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--sub);margin-bottom:14px;">Automatically load your enrolled courses into the calculator. Credits are pre-filled — just select your expected grades.</p>
+              <button class="add-course-btn" onclick="loadEnrolledIntoGpa()">Load My Courses</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Result -->
+          <div class="gpa-result" style="flex-direction:column;align-items:flex-start;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Calculated GPA</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+              <div class="gpa-big" id="calc-gpa">0.00</div>
+              <div style="font-size:14px;color:var(--sub);">/ 4.00</div>
+            </div>
+            <div class="gpa-bar-wrap" style="width:100%;">
+              <div class="gpa-bar" id="calc-bar" style="width:0%;background:var(--green);"></div>
+            </div>
+            <div style="margin-top:10px;font-size:13px;color:var(--sub);" id="calc-status">Add courses to begin</div>
+          </div>
+
+          <!-- CCK Grading Scheme Reference -->
+          <div class="card">
+            <div class="card-head"><div class="section-title" style="margin:0">CCK Grading Scheme</div></div>
+            <div class="card-body" style="padding:12px;">
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr><th style="padding:6px 8px;text-align:left;color:var(--sub);font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);">Grade</th><th style="padding:6px 8px;text-align:left;color:var(--sub);font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);">Range</th><th style="padding:6px 8px;text-align:right;color:var(--sub);font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--border);">Points</th></tr></thead>
+                <tbody>
+                  <tr><td style="padding:5px 8px;font-weight:700;">A+</td><td style="padding:5px 8px;color:var(--sub);">95–100</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--green);">4.00</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">A-</td><td style="padding:5px 8px;color:var(--sub);">90–94</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--green);">3.67</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">B+</td><td style="padding:5px 8px;color:var(--sub);">86–89</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#2563EB;">3.33</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">B</td><td style="padding:5px 8px;color:var(--sub);">83–85</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#2563EB;">3.00</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">B-</td><td style="padding:5px 8px;color:var(--sub);">80–82</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#2563EB;">2.67</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">C+</td><td style="padding:5px 8px;color:var(--sub);">75–79</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--amber);">2.33</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">C</td><td style="padding:5px 8px;color:var(--sub);">70–74</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--amber);">2.00</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">C-</td><td style="padding:5px 8px;color:var(--sub);">66–69</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--amber);">1.67</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">D+</td><td style="padding:5px 8px;color:var(--sub);">63–65</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#DC2626;">1.33</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">D</td><td style="padding:5px 8px;color:var(--sub);">60–62</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#DC2626;">1.00</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">F</td><td style="padding:5px 8px;color:var(--sub);">Below 60</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#DC2626;">0.00</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">FA</td><td style="padding:5px 8px;color:var(--sub);">Absence</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#DC2626;">0.00</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="view" id="v-calendar">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-head">
+          <div>
+            <div class="section-title" style="margin:0">Academic Calendar 2024–2025</div>
+            <div class="section-sub">Canadian College of Kuwait — Key dates and events</div>
+          </div>
+          <div class="cal-nav">
+            <button onclick="calPrev()">&#8592;</button>
+            <span style="font-size:14px;font-weight:700;min-width:140px;text-align:center;" id="cal-month-lbl"></span>
+            <button onclick="calNext()">&#8594;</button>
+          </div>
+        </div>
+        <div style="padding:16px;">
+          <div class="cal-grid" id="cal-heads"></div>
+          <div class="cal-grid" id="cal-body" style="margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <!-- Upcoming events list -->
+      <div class="card">
+        <div class="card-head"><div class="section-title" style="margin:0">Upcoming Key Dates</div></div>
+        <div class="card-body" id="events-list"></div>
+      </div>
+    </div>
+
+    <!-- CLUBS -->
+    <div class="view" id="v-clubs">
+      <div class="clubs-grid" style="margin-bottom:24px;">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="section-title">Upcoming Club Events</div>
+      <div id="activities-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+const GRADE_PTS={'A+':4.0,'A':4.0,'A-':3.67,'B+':3.33,'B':3.0,'B-':2.67,'C+':2.33,'C':2.0,'C-':1.67,'D+':1.33,'D':1.0,'F':0,'FA':0};
+const DAYS_ORDER=['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+const DAY_SHORT={'Sunday':'Sun','Monday':'Mon','Tuesday':'Tue','Wednesday':'Wed','Thursday':'Thu'};
+const DAY_ABB={'Su':'Sunday','M':'Monday','T':'Tuesday','W':'Wednesday','Th':'Thursday'};
+
+</script>
+<script>
+// ══ STUDENT DATA ══
+// Loaded from the server for the logged-in student only (it used to be embedded here for
+// every student, readable by anyone who opened the page).
+let STUDENTS_DATA=[], ENROLL_MAP={}, GRADES_MAP={};
+async function loadHubData(){
+  const j=async u=>{const r=await fetch(u,{credentials:'same-origin'}); if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error||r.statusText); return r.json();};
+  const data=await j('/api/data');
+  const me=(data.students||[])[0];
+  if(!me) throw new Error('No student record');
+  const num=v=>{const n=parseFloat(v); return isNaN(n)?v:n;};
+  STUDENTS_DATA=[{id:me.student_id,name:me.name,major:me.major,level:me.level,gpa:num(me.gpa),
+    credits:parseInt(me.enrolled_credits)||0,email:me.email,gender:me.gender,admit:me.admit_term}];
+  ENROLL_MAP[me.student_id]=(data.enrollments||[]).filter(e=>e.student_id===me.student_id).map(e=>({
+    code:e.course_code,name:e.course_name,section:e.section,time:e.time,method:e.teaching_method,instructor:e.instructor}));
+  try{
+    const h=await j('/api/historical-grades');
+    GRADES_MAP[me.student_id]=(h.records||[]).map(r=>({code:r.course_code,name:r.course_name,grade:r.grade,credits:r.credit_hours,semester:r.semester}));
+  }catch(e){ GRADES_MAP[me.student_id]=[]; }
+  return me.student_id;
+}
+</script>
+<script>
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let currentStudent=null, currentEnroll=[], currentGrades=[];
+let gpaRows=[], calMonth=new Date().getMonth(), calYear=new Date().getFullYear();
+const joinedClubs=new Set(JSON.parse(localStorage.getItem('cck_joined_clubs')||'[]'));
+
+// ══════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════
+async function doLogin(){
+  // Sign in through the server (Student ID + Civil ID), same as the main site
+  const id=document.getElementById('li-id').value.trim();
+  const pw=document.getElementById('li-pw').value.trim();
+  if(!(window.CCK_SESSION&&window.CCK_SESSION.role==='student')){
+    const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({id:id,password:pw})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.role!=='student'){ document.getElementById('login-err').textContent=d.error||'Invalid student ID or Civil ID.'; document.getElementById('login-err').style.display='block'; return; }
+    if(window.cckStore) window.cckStore.reload();
+  }
+  let sid;
+  try{ sid=await loadHubData(); }catch(e){ document.getElementById('login-err').textContent='Could not load your data: '+e.message; document.getElementById('login-err').style.display='block'; return; }
+  const student=STUDENTS_DATA.find(s=>s.id===sid);
+  if(!student){ document.getElementById('login-err').style.display='block'; return; }
+  currentStudent=student;
+  currentEnroll=ENROLL_MAP[sid]||[];
+  currentGrades=GRADES_MAP[sid]||[];
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='grid';
+  initApp();
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+if(window.CCK_SESSION&&window.CCK_SESSION.role==='student'){ setTimeout(doLogin,0); }
+
+function doLogout(){
+  if(window.cckLogout){ window.cckLogout(); return; }
+  currentStudent=null; currentEnroll=[]; currentGrades=[];
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('li-id').value=''; document.getElementById('li-pw').value='';
+  document.getElementById('login-err').style.display='none';
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+function initApp(){
+  const s=currentStudent;
+  document.getElementById('sb-name').textContent=s.name;
+  document.getElementById('sb-id').textContent=s.id;
+  const gpaVal=typeof s.gpa==='number'?s.gpa.toFixed(2):'N/A';
+  document.getElementById('sb-gpa').textContent='GPA '+gpaVal;
+
+  // Stats
+  const uniqCourses=[...new Set(currentEnroll.map(e=>e.code))];
+  document.getElementById('d-credits').textContent=s.credits||uniqCourses.length*3;
+  document.getElementById('d-courses').textContent=uniqCourses.length;
+  document.getElementById('d-gpa').textContent=gpaVal;
+  document.getElementById('d-level').textContent=s.level||'—';
+  document.getElementById('d-major').textContent=(s.major||'').replace('Bachelor of Applied Sciences (BASc) in ','').replace('Bachelor of Business Administration (BBA) - ','');
+
+  renderToday();
+  renderWeekPreview('week-preview');
+  renderTimetable();
+  renderWeekPreview('week-full');
+  renderGrades();
+  renderCalendar();
+  renderClubs();
+  renderActivities();
+  initGpa();
+}
+
+// ══════════════════════════════════════════════════════
+// TIMETABLE HELPERS
+// ══════════════════════════════════════════════════════
+function parseSessions(enroll){
+  // Build deduplicated course list with parsed time slots
+  const courses={};
+  enroll.forEach(e=>{
+    if(!courses[e.code]) courses[e.code]={code:e.code,name:e.name,section:e.section,slots:[],instructor:e.instructor,method:e.method};
+    if(e.time) courses[e.code].slots.push({time:e.time,method:e.method});
+  });
+  return Object.values(courses);
+}
+
+function parseTime(timeStr){
+  // "Su,M,T(08:00 - 09:00)" -> {days:['Sunday','Monday','Tuesday'], from:'08:00', to:'09:00'}
+  if(!timeStr) return null;
+  const m=timeStr.match(/^([^(]+)\(([^)]+)\)/);
+  if(!m) return null;
+  const dayStr=m[1].trim();
+  const timeRange=m[2].trim();
+  const [from,to]=timeRange.split(' - ');
+  const days=dayStr.split(',').map(d=>d.trim()).map(d=>DAY_ABB[d]||d).filter(Boolean);
+  return{days,from,to};
+}
+
+function timeToMin(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+
+// ══════════════════════════════════════════════════════
+// TODAY'S CLASSES
+// ══════════════════════════════════════════════════════
+function renderToday(){
+  const now=new Date();
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const today=dayNames[now.getDay()];
+  document.getElementById('today-date').textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const courses=parseSessions(currentEnroll);
+  const todaySessions=[];
+  courses.forEach(c=>{
+    c.slots.forEach(sl=>{
+      const parsed=parseTime(sl.time);
+      if(parsed&&parsed.days.includes(today)){
+        todaySessions.push({...c,from:parsed.from,to:parsed.to,method:sl.method});
+      }
+    });
+  });
+  todaySessions.sort((a,b)=>timeToMin(a.from)-timeToMin(b.from));
+  const el=document.getElementById('today-classes');
+  if(!todaySessions.length){
+    el.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0;">No classes today — enjoy your day!</div>';
+    return;
+  }
+  el.innerHTML=todaySessions.map(s=>`
+    <div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="min-width:90px;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--accent2);">${fmt12(s.from)} – ${fmt12(s.to)}</div>
+      <div style="flex:1;">
+        <span class="course-code">${s.code}</span>
+        <span style="font-size:13px;">${s.name}</span>
+      </div>
+      <span class="method-badge ${s.method==='Lab'?'mb-lab':'mb-lec'}">${s.method||'Lecture'}</span>
+      <div style="font-size:11px;color:var(--sub);max-width:160px;text-align:right;">${s.instructor}</div>
+    </div>`).join('');
+}
+
+function fmt12(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return`${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;}
+
+// ══════════════════════════════════════════════════════
+// TIMETABLE TABLE
+// ══════════════════════════════════════════════════════
+function renderTimetable(){
+  const courses=parseSessions(currentEnroll);
+  // Merge slots by code+method
+  const rows=[];
+  courses.forEach(c=>{
+    const byMethod={};
+    c.slots.forEach(sl=>{if(!byMethod[sl.method])byMethod[sl.method]=[];byMethod[sl.method].push(sl.time);});
+    Object.entries(byMethod).forEach(([method,times])=>{
+      rows.push({code:c.code,name:c.name,section:c.section,times,method,instructor:c.instructor});
+    });
+  });
+  document.getElementById('tt-body').innerHTML=rows.map(r=>`
+    <tr>
+      <td><span class="course-code">${r.code}</span></td>
+      <td>${r.name}</td>
+      <td style="color:var(--sub);font-size:12px;">${r.section||'—'}</td>
+      <td style="font-size:12px;">${r.times.join('<br>')}</td>
+      <td><span class="method-badge ${r.method==='Lab'?'mb-lab':'mb-lec'}">${r.method}</span></td>
+      <td style="font-size:12px;color:var(--sub);">${r.instructor}</td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// WEEKLY GRID
+// ══════════════════════════════════════════════════════
+const SLOTS=['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+
+function renderWeekPreview(containerId){
+  const courses=parseSessions(currentEnroll);
+  // Build grid: day -> slot -> sessions
+  const grid={};
+  DAYS_ORDER.forEach(d=>{grid[d]={};SLOTS.forEach(s=>{grid[d][s]=[];});});
+  courses.forEach(c=>{
+    c.slots.forEach(sl=>{
+      const parsed=parseTime(sl.time);
+      if(!parsed) return;
+      parsed.days.forEach(day=>{
+        if(!grid[day]) return;
+        // Find the closest slot
+        const startMin=timeToMin(parsed.from);
+        for(let i=0;i<SLOTS.length;i++){
+          const slotMin=timeToMin(SLOTS[i]);
+          const nextMin=i+1<SLOTS.length?timeToMin(SLOTS[i+1]):slotMin+60;
+          if(startMin>=slotMin&&startMin<nextMin){
+            grid[day][SLOTS[i]].push({code:c.code,from:parsed.from,to:parsed.to,method:sl.method});
+            break;
+          }
+        }
+      });
+    });
+  });
+  let html='';
+  // Header row
+  html+='<div class="wg-head" style="background:#F8FAFC;"></div>';
+  DAYS_ORDER.forEach(d=>{html+=`<div class="wg-head">${DAY_SHORT[d]}</div>`;});
+  // Time rows
+  SLOTS.forEach(slot=>{
+    html+=`<div class="wg-cell wg-time">${fmt12(slot)}</div>`;
+    DAYS_ORDER.forEach(day=>{
+      const sessions=grid[day][slot];
+      html+='<div class="wg-cell">';
+      sessions.forEach(s=>{
+        html+=`<div class="wg-session${s.method==='Lab'?' lab':''}"><div class="ws-code">${s.code}</div><div class="ws-time">${fmt12(s.from)}–${fmt12(s.to)}</div></div>`;
+      });
+      html+='</div>';
+    });
+  });
+  document.getElementById(containerId).innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════
+// GRADES
+// ══════════════════════════════════════════════════════
+function renderGrades(){
+  const grades=currentGrades;
+  if(!grades.length){
+    document.getElementById('grades-by-sem').innerHTML='<div style="color:var(--sub);font-size:13px;padding:20px 0;">No historical grade records found.</div>';
+    return;
+  }
+  // Stats
+  const totalCredits=grades.reduce((s,g)=>s+(g.credits||3),0);
+  document.getElementById('g-total').textContent=grades.length;
+  document.getElementById('g-credits').textContent=totalCredits;
+  // Compute CGPA
+  let totalPoints=0,totalCr=0;
+  grades.forEach(g=>{const pts=GRADE_PTS[g.grade];if(pts!==undefined){totalPoints+=pts*(g.credits||3);totalCr+=(g.credits||3);}});
+  const cgpa=totalCr>0?(totalPoints/totalCr).toFixed(2):'N/A';
+  document.getElementById('g-cgpa').textContent=cgpa;
+  // Group by semester
+  const bySem={};
+  grades.forEach(g=>{if(!bySem[g.semester])bySem[g.semester]=[];bySem[g.semester].push(g);});
+  const semOrder={'Fall':0,'Spring':1,'Summer':2};
+  const sems=Object.keys(bySem).sort((a,b)=>{
+    const [ta,ya]=a.split(' ');const [tb,yb]=b.split(' ');
+    const yearA=parseInt((ya||'').split('-')[0]);const yearB=parseInt((yb||'').split('-')[0]);
+    if(yearA!==yearB)return yearB-yearA;
+    return (semOrder[ta]||0)-(semOrder[tb]||0);
+  });
+  document.getElementById('grades-by-sem').innerHTML=sems.map(sem=>{
+    const gs=bySem[sem];
+    let sp=0,sc=0;
+    gs.forEach(g=>{const pts=GRADE_PTS[g.grade];if(pts!==undefined){sp+=pts*(g.credits||3);sc+=(g.credits||3);}});
+    const semGpa=sc>0?(sp/sc).toFixed(2):'N/A';
+    return`<div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:700;">${sem}</div>
+        <div style="font-size:12px;color:var(--sub);">Semester GPA: <strong>${semGpa}</strong></div>
+      </div>
+      ${gs.map(g=>{
+        const pts=GRADE_PTS[g.grade];
+        const first=g.grade[0];
+        const cls=first==='A'?'gb-A':first==='B'?'gb-B':first==='C'?'gb-C':first==='D'?'gb-D':'gb-F';
+        return`<div class="grade-hist-item">
+          <div class="grade-letter-badge ${cls}">${g.grade}</div>
+          <div class="grade-info">
+            <div class="grade-code">${g.code}</div>
+            <div class="grade-name">${g.name||g.code}</div>
+          </div>
+          <div>
+            <div class="grade-pts">${pts!==undefined?pts.toFixed(2):'—'}</div>
+            <div style="font-size:10px;color:var(--sub);text-align:right;">${g.credits||3} cr</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// GPA CALCULATOR
+// ══════════════════════════════════════════════════════
+let gpaCounter=0;
+const GRADES_LIST=['A+','A','A-','B+','B','B-','C+','C','C-','D+','D','F','FA'];
+
+function initGpa(){ addGpaRow(); }
+
+function addGpaRow(code='',name='',credits=3,grade=''){
+  const id=++gpaCounter;
+  const tbody=document.getElementById('gpa-rows');
+  const tr=document.createElement('tr');
+  tr.id='gpr-'+id;
+  tr.innerHTML=`
+    <td><input type="text" style="width:100%;min-width:160px;" placeholder="Course name" value="${name}" oninput="calcGpa()"></td>
+    <td><input type="number" style="width:60px;" value="${credits}" min="1" max="12" oninput="calcGpa()"></td>
+    <td><select onchange="calcGpa()">
+      <option value="">— Select —</option>
+      ${GRADES_LIST.map(g=>`<option value="${g}" ${g===grade?'selected':''}>${g}</option>`).join('')}
+    </select></td>
+    <td id="gpr-pts-${id}" style="font-weight:700;color:var(--accent2);">—</td>
+    <td><button class="del-btn" onclick="removeGpaRow(${id})">×</button></td>`;
+  tbody.appendChild(tr);
+  calcGpa();
+}
+
+function removeGpaRow(id){document.getElementById('gpr-'+id)?.remove();calcGpa();}
+
+function loadEnrolledIntoGpa(){
+  document.getElementById('gpa-rows').innerHTML='';
+  gpaCounter=0;
+  const courses=parseSessions(currentEnroll);
+  courses.forEach(c=>addGpaRow(c.code,c.name,3,''));
+  calcGpa();
+}
+
+function calcGpa(){
+  let totalPts=0,totalCr=0;
+  document.querySelectorAll('#gpa-rows tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    const sel=tr.querySelector('select');
+    if(!inputs.length||!sel) return;
+    const cr=parseInt(inputs[1]?.value)||0;
+    const grade=sel.value;
+    const pts=GRADE_PTS[grade];
+    const ptsEl=tr.querySelector('[id^="gpr-pts-"]');
+    if(pts!==undefined&&cr>0){
+      const earned=(pts*cr).toFixed(2);
+      if(ptsEl)ptsEl.textContent=earned;
+      totalPts+=pts*cr; totalCr+=cr;
+    } else {if(ptsEl)ptsEl.textContent='—';}
+  });
+  const gpa=totalCr>0?totalPts/totalCr:0;
+  document.getElementById('calc-gpa').textContent=gpa.toFixed(2);
+  const pct=Math.min(100,(gpa/4)*100);
+  const bar=document.getElementById('calc-bar');
+  bar.style.width=pct+'%';
+  bar.style.background=gpa>=3.5?'var(--green)':gpa>=2.5?'var(--accent2)':gpa>=1.5?'var(--amber)':'var(--accent)';
+  const status=gpa>=3.7?'Excellent — Dean\'s List':gpa>=3.0?'Good Standing':gpa>=2.0?'Satisfactory':gpa>0?'At Risk':'Add courses to begin';
+  document.getElementById('calc-status').textContent=totalCr>0?`${totalCr} credits · ${status}`:'Add courses to begin';
+}
+
+// ══════════════════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════════════════
+const CCK_EVENTS=[
+  // Fall 2024-2025
+  {date:'2024-09-01',label:'Fall Semester Begins',type:'academic'},
+  {date:'2024-09-15',label:'Last Day to Add/Drop',type:'academic'},
+  {date:'2024-11-10',label:'Mid-Term Exams Begin',type:'exam'},
+  {date:'2024-11-17',label:'Mid-Term Exams End',type:'exam'},
+  {date:'2024-12-18',label:'National Day Holiday',type:'holiday'},
+  {date:'2024-12-19',label:'Liberation Day Holiday',type:'holiday'},
+  {date:'2025-01-05',label:'Final Exams Begin',type:'exam'},
+  {date:'2025-01-15',label:'Final Exams End',type:'exam'},
+  {date:'2025-01-16',label:'Fall Semester Ends',type:'academic'},
+  // Spring 2024-2025
+  {date:'2025-01-26',label:'Spring Semester Begins',type:'academic'},
+  {date:'2025-02-09',label:'Last Day to Add/Drop',type:'academic'},
+  {date:'2025-02-25',label:'National Day',type:'holiday'},
+  {date:'2025-02-26',label:'Liberation Day',type:'holiday'},
+  {date:'2025-03-30',label:'Isra Mi\'raj Holiday',type:'holiday'},
+  {date:'2025-04-06',label:'Mid-Term Exams Begin',type:'exam'},
+  {date:'2025-04-13',label:'Mid-Term Exams End',type:'exam'},
+  {date:'2025-03-30',label:'End of Registration',type:'academic'},
+  {date:'2025-05-25',label:'Final Exams Begin',type:'exam'},
+  {date:'2025-06-05',label:'Final Exams End',type:'exam'},
+  {date:'2025-06-06',label:'Spring Semester Ends',type:'academic'},
+  // Summer 2024-2025
+  {date:'2025-06-22',label:'Summer Semester Begins',type:'academic'},
+  {date:'2025-06-30',label:'Last Day to Add/Drop',type:'academic'},
+  {date:'2025-07-15',label:'Mid-Term Exams',type:'exam'},
+  {date:'2025-08-10',label:'Final Exams Begin',type:'exam'},
+  {date:'2025-08-20',label:'Summer Semester Ends',type:'academic'},
+];
+
+function renderCalendar(){
+  // Day headers
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('cal-heads').innerHTML=days.map(d=>`<div class="cal-head">${d}</div>`).join('');
+  renderCalMonth();
+  renderEventsList();
+}
+
+function renderCalMonth(){
+  const year=calYear, month=calMonth;
+  const lbl=new Date(year,month,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  document.getElementById('cal-month-lbl').textContent=lbl;
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const today=new Date();
+  const eventsMap={};
+  CCK_EVENTS.forEach(e=>{
+    const d=new Date(e.date);
+    if(d.getFullYear()===year&&d.getMonth()===month){
+      const key=d.getDate();
+      if(!eventsMap[key])eventsMap[key]=[];
+      eventsMap[key].push(e);
+    }
+  });
+  let html='';
+  for(let i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=d===today.getDate()&&month===today.getMonth()&&year===today.getFullYear();
+    const events=eventsMap[d]||[];
+    html+=`<div class="cal-day${isToday?' today':''}${events.length?' has-event':''}">
+      <div class="cal-num">${d}</div>
+      ${events.slice(0,2).map(e=>`<div class="cal-event${e.type==='holiday'?' holiday':e.type==='exam'?' exam':''}">${e.label}</div>`).join('')}
+    </div>`;
+  }
+  document.getElementById('cal-body').innerHTML=html;
+}
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalMonth();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalMonth();}
+
+function renderEventsList(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const upcoming=CCK_EVENTS.filter(e=>new Date(e.date)>=today).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,8);
+  document.getElementById('events-list').innerHTML=upcoming.map(e=>{
+    const d=new Date(e.date);
+    const diff=Math.ceil((d-today)/(1000*60*60*24));
+    const diffLbl=diff===0?'Today':diff===1?'Tomorrow':`In ${diff} days`;
+    const color=e.type==='holiday'?'#DC2626':e.type==='exam'?'#D97706':'var(--accent2)';
+    return`<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="min-width:100px;font-size:12px;color:var(--sub);">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="flex:1;font-size:13px;font-weight:500;">${e.label}</div>
+      <div style="font-size:11px;font-weight:600;color:${color};min-width:80px;text-align:right;">${diffLbl}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// CLUBS
+// ══════════════════════════════════════════════════════
+const CLUBS=[
+  {id:'gdev',name:'Google Developers',desc:'Explore Google technologies, build Android & web apps, participate in Google-sponsored hackathons and workshops.',color:'#4285F4',bg:'#EEF4FF',tags:['Android','Web','Cloud','AI'],meetings:'Every Monday, 4:00 PM'},
+  {id:'cisco',name:'Cisco NetAcad',desc:'Learn networking fundamentals, cybersecurity, and earn Cisco certifications through hands-on labs and study sessions.',color:'#1BA0D7',bg:'#E0F4FA',tags:['Networking','Security','CCNA'],meetings:'Every Wednesday, 3:00 PM'},
+  {id:'cs',name:'Computer Science Club',desc:'Competitive programming, algorithm challenges, LeetCode sessions, and tech talks by industry professionals.',color:'#7C3AED',bg:'#F5F3FF',tags:['Algorithms','Competitive','DSA'],meetings:'Tuesday & Thursday, 2:00 PM'},
+  {id:'pitch',name:'Pitch Club',desc:'Develop entrepreneurial skills through pitch competitions, startup ideation workshops, and investor Q&A sessions.',color:'#D97706',bg:'#FFFBEB',tags:['Startup','Entrepreneurship','Pitching'],meetings:'Every Sunday, 5:00 PM'},
+  {id:'photo',name:'Photography & Media',desc:'Learn photography, video editing, and content creation. Cover campus events and build your creative portfolio.',color:'#DC2626',bg:'#FEF2F2',tags:['Photography','Video','Design'],meetings:'Every Thursday, 4:00 PM'},
+  {id:'debate',name:'Debate Society',desc:'Sharpen critical thinking and public speaking through structured debates, Model UN simulations, and speech workshops.',color:'#166534',bg:'#F0FDF4',tags:['Public Speaking','Critical Thinking'],meetings:'Every Tuesday, 5:00 PM'},
+];
+
+function renderClubs(){
+  document.querySelector('.clubs-grid').innerHTML=CLUBS.map(c=>`
+    <div class="club-card">
+      <div class="club-banner" style="background:${c.bg};color:${c.color};font-size:13px;font-weight:700;flex-direction:column;gap:4px;">
+        <div style="font-size:28px;">${{gdev:'G',cisco:'C',cs:'CS',pitch:'P',photo:'Ph',debate:'D'}[c.id]||'?'}</div>
+        <div style="font-size:10px;opacity:.7;">${c.meetings}</div>
+      </div>
+      <div class="club-body">
+        <div class="club-name">${c.name}</div>
+        <div class="club-desc">${c.desc}</div>
+        <div>${c.tags.map(t=>`<span class="club-tag">${t}</span>`).join('')}</div>
+        <button class="club-join${joinedClubs.has(c.id)?' joined':''}" onclick="toggleJoin('${c.id}',this)">
+          ${joinedClubs.has(c.id)?'Joined ✓':'Join Club'}
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleJoin(id,btn){
+  if(joinedClubs.has(id)){joinedClubs.delete(id);btn.textContent='Join Club';btn.classList.remove('joined');}
+  else{joinedClubs.add(id);btn.textContent='Joined ✓';btn.classList.add('joined');}
+  localStorage.setItem('cck_joined_clubs',JSON.stringify([...joinedClubs]));
+}
+
+const ACTIVITIES=[
+  {date:'2025-03-02',club:'Google Developers',title:'Android App Sprint — Build in 3 Hours',type:'Workshop'},
+  {date:'2025-03-05',club:'Cisco NetAcad',title:'CCNA Prep Session: Subnetting Deep Dive',type:'Study'},
+  {date:'2025-03-09',club:'CS Club',title:'LeetCode Weekly Contest #390',type:'Contest'},
+  {date:'2025-03-12',club:'Pitch Club',title:'Semester Pitch Competition — Finals',type:'Competition'},
+  {date:'2025-03-16',club:'Google Developers',title:'Google Cloud Next Viewing Party',type:'Event'},
+  {date:'2025-03-19',club:'CS Club',title:'Guest Talk: AI in the Kuwaiti Tech Scene',type:'Talk'},
+  {date:'2025-03-23',club:'Debate Society',title:'Intercollegiate Debate: AI Ethics',type:'Competition'},
+  {date:'2025-03-26',club:'Cisco NetAcad',title:'Network Topology Design Challenge',type:'Workshop'},
+];
+
+function renderActivities(){
+  document.getElementById('activities-list').innerHTML=ACTIVITIES.map(a=>{
+    const d=new Date(a.date);
+    return`<div class="activity-row">
+      <div class="act-date">
+        <div class="act-month">${d.toLocaleDateString('en-US',{month:'short'})}</div>
+        <div class="act-day">${d.getDate()}</div>
+      </div>
+      <div class="act-info">
+        <div class="act-title">${a.title}</div>
+        <div class="act-club">${a.club}</div>
+      </div>
+      <span class="act-badge">${a.type}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// DOWNLOAD ICS (Google Calendar import)
+// ══════════════════════════════════════════════════════
+function downloadICS(){
+  const courses=parseSessions(currentEnroll);
+  const uid=currentStudent.id;
+  // Map day abbreviations to BYDAY rule
+  const BYDAY={'Sunday':'SU','Monday':'MO','Tuesday':'TU','Wednesday':'WE','Thursday':'TH'};
+  let ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CCK Student Hub//EN\r\nCALSCALE:GREGORIAN\r\n';
+  // Semester runs approximately June 22 - Aug 20, 2025
+  const semStart='20250622';
+  const semEnd='20250820';
+  let evCount=0;
+  courses.forEach(c=>{
+    c.slots.forEach(sl=>{
+      const parsed=parseTime(sl.time);
+      if(!parsed) return;
+      // Find first occurrence date
+      const startDate=new Date('2025-06-22');
+      const dayIdx={'Sunday':0,'Monday':1,'Tuesday':2,'Wednesday':3,'Thursday':4,'Friday':5,'Saturday':6};
+      parsed.days.forEach(day=>{
+        const targetDay=dayIdx[day];
+        const date=new Date(startDate);
+        while(date.getDay()!==targetDay) date.setDate(date.getDate()+1);
+        const dateStr=date.toISOString().slice(0,10).replace(/-/g,'');
+        const fromStr=parsed.from.replace(':','')+'00';
+        const toStr=parsed.to.replace(':','')+'00';
+        const dtStart=`${dateStr}T${fromStr}`;
+        const dtEnd=`${dateStr}T${toStr}`;
+        evCount++;
+        ics+=`BEGIN:VEVENT\r\nUID:cck-${uid}-${c.code}-${day}-${evCount}@cck\r\n`;
+        ics+=`DTSTART;TZID=Asia/Kuwait:${dtStart}\r\n`;
+        ics+=`DTEND;TZID=Asia/Kuwait:${dtEnd}\r\n`;
+        ics+=`RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[day]};UNTIL=${semEnd}T235959Z\r\n`;
+        ics+=`SUMMARY:${c.code} — ${c.name}\r\n`;
+        ics+=`DESCRIPTION:${sl.method||'Lecture'} | Section ${c.section||'—'} | ${c.instructor}\r\n`;
+        ics+=`LOCATION:CCK Campus\r\nEND:VEVENT\r\n`;
+      });
+    });
+  });
+  ics+='END:VCALENDAR';
+  const blob=new Blob([ics],{type:'text/calendar'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`CCK_Timetable_${uid}.ics`;
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════
+// DOWNLOAD PDF (print-friendly)
+// ══════════════════════════════════════════════════════
+function downloadTTPDF(){
+  const courses=parseSessions(currentEnroll);
+  const rows=[];
+  courses.forEach(c=>{
+    const byMethod={};
+    c.slots.forEach(sl=>{if(!byMethod[sl.method])byMethod[sl.method]=[];byMethod[sl.method].push(sl.time);});
+    Object.entries(byMethod).forEach(([method,times])=>rows.push({code:c.code,name:c.name,section:c.section,times,method,instructor:c.instructor}));
+  });
+  const s=currentStudent;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Timetable - ${s.name}</title>
+  <style>body{font-family:Arial,sans-serif;padding:30px;color:#111;}h1{font-size:18px;margin-bottom:4px;}p{color:#666;font-size:12px;margin-bottom:20px;}table{width:100%;border-collapse:collapse;}th{padding:8px 12px;background:#0D1117;color:white;font-size:11px;text-align:left;}td{padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;}.code{font-weight:700;color:#C8102E;}@media print{button{display:none;}}</style>
+  </head><body>
+  <h1>Course Timetable — ${s.name}</h1>
+  <p>Student ID: ${s.id} | ${s.major||''} | Summer Semester 2024-2025</p>
+  <button onclick="window.print()" style="padding:8px 16px;background:#0D1117;color:white;border:none;border-radius:6px;cursor:pointer;margin-bottom:20px;">Print / Save as PDF</button>
+  <table><thead><tr><th>Code</th><th>Course Name</th><th>Section</th><th>Schedule</th><th>Method</th><th>Instructor</th></tr></thead>
+  <tbody>${rows.map(r=>`<tr><td class="code">${r.code}</td><td>${r.name}</td><td>${r.section||'—'}</td><td>${r.times.join('<br>')}</td><td>${r.method}</td><td>${r.instructor}</td></tr>`).join('')}</tbody></table>
+  </body></html>`);
+  win.document.close();
+}
+
+// ══════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════
+const VIEW_LABELS={'dashboard':'Dashboard','timetable':'My Timetable','grades':'Grades & Records','gpa':'GPA Calculator','calendar':'Academic Calendar','clubs':'Clubs & Activities'};
+const VIEW_SUBS={'dashboard':`Welcome back`,timetable:'Summer 2024–2025 semester',grades:'Your academic history',gpa:'Calculate your semester GPA',calendar:'CCK academic calendar 2024–2025',clubs:'Campus clubs and upcoming events'};
+
+function showView(id,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach(l=>l.classList.remove('active'));
+  document.getElementById('v-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  document.getElementById('view-title').textContent=VIEW_LABELS[id]||id;
+  document.getElementById('view-sub').textContent=id==='dashboard'?`Welcome back, ${currentStudent?.name?.split(' ')[0]||''}`:VIEW_SUBS[id]||'';
+  document.getElementById('topbar-actions').innerHTML='';
+}
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // CCK SIS - Enrollment Prediction Module (Redesigned)
-// Matches the design style of Student Management and other admin pages
+// Analyzes ALL students to predict progression and enrollment
 
 // Grade point mapping
 const GRADE_POINTS_MAP = {
@@ -51,11 +51,280 @@ async function loadHistoricalGrades() {
         return true;
     } catch (error) {
         console.error('Failed to load historical grades:', error);
+        HistoricalData.loaded = true; // Continue anyway with student data
         return false;
     }
 }
 
-// Predict enrollment for a course
+// Analyze ALL students for progression prediction
+function analyzeAllStudents() {
+    // Get all students from AppState (includes Supabase data)
+    const allStudents = (typeof AppState !== 'undefined' && AppState.students) ? AppState.students : [];
+    const historicalStats = HistoricalData.studentStats || {};
+    
+    const predictions = {
+        progressing: [],
+        needsImprovement: [],
+        atRisk: [],
+        newStudents: [],
+        graduated: [],
+        summary: {
+            totalStudents: 0,
+            activeStudents: 0,
+            progressing: 0,
+            needsImprovement: 0,
+            atRisk: 0,
+            newStudents: 0,
+            graduated: 0,
+            progressionRate: 0
+        }
+    };
+    
+    const CURRENT_YEAR = 2025;
+    const ACTIVE_SEMESTERS = ['Fall 2025', 'Spring 2025', 'Summer 2025', 'Fall 2024', 'Spring 2024'];
+    
+    allStudents.forEach(student => {
+        const studentId = student.student_id;
+        const admitTerm = student.admit_term || '';
+        const major = (student.major || '').toLowerCase();
+        const level = student.level || '';
+        
+        // Check historical grade data for this student
+        const historicalData = historicalStats[studentId];
+        
+        // Get GPA - prioritize historical CGPA, then student record GPA
+        let gpa = 0;
+        let hasValidGpa = false;
+        
+        // First try historical CGPA (most accurate)
+        if (historicalData && historicalData.cgpa !== null && historicalData.cgpa !== undefined) {
+            gpa = parseFloat(historicalData.cgpa) || 0;
+            hasValidGpa = true;
+        }
+        
+        // Then try student record GPA (if not "Not Given" or empty)
+        if (!hasValidGpa) {
+            const studentGpa = student.gpa;
+            if (studentGpa !== null && studentGpa !== undefined && studentGpa !== 'Not Given' && studentGpa !== '') {
+                const parsed = parseFloat(studentGpa);
+                if (!isNaN(parsed) && parsed > 0) {
+                    gpa = parsed;
+                    hasValidGpa = true;
+                }
+            }
+        }
+        
+        // Try CGPA field as fallback
+        if (!hasValidGpa && student.cgpa) {
+            const parsed = parseFloat(student.cgpa);
+            if (!isNaN(parsed) && parsed > 0) {
+                gpa = parsed;
+                hasValidGpa = true;
+            }
+        }
+        
+        // Determine if student is active
+        let isActive = false;
+        let status = (student.enrollment_status || student.status || '').toLowerCase();
+        
+        if (ACTIVE_SEMESTERS.includes(admitTerm)) {
+            isActive = true;
+        } else if (admitTerm) {
+            const yearMatch = admitTerm.match(/(\d{4})/);
+            if (yearMatch) {
+                const admitYear = parseInt(yearMatch[1]);
+                const yearsEnrolled = CURRENT_YEAR - admitYear;
+                const isDiploma = major.includes('diploma');
+                const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                
+                if (isDiploma && yearsEnrolled < 3) isActive = true;
+                else if (isBachelor && yearsEnrolled < 5) isActive = true;
+                else if (yearsEnrolled < 3) isActive = true;
+            }
+        }
+        
+        // Get failed courses and passed count from historical data
+        let failedCourses = [];
+        let passedCourses = 0;
+        let totalCourses = 0;
+        
+        if (historicalData) {
+            failedCourses = (historicalData.courses || [])
+                .filter(c => FAILING_GRADES_LIST.includes(c.grade))
+                .map(c => c.code);
+            passedCourses = historicalData.passed || 0;
+            totalCourses = (historicalData.courses || []).length;
+        }
+        
+        const studentRecord = {
+            id: studentId,
+            name: student.name || 'Unknown',
+            major: student.major || 'Unknown',
+            level: level,
+            gpa: hasValidGpa ? gpa : null,
+            cgpa: hasValidGpa ? gpa : null,
+            admitTerm: admitTerm,
+            failedCourses: failedCourses,
+            passedCourses: passedCourses,
+            totalCourses: totalCourses,
+            passed: passedCourses,
+            failed: failedCourses.length,
+            isActive: isActive,
+            hasGradeHistory: !!historicalData,
+            hasValidGpa: hasValidGpa
+        };
+        
+        predictions.summary.totalStudents++;
+        
+        // Students without GPA AND no grade history
+        if (!hasValidGpa && !historicalData) {
+            if (!isActive) {
+                studentRecord.status = 'graduated';
+                studentRecord.prediction = 'Completed program (no recent data)';
+                predictions.graduated.push(studentRecord);
+                predictions.summary.graduated++;
+                return;
+            }
+            // Active student with no data - mark as new/monitoring
+            studentRecord.status = 'new';
+            studentRecord.prediction = 'New student - grades pending';
+            predictions.newStudents.push(studentRecord);
+            predictions.summary.newStudents++;
+            predictions.summary.activeStudents++;
+            return;
+        }
+        
+        if (!isActive) {
+            studentRecord.status = 'graduated';
+            studentRecord.prediction = 'Completed program';
+            predictions.graduated.push(studentRecord);
+            predictions.summary.graduated++;
+            return;
+        }
+        
+        predictions.summary.activeStudents++;
+        
+        // New students (admitted this semester or last semester with few courses)
+        if (ACTIVE_SEMESTERS.slice(0, 2).includes(admitTerm) && totalCourses < 3 && !hasValidGpa) {
+            studentRecord.status = 'new';
+            studentRecord.prediction = 'New student - monitoring progress';
+            predictions.newStudents.push(studentRecord);
+            predictions.summary.newStudents++;
+            return;
+        }
+        
+        // Students with grade history but no GPA - classify by course performance
+        if (historicalData && !hasValidGpa) {
+            if (failedCourses.length === 0 && passedCourses >= 3) {
+                studentRecord.status = 'progressing';
+                studentRecord.prediction = `Passed ${passedCourses} courses - progressing well`;
+                predictions.progressing.push(studentRecord);
+                predictions.summary.progressing++;
+            } else if (failedCourses.length >= 3) {
+                studentRecord.status = 'at-risk';
+                studentRecord.prediction = `${failedCourses.length} failed courses - needs advising`;
+                predictions.atRisk.push(studentRecord);
+                predictions.summary.atRisk++;
+            } else if (failedCourses.length > 0) {
+                studentRecord.status = 'needs-improvement';
+                studentRecord.prediction = `Needs to repeat: ${failedCourses.join(', ')}`;
+                predictions.needsImprovement.push(studentRecord);
+                predictions.summary.needsImprovement++;
+            } else {
+                studentRecord.status = 'progressing';
+                studentRecord.prediction = 'On track';
+                predictions.progressing.push(studentRecord);
+                predictions.summary.progressing++;
+            }
+            return;
+        }
+        
+        // Classify based on GPA and failed courses (for students with valid GPA)
+        if (hasValidGpa) {
+            if (gpa >= 2.5 && failedCourses.length === 0) {
+                studentRecord.status = 'progressing';
+                studentRecord.prediction = 'On track to progress to next level';
+                predictions.progressing.push(studentRecord);
+                predictions.summary.progressing++;
+            } else if (gpa >= 2.0 && failedCourses.length <= 2) {
+                studentRecord.status = 'needs-improvement';
+                studentRecord.prediction = failedCourses.length > 0 
+                    ? `Needs to repeat ${failedCourses.length} course(s)` 
+                    : 'GPA needs improvement';
+                predictions.needsImprovement.push(studentRecord);
+                predictions.summary.needsImprovement++;
+            } else if (gpa < 2.0 || failedCourses.length >= 3) {
+                studentRecord.status = 'at-risk';
+                if (gpa < 2.0 && failedCourses.length > 0) {
+                    studentRecord.prediction = `Low GPA (${gpa.toFixed(2)}) + ${failedCourses.length} failed course(s)`;
+                } else if (gpa < 2.0) {
+                    studentRecord.prediction = `GPA ${gpa.toFixed(2)} - below 2.0 minimum`;
+                } else {
+                    studentRecord.prediction = `${failedCourses.length} failed courses - needs advising`;
+                }
+                predictions.atRisk.push(studentRecord);
+                predictions.summary.atRisk++;
+            } else {
+                studentRecord.status = 'progressing';
+                studentRecord.prediction = 'Expected to continue normally';
+                predictions.progressing.push(studentRecord);
+                predictions.summary.progressing++;
+            }
+        }
+    });
+    
+    // Calculate progression rate (of active students)
+    const activeNonNew = predictions.summary.activeStudents - predictions.summary.newStudents;
+    predictions.summary.progressionRate = activeNonNew > 0 
+        ? Math.round((predictions.summary.progressing / activeNonNew) * 100) 
+        : 0;
+    
+    return predictions;
+}
+
+// Generate course enrollment predictions
+function generateEnrollmentPredictions() {
+    var predictions = [];
+    var courseEntries = Object.entries(HistoricalData.courseStats || {});
+    
+    // Also get courses from AppState
+    var allCourses = (typeof AppState !== 'undefined' && AppState.courses) ? AppState.courses : [];
+    var courseMap = {};
+    allCourses.forEach(function(c) {
+        courseMap[c.code] = c;
+    });
+    
+    for (var i = 0; i < courseEntries.length; i++) {
+        var courseCode = courseEntries[i][0];
+        var stats = courseEntries[i][1];
+        if (!stats) continue;
+        
+        var total = stats.total || 0;
+        var failed = stats.failed || 0;
+        var estimatedNew = Math.round(total * 0.9);
+        
+        var confidence = 'low';
+        if (total >= 20) confidence = 'high';
+        else if (total >= 10) confidence = 'medium';
+        
+        predictions.push({
+            courseCode: courseCode,
+            courseName: stats.name || (courseMap[courseCode] ? courseMap[courseCode].name : courseCode),
+            newStudents: estimatedNew,
+            repeatStudents: failed,
+            totalPredicted: estimatedNew + failed,
+            confidence: confidence,
+            passRate: stats.pass_rate || 0,
+            failRate: stats.fail_rate || 0,
+            historical: total
+        });
+    }
+    
+    predictions.sort(function(a, b) { return b.totalPredicted - a.totalPredicted; });
+    return predictions;
+}
+
+// Predict enrollment for a single course (needed for popup)
 function predictCourseEnrollment(courseCode) {
     var stats = HistoricalData.courseStats[courseCode];
     
@@ -98,105 +367,13 @@ function predictCourseEnrollment(courseCode) {
     };
 }
 
-// Predict student progression
+// Legacy function for compatibility - returns structure with both old and new fields
 function predictStudentProgression() {
-    var predictions = {
-        progressing: [],
-        repeating: [],
-        atRisk: [],
-        summary: { totalStudents: 0, progressing: 0, repeating: 0, atRisk: 0, progressionRate: 0 }
-    };
-    
-    var studentEntries = Object.entries(HistoricalData.studentStats || {});
-    
-    for (var i = 0; i < studentEntries.length; i++) {
-        var studentId = studentEntries[i][0];
-        var stats = studentEntries[i][1];
-        if (!stats) continue;
-        
-        var courses = stats.courses || [];
-        var passed = stats.passed || 0;
-        var failed = stats.failed || 0;
-        var cgpa = stats.cgpa;
-        
-        var failedCourses = [];
-        for (var j = 0; j < courses.length; j++) {
-            var c = courses[j];
-            if (c && FAILING_GRADES_LIST.indexOf(c.grade) !== -1) {
-                failedCourses.push(c.code || 'Unknown');
-            }
-        }
-        
-        var student = {
-            id: studentId,
-            name: stats.name || 'Unknown',
-            cgpa: cgpa,
-            passed: passed,
-            failed: failed,
-            totalCourses: courses.length,
-            failedCourses: failedCourses
-        };
-        
-        if (failed === 0 && passed >= 3) {
-            student.status = 'progressing';
-            predictions.progressing.push(student);
-        } else if (failed >= 3 || (cgpa !== null && cgpa !== undefined && cgpa < 1.5)) {
-            student.status = 'at-risk';
-            predictions.atRisk.push(student);
-        } else if (failed > 0) {
-            student.status = 'repeating';
-            predictions.repeating.push(student);
-        } else {
-            student.status = 'progressing';
-            predictions.progressing.push(student);
-        }
-    }
-    
-    var totalStudents = studentEntries.length || 1;
-    predictions.summary = {
-        totalStudents: totalStudents,
-        progressing: predictions.progressing.length,
-        repeating: predictions.repeating.length,
-        atRisk: predictions.atRisk.length,
-        progressionRate: Math.round(predictions.progressing.length / totalStudents * 100)
-    };
-    
-    return predictions;
-}
-
-// Generate all course predictions
-function generateEnrollmentPredictions() {
-    var predictions = [];
-    var courseEntries = Object.entries(HistoricalData.courseStats || {});
-    
-    for (var i = 0; i < courseEntries.length; i++) {
-        var courseCode = courseEntries[i][0];
-        var stats = courseEntries[i][1];
-        if (!stats) continue;
-        
-        var total = stats.total || 0;
-        var failed = stats.failed || 0;
-        var estimatedNew = Math.round(total * 0.9);
-        
-        var confidence = 'low';
-        if (total >= 20) confidence = 'high';
-        else if (total >= 10) confidence = 'medium';
-        
-        predictions.push({
-            courseCode: courseCode,
-            courseName: stats.name || courseCode,
-            newStudents: estimatedNew,
-            repeatStudents: failed,
-            totalPredicted: estimatedNew + failed,
-            confidence: confidence,
-            passRate: stats.pass_rate || 0,
-            failRate: stats.fail_rate || 0,
-            historical: total
-        });
-    }
-    
-    predictions.sort(function(a, b) { return b.totalPredicted - a.totalPredicted; });
-    return predictions;
+    var result = analyzeAllStudents();
+    // Add 'repeating' as alias for 'needsImprovement' for backwards compatibility
+    result.repeating = result.needsImprovement || [];
+    result.summary.repeating = result.summary.needsImprovement || 0;
+    return result;
 }
 
 // Render prediction dashboard - main function
@@ -250,21 +427,31 @@ function renderPredictionDashboard(containerId) {
     // Stats Row
     html += '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;">';
     
-    // Card 1: Students Analyzed
+    // Card 1: Students Analyzed (All students from database)
+    var totalStudentsCount = studentPredictions.summary.totalStudents || 0;
+    var activeStudentsCount = studentPredictions.summary.activeStudents || 0;
+    var graduatedCount = studentPredictions.summary.graduated || 0;
+    
     html += '<div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
     html += '<div style="display: flex; justify-content: space-between; align-items: flex-start;">';
     html += '<div>';
-    html += '<div style="font-size: 13px; color: #6B7280; margin-bottom: 8px; font-weight: 500;">Students Analyzed</div>';
-    html += '<div style="font-size: 36px; font-weight: 700; color: #3B82F6; line-height: 1;">' + studentPredictions.summary.totalStudents + '</div>';
-    html += '<div style="font-size: 12px; color: #22C55E; margin-top: 8px;">' + studentPredictions.summary.progressionRate + '% progressing</div>';
+    html += '<div style="font-size: 13px; color: #6B7280; margin-bottom: 8px; font-weight: 500;">Total Students</div>';
+    html += '<div style="font-size: 36px; font-weight: 700; color: #3B82F6; line-height: 1;">' + totalStudentsCount + '</div>';
+    html += '<div style="font-size: 12px; color: #22C55E; margin-top: 8px;">' + activeStudentsCount + ' currently enrolled</div>';
     html += '</div>';
     html += '<div style="width: 56px; height: 56px; background: linear-gradient(135deg, #DBEAFE, #BFDBFE); border-radius: 12px; display: flex; align-items: center; justify-content: center;">';
     html += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width: 28px; height: 28px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
     html += '</div></div>';
-    html += '<div style="display: flex; gap: 3px; margin-top: 16px; height: 32px; align-items: flex-end;">' + chartBars + '</div>';
-    html += '</div>';
+    html += '<div style="margin-top: 12px; display: flex; gap: 12px;">';
+    html += '<div style="flex: 1; background: #F0FDF4; padding: 8px; border-radius: 6px; text-align: center;"><div style="font-size: 14px; font-weight: 600; color: #16A34A;">' + activeStudentsCount + '</div><div style="font-size: 10px; color: #166534;">Active</div></div>';
+    html += '<div style="flex: 1; background: #DBEAFE; padding: 8px; border-radius: 6px; text-align: center;"><div style="font-size: 14px; font-weight: 600; color: #2563EB;">' + graduatedCount + '</div><div style="font-size: 10px; color: #1E40AF;">Graduated</div></div>';
+    html += '</div></div>';
     
-    // Card 2: Status Distribution
+    // Card 2: Status Distribution (Updated for all students)
+    var activeStudents = studentPredictions.summary.activeStudents || 0;
+    var newStudentsCount = studentPredictions.summary.newStudents || 0;
+    var needsImprovementCount = studentPredictions.summary.needsImprovement || 0;
+    
     html += '<div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
     html += '<div style="font-size: 13px; color: #6B7280; margin-bottom: 12px; font-weight: 500;">Student Status Distribution</div>';
     html += '<div style="display: flex; align-items: center; gap: 20px;">';
@@ -278,8 +465,9 @@ function renderPredictionDashboard(containerId) {
     html += '</div></div>';
     html += '<div style="flex: 1;">';
     html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #22C55E; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">Progressing</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.progressing + '</span></div>';
-    html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #F59E0B; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">Repeating</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.repeating + '</span></div>';
-    html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 10px; height: 10px; background: #EF4444; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">At Risk</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.atRisk + '</span></div>';
+    html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #F59E0B; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">Needs Improvement</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + needsImprovementCount + '</span></div>';
+    html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #EF4444; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">At Risk</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.atRisk + '</span></div>';
+    html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 10px; height: 10px; background: #3B82F6; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">New Students</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + newStudentsCount + '</span></div>';
     html += '</div></div></div>';
     
     // Card 3: Predicted Enrollment
@@ -465,7 +653,12 @@ function renderCourseTable(container, perPage, searchTerm, confidenceFilter, ris
 // Render at-risk students table
 function renderAtRiskTable(container, perPage, searchTerm) {
     var studentPredictions = predictStudentProgression();
-    var students = studentPredictions.atRisk;
+    var students = studentPredictions.atRisk || [];
+    
+    // Sort by GPA (lowest first) to show most at-risk students first
+    students.sort(function(a, b) {
+        return (a.gpa || 0) - (b.gpa || 0);
+    });
     
     var filtered = [];
     for (var i = 0; i < students.length; i++) {
@@ -481,28 +674,43 @@ function renderAtRiskTable(container, perPage, searchTerm) {
     html += '<thead><tr style="background: #F9FAFB;">';
     html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Student ID</th>';
     html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Name</th>';
-    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">CGPA</th>';
-    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Passed</th>';
-    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Failed</th>';
-    html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Failed Courses</th>';
+    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Admitted</th>';
+    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">GPA</th>';
+    html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Risk Reason</th>';
     html += '</tr></thead><tbody>';
+    
+    if (filtered.length === 0) {
+        html += '<tr><td colspan="5" style="padding: 40px; text-align: center; color: #6B7280;">No at-risk students found</td></tr>';
+    }
     
     var displayCount = Math.min(filtered.length, perPage);
     for (var i = 0; i < displayCount; i++) {
         var student = filtered[i];
-        var cgpaColor = (student.cgpa && student.cgpa < 1.5) ? '#DC2626' : (student.cgpa && student.cgpa < 2.0 ? '#D97706' : '#16A34A');
-        var cgpaBg = (student.cgpa && student.cgpa < 1.5) ? '#FEE2E2' : (student.cgpa && student.cgpa < 2.0 ? '#FEF3C7' : '#D1FAE5');
-        var cgpaVal = student.cgpa ? student.cgpa.toFixed(2) : 'N/A';
-        var failedCourses = (student.failedCourses || []).slice(0, 4).join(', ');
-        var more = (student.failedCourses || []).length > 4 ? ' +' + ((student.failedCourses || []).length - 4) + ' more' : '';
+        var gpaVal = student.gpa || student.cgpa || 0;
+        var cgpaColor = gpaVal < 1.5 ? '#DC2626' : (gpaVal < 2.0 ? '#D97706' : '#16A34A');
+        var cgpaBg = gpaVal < 1.5 ? '#FEE2E2' : (gpaVal < 2.0 ? '#FEF3C7' : '#D1FAE5');
+        var cgpaDisplay = gpaVal > 0 ? gpaVal.toFixed(2) : 'N/A';
+        var admitTerm = student.admitTerm || 'Unknown';
+        
+        // Determine risk reason
+        var riskReason = student.prediction || '';
+        if (!riskReason) {
+            if ((student.failedCourses || []).length > 0) {
+                riskReason = 'Failed: ' + student.failedCourses.slice(0, 3).join(', ');
+                if (student.failedCourses.length > 3) riskReason += ' +' + (student.failedCourses.length - 3) + ' more';
+            } else if (gpaVal < 2.0) {
+                riskReason = 'GPA below 2.0 minimum requirement';
+            } else {
+                riskReason = 'Academic standing concern';
+            }
+        }
         
         html += '<tr style="border-bottom: 1px solid #F3F4F6;">';
         html += '<td style="padding: 12px 16px;"><strong style="color: #1F2937;">' + student.id + '</strong></td>';
         html += '<td style="padding: 12px 16px; font-size: 13px; color: #6B7280;">' + student.name + '</td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: ' + cgpaBg + '; color: ' + cgpaColor + '; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + cgpaVal + '</span></td>';
-        html += '<td style="padding: 12px 16px; text-align: center; color: #16A34A; font-weight: 600;">' + student.passed + '</td>';
-        html += '<td style="padding: 12px 16px; text-align: center; color: #DC2626; font-weight: 600;">' + student.failed + '</td>';
-        html += '<td style="padding: 12px 16px; font-size: 12px; color: #6B7280;">' + failedCourses + more + '</td>';
+        html += '<td style="padding: 12px 16px; text-align: center; font-size: 12px; color: #6B7280;">' + admitTerm + '</td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: ' + cgpaBg + '; color: ' + cgpaColor + '; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + cgpaDisplay + '</span></td>';
+        html += '<td style="padding: 12px 16px; font-size: 12px; color: #DC2626;">' + riskReason + '</td>';
         html += '</tr>';
     }
     
@@ -510,10 +718,10 @@ function renderAtRiskTable(container, perPage, searchTerm) {
     container.innerHTML = html;
 }
 
-// Render repeating students table
+// Render repeating students table (students who need improvement)
 function renderRepeatingTable(container, perPage, searchTerm) {
     var studentPredictions = predictStudentProgression();
-    var students = studentPredictions.repeating;
+    var students = studentPredictions.repeating || studentPredictions.needsImprovement || [];
     
     var filtered = [];
     for (var i = 0; i < students.length; i++) {
@@ -529,25 +737,40 @@ function renderRepeatingTable(container, perPage, searchTerm) {
     html += '<thead><tr style="background: #F9FAFB;">';
     html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Student ID</th>';
     html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Name</th>';
-    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">CGPA</th>';
-    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Passed</th>';
-    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Failed</th>';
-    html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Courses to Repeat</th>';
+    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Admitted</th>';
+    html += '<th style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">GPA</th>';
+    html += '<th style="padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Action Needed</th>';
     html += '</tr></thead><tbody>';
+    
+    if (filtered.length === 0) {
+        html += '<tr><td colspan="5" style="padding: 40px; text-align: center; color: #6B7280;">No students needing course repeats found</td></tr>';
+    }
     
     var displayCount = Math.min(filtered.length, perPage);
     for (var i = 0; i < displayCount; i++) {
         var student = filtered[i];
-        var cgpaVal = student.cgpa ? student.cgpa.toFixed(2) : 'N/A';
-        var failedCourses = (student.failedCourses || []).join(', ');
+        var gpaVal = student.gpa || student.cgpa || 0;
+        var cgpaDisplay = gpaVal > 0 ? gpaVal.toFixed(2) : 'N/A';
+        var admitTerm = student.admitTerm || 'Unknown';
+        
+        // Determine action needed
+        var actionNeeded = student.prediction || '';
+        if (!actionNeeded) {
+            if ((student.failedCourses || []).length > 0) {
+                actionNeeded = 'Repeat: ' + student.failedCourses.join(', ');
+            } else if (gpaVal < 2.5) {
+                actionNeeded = 'Improve GPA (currently ' + cgpaDisplay + ')';
+            } else {
+                actionNeeded = 'Academic advising recommended';
+            }
+        }
         
         html += '<tr style="border-bottom: 1px solid #F3F4F6;">';
         html += '<td style="padding: 12px 16px;"><strong style="color: #1F2937;">' + student.id + '</strong></td>';
         html += '<td style="padding: 12px 16px; font-size: 13px; color: #6B7280;">' + student.name + '</td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #DBEAFE; color: #2563EB; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + cgpaVal + '</span></td>';
-        html += '<td style="padding: 12px 16px; text-align: center; color: #16A34A; font-weight: 600;">' + student.passed + '</td>';
-        html += '<td style="padding: 12px 16px; text-align: center; color: #F59E0B; font-weight: 600;">' + student.failed + '</td>';
-        html += '<td style="padding: 12px 16px; font-size: 12px; color: #6B7280;">' + failedCourses + '</td>';
+        html += '<td style="padding: 12px 16px; text-align: center; font-size: 12px; color: #6B7280;">' + admitTerm + '</td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #FEF3C7; color: #D97706; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + cgpaDisplay + '</span></td>';
+        html += '<td style="padding: 12px 16px; font-size: 12px; color: #D97706;">' + actionNeeded + '</td>';
         html += '</tr>';
     }
     

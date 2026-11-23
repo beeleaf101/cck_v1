@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="js/cck-store.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registration 1 – Course Management | CCK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Data is shared through js/cck-store.js (Cloudflare D1); the old Supabase loader was removed -->
+<script src="cck_shared.js"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
+body{background:#F3F4F6;overflow:hidden;}
+
+.credit-input{width:64px;padding:5px 8px;border:1.5px solid #E5E7EB;border-radius:6px;font-size:13px;font-weight:700;color:#B91C1C;text-align:center;transition:border-color .2s;}
+.credit-input:focus{outline:none;border-color:#111827;box-shadow:0 0 0 3px rgba(17,24,39,.08);}
+.save-btn{padding:4px 10px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;}
+.save-btn:hover{background:#166534;color:white;}
+.save-btn.saving{opacity:.6;pointer-events:none;}
+
+.level-badge{display:inline-flex;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;}
+.lv1{background:#DBEAFE;color:#1E40AF;}
+.lv2{background:#DCFCE7;color:#166534;}
+.lv3{background:#FEF3C7;color:#92400E;}
+.lv4{background:#EDE9FE;color:#5B21B6;}
+
+.group-hd{padding:7px 14px;background:#F8FAFC;color:#64748B;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #F1F5F9;}
+
+.banner{display:none;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:13px;color:#92400E;gap:10px;flex-wrap:wrap;}
+.banner.show{display:flex;}
+
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.12);display:flex;align-items:center;gap:8px;animation:tIn .2s ease;}
+.toast.ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;}
+.toast.err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;}
+.toast.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;}
+@keyframes tIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* Course expand row */
+.course-row-main{cursor:pointer;transition:background .12s;}
+.course-row-main:hover{background:#F8FAFC;}
+.course-row-main.expanded{background:#F0F9FF;}
+.expand-arrow{display:inline-block;transition:transform .18s;font-size:10px;color:#94A3B8;margin-right:4px;}
+.course-row-main.expanded .expand-arrow{transform:rotate(90deg);}
+.sections-row{display:none;}
+.sections-row.open{display:table-row;}
+.sections-panel{background:#F8FAFC;border-top:1px solid #E0F2FE;padding:10px 18px 12px 36px;}
+.sec-item{display:flex;align-items:center;gap:0;padding:5px 0;border-bottom:1px solid #F1F5F9;}
+.sec-item:last-child{border-bottom:none;}
+.sec-badge{font-size:10px;font-weight:700;background:#0F172A;color:white;padding:2px 7px;border-radius:4px;min-width:44px;text-align:center;flex-shrink:0;}
+.sec-method{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;flex-shrink:0;margin-left:6px;}
+.sec-method.lec{background:#EFF6FF;color:#1D4ED8;}
+.sec-method.lab{background:#F0FDF4;color:#15803D;}
+.sec-instructor{font-size:11px;font-weight:600;color:#0F172A;flex:1;margin-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sec-time{font-size:10px;color:#64748B;flex-shrink:0;margin-left:8px;white-space:nowrap;}
+.sec-tba{color:#F59E0B;font-style:italic;}
+
+</style>
+<style>.dept-gen{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;}
+/* ── Workflow status nav item ──────────────────────────────────────────── */
+.nav-submit-section{padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#94A3B8;}
+#btn-submit-admin{
+  display:flex;align-items:center;gap:9px;
+  width:calc(100% - 16px);margin:2px 8px;
+  padding:9px 12px;
+  border:none;border-radius:9px;
+  font-size:12px;font-weight:700;font-family:inherit;
+  cursor:pointer;text-align:left;
+  transition:background .15s,color .15s,box-shadow .15s;
+  position:relative;
+}
+/* Draft — subtle green row */
+#btn-submit-admin[data-status="draft"]{
+  background:rgba(22,163,74,.10);
+  color:#15803D;
+}
+#btn-submit-admin[data-status="draft"]:hover{
+  background:rgba(22,163,74,.18);
+  box-shadow:0 2px 8px rgba(22,163,74,.18);
+}
+#btn-submit-admin[data-status="draft"] .submit-icon{stroke:#15803D;}
+
+/* Submitted — amber */
+#btn-submit-admin[data-status="submitted"]{
+  background:rgba(217,119,6,.10);
+  color:#B45309;
+  pointer-events:none;
+}
+#btn-submit-admin[data-status="submitted"] .submit-icon{stroke:#B45309;}
+
+/* Approved — blue */
+#btn-submit-admin[data-status="approved"]{
+  background:rgba(29,78,216,.10);
+  color:#1D4ED8;
+  pointer-events:none;
+}
+#btn-submit-admin[data-status="approved"] .submit-icon{stroke:#1D4ED8;}
+
+/* Resubmit — orange, clickable */
+#btn-submit-admin[data-status="resubmit"]{
+  background:rgba(234,88,12,.10);
+  color:#C2410C;
+}
+#btn-submit-admin[data-status="resubmit"]:hover{
+  background:rgba(234,88,12,.18);
+}
+#btn-submit-admin[data-status="resubmit"] .submit-icon{stroke:#C2410C;}
+
+/* Archived — grey */
+#btn-submit-admin[data-status="archived"]{
+  background:rgba(148,163,184,.10);
+  color:#94A3B8;
+  pointer-events:none;
+  opacity:.8;
+}
+#btn-submit-admin[data-status="archived"] .submit-icon{stroke:#94A3B8;}
+
+/* Status dot on right */
+.submit-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  margin-left:auto;
+}
+#btn-submit-admin[data-status="draft"]      .submit-dot{background:#16A34A;}
+#btn-submit-admin[data-status="submitted"]  .submit-dot{background:#D97706;}
+#btn-submit-admin[data-status="approved"]   .submit-dot{background:#2563EB;}
+#btn-submit-admin[data-status="archived"]   .submit-dot{background:#94A3B8;}
+#btn-submit-admin[data-status="resubmit"]   .submit-dot{background:#EA580C;}
+
+/* ── By Program redesign ── */
+#bp-search:focus{box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+.bp-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+</style>
+</head>
+<body>
+<div class="portal-page">
+
+  <!-- TOP BAR -->
+
+    <!-- SIDEBAR WITH LOGO -->
+    <aside class="portal-sidebar">
+      <div class="portal-sidebar-brand">
+        <img src="images/cck-logo-small.png" alt="CCK">
+        <div class="portal-sidebar-brand-text">
+          <div class="portal-sidebar-brand-name">CCK Portal</div>
+          <div class="portal-sidebar-brand-role">Registration 1</div>
+        </div>
+      </div>
+      <div class="portal-sidebar-user">
+        <div class="portal-sidebar-user-name">Registration Officer 1</div>
+        <div class="portal-sidebar-user-role">Course Credits Management</div>
+      </div>
+
+      <div class="portal-nav-section">Views</div>
+      <button class="portal-nav-link active" onclick="showSection('courses',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        All Courses
+      </button>
+      <button class="portal-nav-link" onclick="showSection('byMajor',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        By Program
+      </button>
+      <button class="portal-nav-link" onclick="showSection('changes',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Pending Changes
+        <span id="chg-badge" style="margin-left:auto;background:#DC2626;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">0</span>
+      </button>
+
+      <button class="portal-nav-link" onclick="showSection('timetable',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Timetable
+        <span id="tt-approved-badge-r1" style="margin-left:auto;background:#16A34A;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">✓</span>
+      </button>
+
+      <div class="nav-submit-section">Workflow</div>
+      <button id="btn-submit-admin" data-status="draft" onclick="submitToAdmin()">
+        <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        <span id="submit-admin-lbl">Submit to Admin</span>
+        <span class="submit-dot"></span>
+      </button>
+      <div class="portal-sidebar-spacer"></div>
+      <div class="portal-sidebar-footer">
+        <button class="btn-portal-logout" onclick="cckLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </button>
+        <div class="portal-sidebar-db offline" id="db-status">● Offline mode</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="portal-content">
+
+      <!-- Stats row -->
+      <div class="portal-stats">
+        <div class="portal-stat-card"><div class="portal-stat-label">Total Courses</div><div class="portal-stat-value" id="s-total">—</div></div>
+        <div class="portal-stat-card"><div class="portal-stat-label">Programs</div><div class="portal-stat-value">8</div></div>
+        <div class="portal-stat-card"><div class="portal-stat-label">Avg. Credits</div><div class="portal-stat-value" id="s-avg">—</div></div>
+        <div class="portal-stat-card"><div class="portal-stat-label">Unsaved</div><div class="portal-stat-value" id="s-unsaved" style="color:#DC2626">0</div></div>
+      </div>
+
+      <!-- Unsaved banner -->
+      <div class="banner" id="banner">
+        <span>⚠️ <strong id="banner-cnt">0</strong> unsaved credit change(s)</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-save-portal" onclick="saveAll()">Save All</button>
+          <button class="btn-secondary-portal" onclick="discardAll()">Discard All</button>
+        </div>
+      </div>
+
+      <!-- ALL COURSES -->
+      <div id="sec-courses">
+        <div class="portal-table-wrap">
+          <div class="portal-table-header">
+            <div><h3>Course Catalog</h3><div class="section-sub">Edit credits then press Save — syncs to database</div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <div class="portal-search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="q" placeholder="Code or name…" oninput="renderCourses()">
+              </div>
+              <div class="filter-chips" id="dept-chips">
+                <button class="filter-chip active" onclick="setDept('all',this)">All</button>
+                <button class="filter-chip" onclick="setDept('CS',this)">CS</button>
+                <button class="filter-chip" onclick="setDept('BUS',this)">Business</button>
+                <button class="filter-chip" onclick="setDept('GEN',this)">Gen Ed</button>
+              </div>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="portal-table">
+              <thead><tr><th>Code</th><th>Course Name</th><th>Dept</th><th>Credits</th><th>Sections</th><th></th></tr></thead>
+              <tbody id="ctbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BY PROGRAM -->
+      <div id="sec-byMajor" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+          <div>
+            <h2 style="font-size:15px;font-weight:700;margin:0">By Program</h2>
+            <div class="section-sub">Live assignments from HOD &middot; Reg 2 &middot; Facility portals</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <input id="bp-search" type="text" placeholder="Search courses or instructors&hellip;"
+              style="padding:6px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;width:210px;font-family:inherit;outline:none;color:#0F172A"
+              oninput="renderMajorSections()" onfocus="this.style.borderColor='#6366F1'" onblur="this.style.borderColor='#E2E8F0'">
+            <div style="display:flex;border:1.5px solid #E2E8F0;border-radius:8px;overflow:hidden">
+              <button id="bp-view-card" onclick="setBpView('card',this)" style="padding:5px 12px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:#6366F1;color:white">Cards</button>
+              <button id="bp-view-table" onclick="setBpView('table',this)" style="padding:5px 12px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:white;color:#64748B">Table</button>
+            </div>
+          </div>
+        </div>
+        <div class="filter-chips" id="major-chips" style="margin-bottom:12px"></div>
+        <div id="major-body"></div>
+      </div>
+
+      <!-- PENDING CHANGES -->
+      <div id="sec-changes" style="display:none">
+        <div class="portal-table-wrap">
+          <div class="portal-table-header">
+            <div><h3>Pending Changes</h3><div class="section-sub">Save or discard each change</div></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-save-portal" onclick="saveAll()">Save All</button>
+              <button class="btn-secondary-portal" onclick="discardAll()">Discard All</button>
+            </div>
+          </div>
+          <table class="portal-table">
+            <thead><tr><th>Code</th><th>Name</th><th>Before</th><th>After</th><th>Change</th><th></th></tr></thead>
+            <tbody id="chg-tbody"></tbody>
+          </table>
+          <div id="no-chg" style="padding:28px;text-align:center;color:#9CA3AF;font-size:13px">No pending changes.</div>
+        </div>
+      </div>
+
+      <!-- TIMETABLE SECTION -->
+      <div id="sec-timetable" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <h2 style="font-size:15px;font-weight:700;margin:0">Approved Timetable</h2>
+            <div style="font-size:12px;color:#64748B;margin-top:2px">Timetable approved by Admin from Dr. Nehad</div>
+          </div>
+        </div>
+        <div id="reg1-tt-content"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<div class="toast-stack" id="ts"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+let courses=[], plans={}, changes={}, base={}, deptF='all', majorF='all';
+// Gen Ed / Foundation prefixes (shown under Gen Ed tab)
+const GEN_PFX=['ENL','GED','GEN','GECU','GEPH','ICT','MAT0','MAT001','MAT002'];
+const isGen=c=>GEN_PFX.some(p=>c.toUpperCase().startsWith(p));
+// Pure CS prefixes (excludes Gen Ed)
+const CS_PFX=['CST','CSIT','MAT8'];
+const isCS=c=>CS_PFX.some(p=>c.toUpperCase().startsWith(p));
+// Get dept label for a course code
+function getDept(code){
+  if(isGen(code)) return 'GEN';
+  if(isCS(code))  return 'CS';
+  return 'BUS';
+}
+const getCr=code=>changes[code]?.newVal ?? base[code] ?? 3;
+
+const MLBL={
+  'DIPLOMA-COMPUTER PROGRAMMING':'Dip – CS',
+  'DIPLOMA-ACCOUNTING':'Dip – Accounting',
+  'DIPLOMA-BUSINESS MAN. & ENTR.':'Dip – Business',
+  'DIPLOMA-BME (MARKETING STREAM)':'Dip – Marketing',
+  'BACHELOR-COMPUTER PROGRAMMING':'Bach – CS',
+  'BACHELOR-ACCOUNTING':'Bach – Accounting',
+  'BACHELOR-BUSINESS MAN. & ENTR.':'Bach – Business',
+  'BACHELOR-BME (MARKETING STREAM)':'Bach – Marketing'
+};
+
+// ─── INIT ───────────────────────────────────────────────
+async function init(){
+  const dbEl = document.getElementById('db-status');
+
+  async function tryConnect(){
+    try{
+      const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+      if(!client) return;
+      const {error} = await client.from('courses').select('code').limit(1);
+      if(!error){
+        dbEl.textContent = '● Connected to DB';
+        dbEl.className = 'portal-sidebar-bottom online';
+        // Load from DB
+        const {data:dbCourses} = await client.from('courses').select('code,name,credits').order('code');
+        if(dbCourses && dbCourses.length){
+          const dbMap={};
+          dbCourses.forEach(r=>dbMap[r.code]=r.credits);
+          courses.forEach(c=>{ if(dbMap[c.code]!==undefined) c.credits=dbMap[c.code]; });
+          toast('Loaded credits from database','info');
+        }
+      }
+    } catch(e){ console.warn('[CCK] DB connect:', e); }
+  }
+
+  tryConnect();
+  document.addEventListener('supabase-ready', tryConnect);
+  setTimeout(tryConnect, 1500);
+
+  // Load JSON
+  const [cr,sp] = await Promise.all([
+    Promise.resolve([{"code":"ACC0012","name":"Business Project","credits":3,"sections":[{"section":"01","time":"M,W(12:00 - 13:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lab"},{"section":"independent","time":"Su,M,T,W(08:00 - 09:00)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lab"}]},{"code":"ACC0014","name":"Accounting for Small Business","credits":3,"sections":[{"section":"01","time":"Su,T(17:30 - 18:45)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"}]},{"code":"ACC2201","name":"Financial Accounting I","credits":3,"sections":[{"section":"Arabic -02","time":"M,W(14:00 - 15:50)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"},{"section":"English","time":"M,W(09:00 - 10:50)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lecture"}]},{"code":"ACC2202","name":"Financial Accounting II","credits":3,"sections":[{"section":"01","time":"Su,T,Th(13:30 - 14:50)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lecture"}]},{"code":"ACC2209","name":"Financial Accounting III","credits":3,"sections":[{"section":"01","time":"T(12:00 - 12:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"}]},{"code":"ACC2211","name":"Payroll and Compliance","credits":3,"sections":[{"section":"01","time":"Su,T,Th(18:00 - 18:50)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lecture"}]},{"code":"ACC2214","name":"Financial Information for Marketing","credits":3,"sections":[{"section":"01","time":"Su,T,Th(14:00 - 14:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"}]},{"code":"ACC2233","name":"Management Accounting I","credits":3,"sections":[{"section":"01","time":"Su,T,Th(14:00 - 15:05)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"}]},{"code":"ACC2234","name":"Management Accounting II","credits":3,"sections":[{"section":"01","time":"M,W(14:00 - 15:30)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"}]},{"code":"ACC2262","name":"Introduction to  Personal Taxation","credits":3,"sections":[{"section":"01","time":"Su,T,Th(10:00 - 11:05)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lecture"}]},{"code":"ACC2265","name":"Audit Principles and Business Issues","credits":3,"sections":[{"section":"01","time":"Su,T,Th(16:00 - 17:05)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"}]},{"code":"ACC2343","name":"Spreadsheet Applications","credits":3,"sections":[{"section":"01","time":"Su(15:00 - 16:50)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lecture"},{"section":"01","time":"Th(11:30 - 13:20)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lab"}]},{"code":"ACC2385","name":"Accounting Software Applications","credits":3,"sections":[{"section":"01","time":"T,Th(09:00 - 09:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"},{"section":"01","time":"Th(12:00 - 13:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lab"},{"section":"Independent","time":"M,T(18:00 - 18:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"},{"section":"Independent","time":"Th(17:30 - 19:20)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lab"}]},{"code":"BUAC3005","name":"Intermediate Accounting","credits":3,"sections":[{"section":"01","time":"T,Th(10:30 - 11:45)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"}]},{"code":"BUAC3050","name":"Accounting for Government and Not for Profit Organization","credits":3,"sections":[{"section":"01","time":"M,W(13:30 - 14:45)","instructor":"Mrs. Huda Ahmad Amin Abu Mousa","method":"Lecture"}]},{"code":"BUAC3100","name":"Principles of Financial Accounting","credits":3,"sections":[{"section":"01","time":"Su,T(17:30 - 18:45)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"}]},{"code":"BUAC3120","name":"Managerial Accounting","credits":3,"sections":[{"section":"01","time":"Su,T,Th(14:00 - 14:50)","instructor":"Mr. Mohamed Awad Farhan Sanhat","method":"Lecture"}]},{"code":"BUAC3380","name":"Managerial Finance","credits":3,"sections":[{"section":"01","time":"M(16:00 - 17:15)","instructor":"Mr. Mohamad Ahmad Yousuf Dawaoud","method":"Lecture"}]},{"code":"BUAC4380","name":"Intermediate Corporate Finance","credits":3,"sections":[{"section":"01","time":"Su,T(17:00 - 18:15)","instructor":"Hussain Jassim Mohammad Alali","method":"Lecture"}]},{"code":"BUAC4455","name":"Advanced Financial Accounting","credits":3,"sections":[{"section":"01","time":"Su,T(10:30 - 11:45)","instructor":"Hussain Jassim Mohammad Alali","method":"Lecture"}]},{"code":"BUAC4720","name":"Cost Accounting","credits":3,"sections":[{"section":"01","time":"Su,T(12:30 - 13:45)","instructor":"Hussain Jassim Mohammad Alali","method":"Lecture"}]},{"code":"BUAC4780","name":"Advanced Corporate Finance","credits":3,"sections":[{"section":"01","time":"Su,T(15:30 - 16:45)","instructor":"Hussain Jassim Mohammad Alali","method":"Lecture"}]},{"code":"BUAD3090","name":"Business Law","credits":3,"sections":[{"section":"01","time":"Su,T,Th(12:00 - 12:50)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"BUAD3091","name":"Employment Law","credits":3,"sections":[{"section":"01","time":"M,W(12:00 - 13:15)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"BUCO3005","name":"Management Information Systems","credits":3,"sections":[{"section":"01","time":"T,Th(10:00 - 11:15)","instructor":"Ms. Maria I. Al-Sendah","method":"Lecture"}]},{"code":"BUEN3025","name":"Enterprise Development and Business Planning","credits":3,"sections":[{"section":"01","time":"M,W(09:30 - 10:45)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"BUEN3100","name":"Business Analysis and Decision Making","credits":3,"sections":[{"section":"01","time":"Su,T,Th(09:00 - 09:50)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"BUEN3230","name":"Supply Chain & Logistics Management","credits":3,"sections":[{"section":"Independent","time":"M,W(08:00 - 09:00)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"BUEN4150","name":"Management of Innovation","credits":3,"sections":[{"section":"01","time":"W,Th(10:30 - 11:45)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"BUEN4250","name":"Entrepreneurial Leadership Practicum I","credits":3,"sections":[{"section":"01","time":"Su,T(11:00 - 12:15)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"BUEN4251","name":"Entrepreneurial leadership Practicum II","credits":3,"sections":[{"section":"Independent","time":"M,W(15:00 - 16:30)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"BUHR4120","name":"HR Management for Entrepreneurs","credits":3,"sections":[{"section":"01","time":"M,W(13:30 - 14:45)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"}]},{"code":"BUMG3015","name":"Organizational Behaviour","credits":3,"sections":[{"section":"01","time":"Su(12:30 - 13:45)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"}]},{"code":"BUMG3105","name":"Operations Management","credits":3,"sections":[{"section":"01","time":"Su,T(14:00 - 15:15)","instructor":"Sheena Ray Varghese","method":"Lecture"}]},{"code":"BUMG3110","name":"Advanced Organizational Behaviour","credits":3,"sections":[{"section":"01","time":"Su(12:30 - 13:45)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"}]},{"code":"BUMK3099","name":"Introduction to Marketing","credits":3,"sections":[{"section":"01","time":"M,W(09:30 - 10:45)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"BUMT3030","name":"Business Statistics","credits":3,"sections":[{"section":"01","time":"W,Th(15:00 - 16:15)","instructor":"Mr. Eisa Adel Hasan H. Shamsah","method":"Lecture"}]},{"code":"BUS2301","name":"Business Computer Applications","credits":3,"sections":[{"section":"01","time":"M(15:00 - 16:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lab"},{"section":"01","time":"T(09:00 - 09:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"},{"section":"02","time":"Th(09:00 - 09:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"},{"section":"02","time":"W(15:00 - 16:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lab"},{"section":"03","time":"M(11:30 - 13:20)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lab"},{"section":"03","time":"W(11:00 - 11:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"},{"section":"Independent","time":"M(08:00 - 09:00)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"},{"section":"Independent","time":"Th(18:00 - 19:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lab"}]},{"code":"CSIT3014","name":"Discrete Mathematics for Information Technology","credits":3,"sections":[{"section":"01","time":"Su(11:00 - 11:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"},{"section":"01","time":"W(10:00 - 11:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"}]},{"code":"CSIT3111","name":"Advanced Networking Technologies","credits":3,"sections":[{"section":"01","time":"Su(16:00 - 16:50)","instructor":"Dr. Ahad Al-Otaibi","method":"Lab"},{"section":"01","time":"T(16:00 - 17:50)","instructor":"Dr. Ahad Al-Otaibi","method":"Lecture"}]},{"code":"CSIT3115","name":"Data Structure","credits":3,"sections":[{"section":"01","time":"Su(13:00 - 14:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"},{"section":"01","time":"T(15:00 - 15:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lab"}]},{"code":"CSIT3271","name":"System Security","credits":3,"sections":[{"section":"01","time":"M(13:00 - 13:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lab"},{"section":"01","time":"W(13:00 - 14:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"}]},{"code":"CSIT3280","name":"Information Technology Project Management","credits":3,"sections":[{"section":"01","time":"T(14:00 - 14:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"},{"section":"01","time":"Th(09:00 - 10:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"}]},{"code":"CSIT3345","name":"Advanced Web Application Development","credits":3,"sections":[{"section":"01","time":"M(11:00 - 11:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lab"},{"section":"01","time":"T(12:00 - 13:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"}]},{"code":"CSIT4105","name":"Search Engine Principles","credits":3,"sections":[{"section":"01","time":"Th(14:00 - 15:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lecture"},{"section":"01","time":"W(11:00 - 11:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lab"}]},{"code":"CSIT4190","name":"Integration Project I","credits":3,"sections":[{"section":"01","time":"M(15:00 - 16:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"},{"section":"01","time":"Th(09:00 - 09:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lab"}]},{"code":"CSIT4330","name":"Data Warehousing and Data Mining","credits":3,"sections":[{"section":"01","time":"Th(12:00 - 13:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lab"},{"section":"01","time":"W(12:00 - 12:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lecture"}]},{"code":"CST2234","name":"Systems Analysis & Design","credits":3,"sections":[{"section":"01","time":"M,W(09:00 - 09:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"},{"section":"01","time":"Th(11:00 - 12:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"},{"section":"Independent","time":"M,W(18:00 - 18:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"},{"section":"Independent","time":"Su(19:00 - 19:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"}]},{"code":"CST2335","name":"Mobile Graphical Interface Programming","credits":3,"sections":[{"section":"01","time":"Su(10:00 - 11:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lab"},{"section":"01","time":"T,Th(10:00 - 10:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"}]},{"code":"CST2355","name":"Database Systems","credits":3,"sections":[{"section":"01","time":"M,W(10:00 - 10:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lecture"},{"section":"01","time":"Su(13:00 - 14:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lab"}]},{"code":"CST8101","name":"Computer Essentials","credits":3,"sections":[{"section":"01","time":"M(14:00 - 14:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"},{"section":"01","time":"Su,T(12:00 - 13:15)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"}]},{"code":"CST8102","name":"Operating System Fundamentals (GNU/Linux)","credits":3,"sections":[{"section":"01","time":"T(10:00 - 11:15)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"},{"section":"01","time":"Th(10:00 - 11:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lab"},{"section":"Independent","time":"Su,T(08:00 - 09:00)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"},{"section":"Independent","time":"Th(18:00 - 19:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lab"}]},{"code":"CST8109","name":"Network Programming","credits":3,"sections":[{"section":"01","time":"M(10:00 - 11:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"},{"section":"01","time":"W(10:00 - 11:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lab"}]},{"code":"CST8116","name":"Intro to Computer Programming","credits":3,"sections":[{"section":"01","time":"M,W(09:30 - 10:45)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"},{"section":"01","time":"W(14:00 - 15:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lab"},{"section":"Indp","time":"M(16:00 - 17:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lab"},{"section":"Indp","time":"T(12:00 - 13:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"}]},{"code":"CST8117","name":"Cross-Platform Design","credits":3,"sections":[{"section":"01","time":"Su,T,Th(15:00 - 16:10)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"}]},{"code":"CST8209","name":"Web Programming","credits":3,"sections":[{"section":"01","time":"Su,Th(16:30 - 18:20)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lab"}]},{"code":"CST8215","name":"Introduction to Database","credits":3,"sections":[{"section":"01","time":"Su(15:00 - 16:20)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"},{"section":"01","time":"T,Th(15:00 - 16:15)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"},{"section":"Independent","time":"Su,T(09:00 - 10:15)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"},{"section":"Independent","time":"Th(17:00 - 18:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"}]},{"code":"CST8254","name":"Network Operating Systems","credits":3,"sections":[{"section":"Indp","time":"M(10:00 - 11:50)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lab"}]},{"code":"CST8256","name":"Web Programming Languages","credits":3,"sections":[{"section":"Indp","time":"M(10:00 - 11:50)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lab"}]},{"code":"CST8259","name":"Web Programming Languages II","credits":3,"sections":[{"section":"Indp","time":"T,W(15:00 - 16:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lab"}]},{"code":"CST8260","name":"Database Systems and Concepts","credits":3,"sections":[{"section":"01","time":"M,W(15:00 - 16:15)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lab"}]},{"code":"CST8265","name":"Web Security Basics","credits":3,"sections":[{"section":"Indp","time":"M(11:00 - 12:30)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"}]},{"code":"CST8276","name":"Advanced Database Topics","credits":3,"sections":[{"section":"01","time":"T(14:30 - 16:20)","instructor":"Ms. Maria I. Al-Sendah","method":"Lecture"},{"section":"01","time":"W(14:00 - 15:50)","instructor":"Ms. Maria I. Al-Sendah","method":"Lab"}]},{"code":"CST8277","name":"Enterprise Application Programming","credits":3,"sections":[{"section":"01","time":"T(11:00 - 12:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lecture"},{"section":"01","time":"Th(11:00 - 12:50)","instructor":"Dr. Seyed Ghasem Saatchi","method":"Lab"}]},{"code":"CST8279","name":"Intro to Comp Programming using Python","credits":3,"sections":[{"section":"01","time":"T(16:30 - 17:20)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lab"}]},{"code":"CST8283","name":"Business Programming","credits":3,"sections":[{"section":"01","time":"M,W(12:30 - 13:45)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"},{"section":"01","time":"T(14:00 - 14:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lab"}]},{"code":"CST8284","name":"Object-Oriented Programming (Java)","credits":3,"sections":[{"section":"01","time":"M,W(15:00 - 16:15)","instructor":"Dr. Ahad Al-Otaibi","method":"Lecture"},{"section":"01","time":"Th(14:00 - 15:50)","instructor":"Dr. Ahad Al-Otaibi","method":"Lab"}]},{"code":"CST8285","name":"Web Programming","credits":3,"sections":[{"section":"01","time":"Su(16:30 - 18:20)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lecture"},{"section":"01","time":"Th(16:30 - 18:20)","instructor":"Dr. Khaled Jamal Abdul Kareem Al-Rabeea,","method":"Lab"}]},{"code":"CST8288","name":"Object-Oriented Programming with Design Patterns","credits":3,"sections":[{"section":"01","time":"M,W(14:00 - 14:50)","instructor":"Dr. Ahad Al-Otaibi","method":"Lecture"},{"section":"01","time":"Su(14:00 - 15:50)","instructor":"Dr. Ahad Al-Otaibi","method":"Lab"}]},{"code":"CST8300","name":"Achieving Success in Changing Environments","credits":3,"sections":[{"section":"01","time":"Su,M,W(11:00 - 11:50)","instructor":"Ms. Bshaier Jasem Mohamad Al-Buloshi","method":"Lecture"},{"section":"Indp","time":"T,W(11:00 - 11:50)","instructor":"Tareq Ahmad Ali Al-Zayyat","method":"Lecture"}]},{"code":"CST8333","name":"Programming Language Research Project","credits":3,"sections":[{"section":"01","time":"M(12:00 - 13:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"},{"section":"01","time":"W(12:00 - 13:50)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"}]},{"code":"CST8334","name":"Software Development Project","credits":3,"sections":[{"section":"01","time":"M(16:30 - 18:20)","instructor":"Sulaiman Mohammad Alraqum","method":"Lecture"},{"section":"01","time":"W(16:30 - 18:20)","instructor":"Sulaiman Mohammad Alraqum","method":"Lab"}]},{"code":"ECO2200","name":"Economic Issues","credits":3,"sections":[{"section":"01","time":"M,W(12:00 - 13:15)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"}]},{"code":"ENL001","name":"English for Foundation 1","credits":3,"sections":[{"section":"01","time":"Su,M,T,W,Th(12:00 - 13:50)","instructor":"Ms. Bshaier Jasem Mohamad Al-Buloshi","method":"Lecture"}]},{"code":"ENL002","name":"English for Foundation 2","credits":3,"sections":[{"section":"01","time":"Su,M,T,W,Th(09:00 - 10:50)","instructor":"Ms. Bshaier Jasem Mohamad Al-Buloshi","method":"Lecture"},{"section":"02","time":"Su,M,T,W,Th(14:30 - 16:20)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"},{"section":"03","time":"Su,M,T,W,Th(09:30 - 10:50)","instructor":"Mr. Omar Samir El Borno","method":"Lecture"},{"section":"04","time":"Su,M,T,W,Th(12:30 - 14:20)","instructor":"Mr. Omar Samir El Borno","method":"Lecture"},{"section":"05","time":"Su,M,T,W,Th(14:30 - 16:20)","instructor":"Mr. Omar Samir El Borno","method":"Lecture"}]},{"code":"ENL1813","name":"Communications I","credits":3,"sections":[{"section":"01","time":"Su,T,Th(11:00 - 11:50)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"},{"section":"02E","time":"M,W(12:00 - 13:00)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"},{"section":"03","time":"Su,T,Th(14:00 - 14:50)","instructor":"Ms. Bshaier Jasem Mohamad Al-Buloshi","method":"Lecture"}]},{"code":"ENL1823","name":"Communications II","credits":3,"sections":[{"section":"01","time":"M,W(13:30 - 14:45)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"FIN2230","name":"Business Finance","credits":3,"sections":[{"section":"01","time":"M(16:00 - 17:15)","instructor":"Mr. Mohamad Ahmad Yousuf Dawaoud","method":"Lecture"},{"section":"Independent","time":"Su,M(09:00 - 10:15)","instructor":"Mr. Mohamad Ahmad Yousuf Dawaoud","method":"Lecture"}]},{"code":"GECU4100","name":"Technologies ,Cultures &Societies","credits":3,"sections":[{"section":"01","time":"Su,T(15:00 - 15:50)","instructor":"Ms. Bshaier Jasem Mohamad Al-Buloshi","method":"Lecture"}]},{"code":"GED0022","name":"Positive Psychology \u2013 The Science of Happiness and Well-Being","credits":3,"sections":[{"section":"01","time":"M,W(12:00 - 13:15)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"GED2234","name":"Contemporary Ethical Issues","credits":3,"sections":[{"section":"01","time":"Su,T,Th(10:00 - 10:50)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"}]},{"code":"GEEC3150","name":"Principles of Microeconomics","credits":3,"sections":[{"section":"01","time":"M,W(11:30 - 12:45)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"},{"section":"Independent","time":"Su,T,Th(19:00 - 19:50)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"}]},{"code":"GEEC3250","name":"Principles of Macroeconomics \u200b","credits":3,"sections":[{"section":"01","time":"M,W(16:00 - 17:15)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"}]},{"code":"GEN2003","name":"Healthy Lifestyle","credits":3,"sections":[{"section":"01","time":"M,W(09:30 - 10:45)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"},{"section":"Indp","time":"Su,T(11:00 - 11:50)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"GEPH3033","name":"Professional Integrity & Ethics","credits":3,"sections":[{"section":"01","time":"Su,T(13:00 - 14:15)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"},{"section":"Indp","time":"M,W(09:00 - 10:15)","instructor":"Ms. Farah Faisal Fahad Al-Yaqout","method":"Lecture"}]},{"code":"ICT001","name":"Computer Skills for Foundation 1","credits":3,"sections":[{"section":"01","time":"M,Th(14:00 - 15:15)","instructor":"Mr. Roshdi Hussam Roshdi Al-Debeki","method":"Lecture"}]},{"code":"ICT002","name":"Computer Skills for Foundation 2","credits":3,"sections":[{"section":"01","time":"M,W(12:00 - 13:15)","instructor":"Mr. Roshdi Hussam Roshdi Al-Debeki","method":"Lecture"},{"section":"02","time":"T,Th(10:30 - 11:45)","instructor":"Mr. Roshdi Hussam Roshdi Al-Debeki","method":"Lecture"},{"section":"03","time":"Su,T(13:00 - 14:15)","instructor":"Mr. Roshdi Hussam Roshdi Al-Debeki","method":"Lecture"},{"section":"04","time":"Th(09:00 - 10:15)","instructor":"Mr. Roshdi Hussam Roshdi Al-Debeki","method":"Lecture"},{"section":"05","time":"T,Th(16:30 - 17:45)","instructor":"Mr. Eisa Adel Hasan H. Shamsah","method":"Lecture"}]},{"code":"LAW1702","name":"Business Law","credits":3,"sections":[{"section":"01","time":"Su,T,Th(12:00 - 12:50)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"MAT001","name":"Core Math for Foundation 1","credits":3,"sections":[{"section":"01","time":"T,Th(09:30 - 10:45)","instructor":"Ms. Abrar Maneef  Al-Enezi","method":"Lecture"}]},{"code":"MAT002","name":"Core Math for Foundation 2","credits":3,"sections":[{"section":"01","time":"Su,T(11:00 - 12:15)","instructor":"Ms. Abrar Maneef  Al-Enezi","method":"Lecture"},{"section":"02","time":"M,W(12:00 - 13:15)","instructor":"Ms. Abrar Maneef  Al-Enezi","method":"Lecture"},{"section":"03","time":"Th(13:00 - 14:15)","instructor":"Ms. Abrar Maneef  Al-Enezi","method":"Lecture"},{"section":"04","time":"M,W(09:00 - 10:15)","instructor":"Ms. Abrar Maneef  Al-Enezi","method":"Lecture"},{"section":"05","time":"Su,T(13:00 - 14:15)","instructor":"Ms. Abrar Maneef  Al-Enezi","method":"Lecture"}]},{"code":"MAT8001","name":"Technical Mathematics for Computer Science","credits":3,"sections":[{"section":"01","time":"T(18:00 - 19:50)","instructor":"Mr. Eisa Adel Hasan H. Shamsah","method":"Lecture"},{"section":"02","time":"Su(09:00 - 10:50)","instructor":"Mr. Roshdi Hussam Roshdi Al-Debeki","method":"Lecture"}]},{"code":"MGT2008","name":"Business Plan Applied","credits":3,"sections":[{"section":"01","time":"Su,T,Th(13:30 - 14:35)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"MGT2201","name":"Business Fundamentals","credits":3,"sections":[{"section":"01","time":"Su(13:30 - 14:20)","instructor":"Dr. Adel Thamer Shaher","method":"Lab"},{"section":"01","time":"Th(14:00 - 15:50)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"},{"section":"Independent","time":"Su(19:00 - 19:50)","instructor":"Dr. Adel Thamer Shaher","method":"Lab"},{"section":"Independent","time":"T(13:30 - 15:20)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"}]},{"code":"MGT2202","name":"Emerging Technology for Business","credits":3,"sections":[{"section":"01","time":"Su,T(14:00 - 15:15)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"MGT2203","name":"Financial Management for Small Business","credits":3,"sections":[{"section":"01","time":"Su,T,Th(14:00 - 15:15)","instructor":"Naser Mohammad S. Al-Selahi","method":"Lecture"}]},{"code":"MGT2204","name":"Social Innovation","credits":3,"sections":[{"section":"01","time":"Su,T,Th(09:00 - 09:50)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"MGT2223","name":"Career Preparation for Entrepreneurs","credits":3,"sections":[{"section":"01","time":"Su,W(19:00 - 19:50)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"MGT2224","name":"Managing for Business Success","credits":3,"sections":[{"section":"01","time":"Su,T,Th(10:00 - 11:05)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"}]},{"code":"MGT2225","name":"Project Management for Business Start-Ups","credits":3,"sections":[{"section":"01","time":"Su,T(11:00 - 12:15)","instructor":"Sheena Ray Varghese","method":"Lecture"}]},{"code":"MGT2228","name":"Global Entrepreneurship","credits":3,"sections":[{"section":"01","time":"M,W(13:00 - 14:15)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"MGT2232","name":"Entrepreneurship & Innovation","credits":3,"sections":[{"section":"01","time":"Su,T(10:00 - 10:50)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"},{"section":"Independent","time":"M,W(11:00 - 12:50)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"MKT0018","name":"Marketing for Management & Entrepreneurship","credits":3,"sections":[{"section":"01","time":"M,W(09:30 - 10:45)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"MKT0019","name":"Marketing Research","credits":3,"sections":[{"section":"01","time":"M,W(16:00 - 17:15)","instructor":"Mr. Saad Ali Husain Kakouli","method":"Lecture"}]},{"code":"MKT2205","name":"Marketing Foundations","credits":3,"sections":[{"section":"01","time":"M,W(09:30 - 11:20)","instructor":"Dr. Fahad Awad Aber S. Al-Enezi","method":"Lecture"}]},{"code":"MKT2207","name":"Marketing Channels","credits":3,"sections":[{"section":"01","time":"M,W(14:00 - 15:50)","instructor":"Mr. Saad Ali Husain Kakouli","method":"Lecture"}]},{"code":"MKT2208","name":"Digital Marketing","credits":3,"sections":[{"section":"01","time":"Su,T,Th(13:00 - 14:05)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"},{"section":"Indp","time":"M,W(10:00 - 10:50)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"MKT2213","name":"Skills for the Workplace","credits":3,"sections":[{"section":"01","time":"M,W(12:00 - 12:50)","instructor":"Mr. Saad Ali Husain Kakouli","method":"Lecture"}]},{"code":"MKT2216","name":"Skills Transferable to Business","credits":3,"sections":[{"section":"01","time":"M,W(13:30 - 14:45)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"MKT2218","name":"Digital Marketing","credits":3,"sections":[{"section":"01","time":"Su,T,Th(13:00 - 13:50)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"MKT2260","name":"Industry Marketing Plan","credits":3,"sections":[{"section":"01","time":"Th(10:00 - 10:50)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"}]},{"code":"MKT2261","name":"Marketing Plan Project Field Work","credits":3,"sections":[{"section":"01","time":"T,Th(11:30 - 12:45)","instructor":"Dr. Omar Jaber Radwan Aburumman","method":"Lecture"}]},{"code":"MKT2283","name":"Sales Management","credits":3,"sections":[{"section":"01","time":"M,W(09:00 - 10:50)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"}]},{"code":"MKT2285","name":"Marketing Research","credits":3,"sections":[{"section":"01","time":"M,W(16:00 - 17:50)","instructor":"Mr. Saad Ali Husain Kakouli","method":"Lecture"}]},{"code":"MKT2291","name":"Integrated Marketing Communications 1","credits":3,"sections":[{"section":"01","time":"Su,Th(11:00 - 12:50)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"MKT2292","name":"Integrated Marketing Communications II New Media","credits":3,"sections":[{"section":"01","time":"Su,T,Th(08:00 - 09:00)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"QUA0002","name":"Business Mathematics","credits":3,"sections":[{"section":"02","time":"T,Th(16:00 - 17:20)","instructor":"Mr. Mohamad Ahmad Yousuf Dawaoud","method":"Lecture"}]},{"code":"QUA0008","name":"Statistics","credits":3,"sections":[{"section":"01","time":"W,Th(15:00 - 16:15)","instructor":"Mr. Eisa Adel Hasan H. Shamsah","method":"Lecture"}]},{"code":"QUA2210","name":"Basic Business Mathematics","credits":3,"sections":[{"section":"01- ENG","time":"T,Th(16:00 - 17:50)","instructor":"Mr. Mohamad Ahmad Yousuf Dawaoud","method":"Lecture"},{"section":"02","time":"Su,M(16:00 - 17:50)","instructor":"Mr. Eisa Adel Hasan H. Shamsah","method":"Lecture"}]},{"code":"RET2213","name":"eCommerce","credits":3,"sections":[{"section":"01","time":"M,W(09:00 - 10:15)","instructor":"Mrs. Anusha Zulfiqar Ali Shalwani","method":"Lecture"}]},{"code":"RET2214","name":"Retail Management","credits":3,"sections":[{"section":"01","time":"Su,T(15:30 - 17:20)","instructor":"Mrs. Rana Khan Moh'd Ishaque","method":"Lecture"}]},{"code":"RET2223","name":"Professional Selling","credits":3,"sections":[{"section":"01","time":"Su,T,Th(12:00 - 12:50)","instructor":"Dr. Adel Thamer Shaher","method":"Lecture"}]},{"code":"CSIT3211","name":"Foundations of Computer Security","credits":3,"sections":[{"section":"01","time":"M,W(14:00 - 15:15)","instructor":"TBA","method":"Lecture"}]},{"code":"CSIT3216","name":"Server Operating Systems","credits":3,"sections":[{"section":"01","time":"Su,T(14:00 - 15:15)","instructor":"TBA","method":"Lecture"}]},{"code":"CSIT3225","name":"Introduction to Programming with Python","credits":3,"sections":[{"section":"01","time":"M,W(11:00 - 12:15)","instructor":"TBA","method":"Lecture"}]},{"code":"CSIT3235","name":"Software Quality Assurance","credits":3,"sections":[{"section":"01","time":"Su,T(11:00 - 12:15)","instructor":"TBA","method":"Lecture"}]},{"code":"CSIT4125","name":"Website & Cloud Security","credits":3,"sections":[{"section":"01","time":"M,W(09:00 - 10:15)","instructor":"TBA","method":"Lecture"}]},{"code":"CSIT4235","name":"Special Topics in Web & Mobile App Development","credits":2,"sections":[{"section":"01","time":"T,Th(14:00 - 15:15)","instructor":"TBA","method":"Lecture"}]},{"code":"CSIT4290","name":"Integration Project II","credits":3,"sections":[{"section":"01","time":"Su,T,Th(16:00 - 17:15)","instructor":"TBA","method":"Lab"}]},{"code":"MKT2206","name":"Product and Pricing Strategies","credits":4,"sections":[{"section":"01","time":"M,W(12:00 - 13:15)","instructor":"TBA","method":"Lecture"}]},{"code":"MKT2217","name":"Global Marketing","credits":3,"sections":[{"section":"01","time":"Su,T(10:00 - 11:15)","instructor":"TBA","method":"Lecture"}]},{"code":"MKT2282","name":"Professional Selling","credits":4,"sections":[{"section":"01","time":"T,Th(11:00 - 12:15)","instructor":"TBA","method":"Lecture"}]}]),
+    fetch('study_plans.json').then(r=>r.json()).catch(()=>({}))
+  ]);
+  courses=cr; plans=sp;
+
+  // Apply saved localStorage credits (intermediate state)
+  const lsShared = JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
+  courses.forEach(c=>{ if(lsShared[c.code]!==undefined) c.credits=lsShared[c.code]; base[c.code]=c.credits; });
+  changes = JSON.parse(localStorage.getItem('cck_reg1_changes')||'{}');
+
+  updateStats(); renderCourses(); buildMajorChips();
+}
+
+// ─── STATS ──────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('s-total').textContent = courses.length;
+  const avg = courses.length ? (courses.reduce((s,c)=>s+getCr(c.code),0)/courses.length).toFixed(1) : '—';
+  document.getElementById('s-avg').textContent = avg;
+  const cnt = Object.keys(changes).length;
+  document.getElementById('s-unsaved').textContent = cnt;
+  document.getElementById('banner-cnt').textContent = cnt;
+  document.getElementById('banner').classList.toggle('show', cnt>0);
+  const b = document.getElementById('chg-badge');
+  b.textContent=cnt; b.style.display = cnt>0?'inline':'none';
+}
+
+// ─── DEPT FILTER ─────────────────────────────────────────
+function setDept(d,btn){
+  deptF=d;
+  document.querySelectorAll('#dept-chips .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderCourses();
+}
+
+// ─── ALL COURSES ─────────────────────────────────────────
+function renderCourses(){
+  const q=(document.getElementById('q')?.value||'').toLowerCase();
+  let list=courses;
+  if(deptF==='CS')  list=list.filter(c=>isCS(c.code));
+  else if(deptF==='BUS') list=list.filter(c=>!isCS(c.code)&&!isGen(c.code));
+  else if(deptF==='GEN') list=list.filter(c=>isGen(c.code));
+  if(q) list=list.filter(c=>c.code.toLowerCase().includes(q)||c.name.toLowerCase().includes(q));
+
+  document.getElementById('ctbody').innerHTML = list.map(c=>{
+    const cur=getCr(c.code), dept=getDept(c.code);
+    const changed=changes[c.code]?'changed-row':'';
+    const deptBadgeCls=dept==='CS'?'dept-cs':dept==='GEN'?'dept-gen':'dept-bus';
+    const deptLbl=dept==='CS'?'CS':dept==='GEN'?'Gen Ed':'Biz';
+    return `<tr class="${changed}" id="row-${c.code}">
+      <td><strong style="color:#B91C1C;font-size:12px">${c.code}</strong></td>
+      <td style="max-width:260px">${c.name}</td>
+      <td><span class="dept-badge ${deptBadgeCls}">${deptLbl}</span></td>
+      <td><input type="number" class="credit-input" id="cr-${c.code}" value="${cur}" min="1" max="12" onchange="markChange('${c.code}',this.value)"></td>
+      <td style="color:#9CA3AF">${(c.sections||[]).length||c.sectionsCount||'—'}</td>
+      <td><button class="save-btn" onclick="saveRow('${c.code}')">Save</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function markChange(code,val){
+  const n=parseInt(val);
+  if(isNaN(n)||n<1||n>12) return;
+  if(n===base[code]) delete changes[code];
+  else changes[code]={original:base[code]||3, newVal:n};
+  document.getElementById('row-'+code)?.classList.toggle('changed-row',!!changes[code]);
+  localStorage.setItem('cck_reg1_changes',JSON.stringify(changes));
+  // If admin already approved/submitted, mark as needing resubmission
+  if(changes[code]) resetApprovalOnSave();
+  updateStats(); renderChanges();
+}
+
+async function saveRow(code){
+  const input=document.getElementById('cr-'+code);
+  const n=parseInt(input?.value);
+  if(isNaN(n)||n<1){toast('Invalid credit value','err');return;}
+  const btn=input?.closest('tr')?.querySelector('.save-btn');
+  if(btn){btn.textContent='Saving…';btn.classList.add('saving');}
+
+  // Update local state
+  base[code]=n;
+  const c=courses.find(x=>x.code===code); if(c) c.credits=n;
+  delete changes[code];
+
+  // Persist localStorage
+  persist();
+
+  // Try Supabase
+  const client = typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  if(client){
+    try{
+      const {error}=await client.from('courses').update({credits:n}).eq('code',code);
+      if(error) throw error;
+      toast(`${code} → ${n} cr. saved to DB`,'ok');
+    } catch(e){
+      toast(`${code} saved locally (DB unavailable)`,'info');
+    }
+  } else {
+    toast(`${code} → ${n} cr. saved locally`,'ok');
+  }
+
+  if(btn){btn.textContent='Save';btn.classList.remove('saving');}
+  document.getElementById('row-'+code)?.classList.remove('changed-row');
+  updateStats(); renderChanges();
+}
+
+async function saveAll(){
+  const entries=Object.entries(changes);
+  if(!entries.length){toast('No pending changes','info');return;}
+
+  const client = typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  let dbOk=0, localSaved=0;
+
+  for(const [code,ch] of entries){
+    base[code]=ch.newVal;
+    const c=courses.find(x=>x.code===code); if(c) c.credits=ch.newVal;
+    if(client){
+      try{
+        const {error}=await client.from('courses').update({credits:ch.newVal}).eq('code',code);
+        if(!error) dbOk++;
+        else localSaved++;
+      } catch(e){ localSaved++; }
+    } else { localSaved++; }
+  }
+
+  changes={}; persist();
+  renderCourses(); renderMajorSections(); updateStats(); renderChanges();
+  if(dbOk>0) toast(`${dbOk} course(s) saved to database${localSaved>0?` · ${localSaved} local only`:''}`, 'ok');
+  else toast(`${localSaved} course(s) saved locally`, 'info');
+}
+
+function discardAll(){
+  changes={}; localStorage.removeItem('cck_reg1_changes');
+  renderCourses(); updateStats(); renderChanges();
+  toast('Changes discarded','err');
+}
+
+function persist(){
+  const shared={}; courses.forEach(c=>shared[c.code]=c.credits);
+  localStorage.setItem('cck_reg1_changes',JSON.stringify(changes));
+  localStorage.setItem('cck_credits_shared',JSON.stringify(shared));
+}
+
+// ─── CHANGES TAB ─────────────────────────────────────────
+function renderChanges(){
+  const entries=Object.entries(changes);
+  document.getElementById('no-chg').style.display=entries.length?'none':'block';
+  document.getElementById('chg-tbody').innerHTML=entries.map(([code,ch])=>{
+    const c=courses.find(x=>x.code===code), diff=ch.newVal-ch.original;
+    return `<tr>
+      <td><strong style="color:#B91C1C;font-size:12px">${code}</strong></td>
+      <td>${c?.name||code}</td>
+      <td style="color:#9CA3AF">${ch.original} cr.</td>
+      <td style="font-weight:700">${ch.newVal} cr.</td>
+      <td><span class="credit-pill ${diff>0?'credit-pill-green':'credit-pill-red'}">${diff>0?'+':''}${diff}</span></td>
+      <td style="display:flex;gap:6px">
+        <button class="save-btn" onclick="saveRow('${code}')">Save</button>
+        <button class="btn-secondary-portal" style="padding:4px 8px;font-size:11px" onclick="discardRow('${code}')">Discard</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function discardRow(code){
+  const i=document.getElementById('cr-'+code);
+  if(i) i.value=base[code]||3;
+  delete changes[code];
+  document.getElementById('row-'+code)?.classList.remove('changed-row');
+  localStorage.setItem('cck_reg1_changes',JSON.stringify(changes));
+  updateStats(); renderChanges();
+}
+
+// ─── BY PROGRAM ──────────────────────────────────────────
+let bpView = 'card';
+
+function setBpView(v, btn){
+  bpView = v;
+  document.getElementById('bp-view-card').style.background  = v==='card'  ? '#6366F1' : 'white';
+  document.getElementById('bp-view-card').style.color       = v==='card'  ? 'white'   : '#64748B';
+  document.getElementById('bp-view-table').style.background = v==='table' ? '#6366F1' : 'white';
+  document.getElementById('bp-view-table').style.color      = v==='table' ? 'white'   : '#64748B';
+  renderMajorSections();
+}
+
+function buildMajorChips(){
+  const c=document.getElementById('major-chips');
+  c.innerHTML=`<button class="filter-chip active" onclick="setMajor('all',this)">All</button>`
+    +Object.keys(plans).map(m=>`<button class="filter-chip" onclick="setMajor('${m.replace(/'/g,"\\'")}',this)">${MLBL[m]||m}</button>`).join('');
+}
+function setMajor(m,btn){
+  majorF=m;
+  document.querySelectorAll('#major-chips .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderMajorSections();
+}
+
+// ── Pull live assignments from all portals ──
+function getLiveAssignments(){
+  // HOD: { instructorId: [courseCode, ...] }
+  const hodRaw   = JSON.parse(localStorage.getItem('cck_hod_assignments')||'{}');
+  // Reg2: { instructorId: { employment, qualification, timeFrom, timeTo, maxCredits, teachDepts } }
+  const reg2Raw  = JSON.parse(localStorage.getItem('cck_reg2_inst')||'{}');
+  const instShared = JSON.parse(localStorage.getItem('cck_inst_shared')||'{}');
+  // Rooms: [{ id, name, type, capacity, amenities }]
+  const rooms    = JSON.parse(localStorage.getItem('cck_app_rooms')||'[]');
+
+  // Build reverse map: courseCode → [{ id, name, employment, qualification, time }]
+  const codeToInstructors = {};
+  Object.entries(hodRaw).forEach(([insId, codes])=>{
+    codes.forEach(code=>{
+      if(!codeToInstructors[code]) codeToInstructors[code]=[];
+      // Get instructor details from reg2 or inst_shared
+      const d2 = reg2Raw[insId]||{};
+      const ds = instShared[insId]||{};
+      const d  = {...ds, ...d2};
+      // Find name from instructors JSON (loaded globally)
+      const insObj = (window._instructorsList||[]).find(i=>i.id===insId);
+      const name   = insObj?.name || d.name || insId;
+      const timeStr = (d.timeFrom&&d.timeTo) ? `${d.timeFrom}–${d.timeTo}` : null;
+      codeToInstructors[code].push({
+        id: insId, name, employment: d.employment||'Full-Time',
+        qualification: d.qualification||'', time: timeStr
+      });
+    });
+  });
+
+  return { codeToInstructors, rooms };
+}
+
+// Load instructors list once for name lookup
+(function preloadInstructors(){
+  if(window._instructorsList) return;
+  fetch('instructors.json').then(r=>r.json()).then(d=>{ window._instructorsList=d; }).catch(()=>{});
+})();
+
+function ini(name){ return name.split(' ').filter(w=>/^[A-Z]/.test(w)).slice(0,2).map(w=>w[0]).join('').toUpperCase()||name.slice(0,2).toUpperCase(); }
+
+function renderMajorSections(){
+  const container = document.getElementById('major-body');
+  const q = (document.getElementById('bp-search')?.value||'').toLowerCase().trim();
+  const majors = Object.keys(plans).filter(m=>majorF==='all'||m===majorF);
+  const { codeToInstructors, rooms } = getLiveAssignments();
+
+  const lvlLabel = ys => ys.split('–')[0].trim().replace('Year','Yr').replace(' Semester','·S');
+
+  container.innerHTML = majors.map(major=>{
+    const cs = (plans[major]?.courses)||[];
+
+    // Group by year+semester
+    const byYS = {};
+    cs.forEach(c=>{ const k=`${c.year} – ${c.semester}`; (byYS[k]=byYS[k]||[]).push(c); });
+
+    let totalAssigned=0, totalCourses=cs.length;
+
+    const sectionHTML = Object.entries(byYS).map(([ys, list])=>{
+      // Filter by search
+      const visible = list.filter(c=>{
+        if(!q) return true;
+        if(c.code.toLowerCase().includes(q)||c.title.toLowerCase().includes(q)) return true;
+        const instrs = codeToInstructors[c.code]||[];
+        return instrs.some(i=>i.name.toLowerCase().includes(q));
+      });
+      if(!visible.length) return '';
+
+      const totCr = visible.reduce((s,c)=>s+getCr(c.code),0);
+
+      if(bpView==='card'){
+        const cards = visible.map(c=>{
+          const cr = getCr(c.code);
+          const instrs = codeToInstructors[c.code]||[];
+          if(instrs.length) totalAssigned++;
+          const assigned = instrs.length>0;
+          const codeDept = isCS(c.code)?'#3B82F6':isGen(c.code)?'#16A34A':'#D97706';
+          const codeBg   = isCS(c.code)?'#EFF6FF':isGen(c.code)?'#F0FDF4':'#FFFBEB';
+
+          const instrChips = assigned
+            ? instrs.map(i=>{
+                const isPT = i.employment==='Part-Time';
+                const av = `<div style="width:26px;height:26px;border-radius:50%;background:${isPT?'#FEF9C3':'#EFF6FF'};border:1.5px solid ${isPT?'#FDE68A':'#BFDBFE'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:${isPT?'#92400E':'#1D4ED8'};flex-shrink:0">${ini(i.name)}</div>`;
+                const qual = i.qualification ? `<span style="font-size:9px;color:#94A3B8">${i.qualification}</span>` : '';
+                const tm   = i.time ? `<span style="font-size:9px;color:#94A3B8">${i.time}</span>` : '';
+                const emp  = `<span style="font-size:9px;font-weight:600;color:${isPT?'#B45309':'#1D4ED8'};background:${isPT?'#FEF9C3':'#EFF6FF'};padding:1px 5px;border-radius:5px">${isPT?'PT':'FT'}</span>`;
+                return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#F8FAFC;border-radius:7px;min-width:0">
+                  ${av}
+                  <div style="min-width:0;flex:1">
+                    <div style="font-size:11px;font-weight:600;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.name}</div>
+                    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px">${qual}${tm}${emp}</div>
+                  </div>
+                </div>`;
+              }).join('')
+            : `<div style="padding:6px 10px;background:#FEF9C3;border-radius:7px;font-size:11px;color:#92400E;font-weight:600">Not assigned by HOD</div>`;
+
+          return `<div style="background:white;border:1.5px solid ${assigned?'#E2E8F0':'#FDE68A'};border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="min-width:0;flex:1">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
+                  <span style="font-size:11px;font-weight:800;color:${codeDept};background:${codeBg};padding:2px 7px;border-radius:5px;font-family:monospace">${c.code}</span>
+                  <span style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em">${lvlLabel(ys)}</span>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:#0F172A;line-height:1.4">${c.title}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                <div style="font-size:15px;font-weight:900;color:#0F172A">${cr}<span style="font-size:10px;font-weight:500;color:#94A3B8"> cr</span></div>
+                <div style="width:8px;height:8px;border-radius:50%;background:${assigned?'#16A34A':'#F59E0B'}"></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              ${instrChips}
+            </div>
+          </div>`;
+        }).join('');
+
+        return `<div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:0 2px">
+            <span style="font-size:11px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:.06em">${ys}</span>
+            <span style="font-size:10px;color:#64748B">${visible.length} courses · ${totCr} cr</span>
+            <div style="flex:1;height:1px;background:#E2E8F0"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+            ${cards}
+          </div>
+        </div>`;
+      } else {
+        // TABLE VIEW
+        const rows = visible.map(c=>{
+          const cr = getCr(c.code);
+          const instrs = codeToInstructors[c.code]||[];
+          if(instrs.length) totalAssigned++;
+          const assigned = instrs.length>0;
+          const codeDept = isCS(c.code)?'#3B82F6':isGen(c.code)?'#16A34A':'#D97706';
+          const codeBg   = isCS(c.code)?'#EFF6FF':isGen(c.code)?'#F0FDF4':'#FFFBEB';
+          const instrCell = assigned
+            ? instrs.map(i=>`<span style="display:inline-block;font-size:10px;font-weight:600;color:#0F172A;background:#F1F5F9;border-radius:5px;padding:2px 7px;margin:1px">${i.name}</span>`).join('')
+            : `<span style="font-size:10px;color:#F59E0B;font-weight:600">Not assigned</span>`;
+          return `<tr style="border-bottom:1px solid #F1F5F9">
+            <td style="padding:9px 12px"><span style="font-size:11px;font-weight:800;color:${codeDept};background:${codeBg};padding:2px 7px;border-radius:5px;font-family:monospace">${c.code}</span></td>
+            <td style="padding:9px 12px;font-size:12px;font-weight:500;color:#0F172A">${c.title}</td>
+            <td style="padding:9px 12px;font-size:11px;color:#64748B">${lvlLabel(ys)}</td>
+            <td style="padding:9px 12px;font-size:13px;font-weight:800;color:#0F172A;text-align:center">${cr}</td>
+            <td style="padding:9px 12px">${instrCell}</td>
+            <td style="padding:9px 12px;text-align:center"><div style="width:8px;height:8px;border-radius:50%;background:${assigned?'#16A34A':'#F59E0B'};margin:auto"></div></td>
+          </tr>`;
+        }).join('');
+
+        return `<tr><td colspan="6" style="padding:10px 12px 4px;font-size:10px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.07em;background:#F8FAFC;border-bottom:1px solid #E2E8F0">${ys} — ${visible.length} courses — ${totCr} cr</td></tr>${rows}`;
+      }
+    }).join('');
+
+    const assignedCount = cs.filter(c=>(codeToInstructors[c.code]||[]).length>0).length;
+    const pct = totalCourses ? Math.round(assignedCount/totalCourses*100) : 0;
+    const barClr = pct===100?'#16A34A':pct>60?'#D97706':'#DC2626';
+
+    const safeKey = major.replace(/'/g,"\\'");
+    const header = `<div onclick="openProgramModal('${safeKey}')" style="background:white;border:1.5px solid #E2E8F0;border-radius:12px 12px 0 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;cursor:pointer;transition:background .15s" onmouseenter="this.style.background='#F8F9FF'" onmouseleave="this.style.background='white'">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#0F172A">${MLBL[major]||major}</div>
+        <div style="font-size:11px;color:#64748B;margin-top:2px">${totalCourses} courses · ${assignedCount} assigned · ${totalCourses-assignedCount} unassigned</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:120px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:9px;font-weight:600;color:#64748B">Assignment</span>
+            <span style="font-size:9px;font-weight:700;color:${barClr}">${pct}%</span>
+          </div>
+          <div style="height:5px;background:#F1F5F9;border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${barClr};border-radius:3px;transition:width .3s"></div>
+          </div>
+        </div>
+        <div style="color:#CBD5E1;font-size:18px;font-weight:300;line-height:1">›</div>
+      </div>
+    </div>`;
+
+    if(bpView==='card'){
+      return `<div style="margin-bottom:20px">
+        ${header}
+        <div style="background:#FAFBFC;border:1.5px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;padding:14px 16px">
+          ${sectionHTML||'<div style="color:#94A3B8;font-size:12px;padding:10px 0">No courses match your search.</div>'}
+        </div>
+      </div>`;
+    } else {
+      return `<div style="margin-bottom:20px">
+        ${header}
+        <div style="border:1.5px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:#F8FAFC;border-bottom:1.5px solid #E2E8F0">
+              <th style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;text-align:left;white-space:nowrap">Code</th>
+              <th style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;text-align:left">Course Name</th>
+              <th style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;text-align:left;white-space:nowrap">Level</th>
+              <th style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;text-align:center">Cr</th>
+              <th style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;text-align:left">Assigned Instructor(s)</th>
+              <th style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;text-align:center">Status</th>
+            </tr></thead>
+            <tbody>${sectionHTML||'<tr><td colspan="6" style="padding:14px;text-align:center;color:#94A3B8;font-size:12px">No courses match your search.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function showSection(name,btn){
+  ['courses','byMajor','changes','timetable'].forEach(s=>{const el=document.getElementById('sec-'+s);if(el)el.style.display=s===name?'block':'none';});
+  document.querySelectorAll('.portal-nav-link').forEach(l=>l.classList.remove('active'));
+  btn?.classList.add('active');
+  if(name==='byMajor') renderMajorSections();
+  if(name==='changes') renderChanges();
+  if(name==='timetable') renderApprovedTimetable('reg1-tt-content');
+}
+
+function renderApprovedTimetable(containerId){
+  const cont=document.getElementById(containerId);
+  if(!cont) return;
+  let att=null;
+  try{att=JSON.parse(localStorage.getItem('cck_nehad_timetable_approved')||'null');}catch(e){}
+  const slots=att&&att.slots;
+  if(!slots||!Object.keys(slots).length){
+    cont.innerHTML='<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px;background:white;border-radius:10px;border:1px solid #F1F5F9">No approved timetable available yet. Waiting for Dr. Nehad to submit and Admin to approve.</div>';
+    return;
+  }
+  const approvedAt=att.approvedAt?new Date(att.approvedAt).toLocaleString():'—';
+  let html=`<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:#15803D;font-weight:500">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+    Approved on ${approvedAt}
+  </div>
+  <div style="background:white;border-radius:10px;border:1px solid #F1F5F9;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:#F8FAFC">
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Instructor</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Course</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Day</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Time</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Section</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Room</th>
+    </tr></thead><tbody>`;
+  Object.keys(slots).sort().forEach(key=>{
+    (slots[key]||[]).forEach(s=>{
+      html+=`<tr style="border-bottom:1px solid #F8FAFC">
+        <td style="padding:7px 12px;font-family:monospace;font-size:11px;color:#C8102E">${key}</td>
+        <td style="padding:7px 12px;font-weight:600">${s.course||'—'}</td>
+        <td style="padding:7px 12px;color:#475569">${s.day||'—'}</td>
+        <td style="padding:7px 12px;font-family:monospace;font-size:11px">${(s.start||'')+'–'+(s.end||'')}</td>
+        <td style="padding:7px 12px;color:#64748B">${s.section||'—'}</td>
+        <td style="padding:7px 12px;color:#64748B">${s.room||'—'}</td>
+      </tr>`;
+    });
+  });
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
+
+// Init approved timetable badge
+(function(){
+  try{
+    const att=JSON.parse(localStorage.getItem('cck_nehad_timetable_approved')||'null');
+    const b=document.getElementById('tt-approved-badge-r1');
+    if(att&&att.slots&&b) b.style.display='inline';
+  }catch(e){}
+})();
+
+// ─── TOAST ────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const c=document.getElementById('ts'),d=document.createElement('div');
+  d.className=`toast ${type}`;d.textContent=msg;c.appendChild(d);
+  setTimeout(()=>d.remove(),3200);
+}
+
+init();
+
+// ── SEMESTER SELECTOR ────────────────────────────────────────────────────────
+(async function initSemesterSelector(){
+  if (typeof CCK === 'undefined') return;
+  await CCK.loadSemesters();
+updateSubmitState();
+})();
+
+function updateSubmitState(){
+  const btn = document.getElementById('btn-submit-admin');
+  const lbl = document.getElementById('submit-admin-lbl');
+  if (!btn || !lbl) return;
+  if (typeof CCK === 'undefined') return;
+  const semKey = CCK.getActiveSemKey();
+  const status = (JSON.parse(localStorage.getItem('cck_reg1_status')||'{}'))[semKey]||'draft';
+  let s, t;
+  if (CCK.isArchived(semKey))    { s='archived';  t='Archived – Read Only'; }
+  else if (status==='submitted') { s='submitted'; t='⏳ Pending Approval'; }
+  else if (status==='approved')  { s='approved';  t='✓ Approved by Admin'; }
+  else if (status==='resubmit')  { s='resubmit';  t='🔄 Resubmit to Admin'; }
+  else                           { s='draft';     t='Submit to Admin'; }
+  btn.dataset.status = s;
+  lbl.textContent = t;
+  // Allow clicking when resubmit; only block submitted/archived/approved
+  btn.disabled = (s === 'submitted' || s === 'archived' || s === 'approved');
+}
+
+function resetApprovalOnSave(){
+  if (typeof CCK === 'undefined') return;
+  const semKey = CCK.getActiveSemKey();
+  const cur = (JSON.parse(localStorage.getItem('cck_reg1_status')||'{}'))[semKey]||'draft';
+  if (cur === 'approved' || cur === 'submitted') {
+    const all = JSON.parse(localStorage.getItem('cck_reg1_status')||'{}');
+    all[semKey] = 'resubmit';
+    localStorage.setItem('cck_reg1_status', JSON.stringify(all));
+    updateSubmitState();
+    toast('Changes saved — resubmit to Admin when ready', 'info');
+  }
+}
+
+async function submitToAdmin(){
+  if (typeof CCK === 'undefined') { toast('CCK shared library not loaded','err'); return; }
+  const semKey = CCK.getActiveSemKey();
+  if (CCK.isArchived(semKey)) { toast('Cannot submit archived semester','err'); return; }
+  const all = JSON.parse(localStorage.getItem('cck_reg1_status')||'{}');
+  all[semKey] = 'submitted';
+  localStorage.setItem('cck_reg1_status', JSON.stringify(all));
+  const notifs = JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  const changedCredits = Object.keys(JSON.parse(localStorage.getItem('cck_reg1_changes')||'{}')).length;
+  notifs.unshift({
+    id: Date.now(), portal: 'Registration 1', semKey,
+    semLabel: CCK.getSemesterByKey(semKey)?.label || semKey,
+    message: `Registration 1 submitted ${changedCredits > 0 ? changedCredits + ' credit change(s) for' : 'course credits for'} ${CCK.getSemesterByKey(semKey)?.label || semKey}`,
+    timestamp: new Date().toISOString(), read: false, type: 'submission',
+    changedCount: changedCredits
+  });
+  localStorage.setItem('cck_admin_notifications', JSON.stringify(notifs));
+  updateSubmitState();
+  toast('Credits submitted to Admin ✓','ok');
+}
+
+// ── Program detail modal ─────────────────────────────────────────────────
+function openProgramModal(majorKey){
+  const plan = plans[majorKey];
+  const cs = (plan?.courses)||[];
+  const { codeToInstructors } = getLiveAssignments();
+  const label = MLBL[majorKey] || majorKey;
+
+  const assignedCount = cs.filter(c=>(codeToInstructors[c.code]||[]).length>0).length;
+  const totalCr = cs.reduce((s,c)=>s+getCr(c.code),0);
+  const pct = cs.length ? Math.round(assignedCount/cs.length*100) : 0;
+  const barClr = pct===100?'#16A34A':pct>60?'#D97706':'#DC2626';
+  const lvlLabel = ys => ys.split('–')[0].trim().replace('Year','Yr').replace(' Semester','·S');
+
+  // Group by year+semester
+  const byYS = {};
+  cs.forEach(c=>{ const k=`${c.year} – ${c.semester}`; (byYS[k]=byYS[k]||[]).push(c); });
+
+  const rowsHTML = Object.entries(byYS).map(([ys, list])=>{
+    const grpCr = list.reduce((s,c)=>s+getCr(c.code),0);
+    const grpRows = list.map(c=>{
+      const cr = getCr(c.code);
+      const instrs = codeToInstructors[c.code]||[];
+      const assigned = instrs.length>0;
+      const codeDept = isCS(c.code)?'#3B82F6':isGen(c.code)?'#16A34A':'#D97706';
+      const codeBg   = isCS(c.code)?'#EFF6FF':isGen(c.code)?'#F0FDF4':'#FFFBEB';
+      const instrCell = assigned
+        ? instrs.map(i=>{
+            const isPT = i.employment==='Part-Time';
+            return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:${isPT?'#FFFBEB':'#EFF6FF'};color:${isPT?'#B45309':'#1D4ED8'};border-radius:5px;padding:2px 7px;margin:1px">${ini(i.name)} <span style="font-weight:400;opacity:.75">${i.name.split(' ').slice(-1)[0]}</span></span>`;
+          }).join('')
+        : `<span style="font-size:10px;color:#F59E0B;font-weight:600;font-style:italic">Not assigned</span>`;
+      const changed = changes[c.code];
+      return `<tr class="pm-row" style="border-bottom:1px solid #F9FAFB">
+        <td style="padding:9px 14px">
+          <span style="font-size:11px;font-weight:800;font-family:monospace;color:${codeDept};background:${codeBg};padding:2px 7px;border-radius:5px">${c.code}</span>
+        </td>
+        <td style="padding:9px 6px;font-size:12px;font-weight:500;color:#0F172A;max-width:220px">${c.title}</td>
+        <td style="padding:9px 6px;font-size:10px;color:#94A3B8;white-space:nowrap">${lvlLabel(ys)}</td>
+        <td style="padding:9px 6px">
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${assigned?'#16A34A':'#F59E0B'};flex-shrink:0;display:inline-block"></span>
+            ${instrCell}
+          </div>
+        </td>
+        <td style="padding:9px 14px 9px 6px">
+          <div style="display:flex;align-items:center;gap:5px">
+            <input type="number" id="pm-cr-${c.code}"
+              value="${cr}" min="1" max="12"
+              style="width:54px;padding:5px 7px;text-align:center;border:1.5px solid ${changed?'#F59E0B':'#E2E8F0'};background:${changed?'#FFFBEB':'white'};border-radius:7px;font-size:13px;font-weight:800;color:#B91C1C;font-family:inherit;outline:none"
+              onchange="pmMarkChange('${c.code}',this)"
+              onfocus="this.style.borderColor='#6366F1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,.12)'"
+              onblur="this.style.boxShadow='';this.style.borderColor=changes['${c.code}']?'#F59E0B':'#E2E8F0'">
+            <button onclick="pmSaveRow('${c.code}')" style="padding:4px 10px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap" id="pm-save-${c.code}">Save</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `<tr><td colspan="5" style="padding:8px 14px 4px;background:#F8FAFC;border-bottom:1px solid #E5E7EB;font-size:10px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.07em">${ys} — ${list.length} courses · ${grpCr} cr</td></tr>${grpRows}`;
+  }).join('');
+
+  document.getElementById('pm-title').textContent = label;
+  document.getElementById('pm-meta').textContent = `${cs.length} courses · ${totalCr} total credits · ${assignedCount} assigned`;
+  document.getElementById('pm-bar-fill').style.width = pct+'%';
+  document.getElementById('pm-bar-fill').style.background = barClr;
+  document.getElementById('pm-bar-pct').textContent = pct+'%';
+  document.getElementById('pm-bar-pct').style.color = barClr;
+  document.getElementById('pm-tbody').innerHTML = rowsHTML;
+  document.getElementById('pm-major-key').value = majorKey;
+
+  const modal = document.getElementById('prog-modal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(()=>{ modal.querySelector('.pm-box').style.transform='translateY(0)'; modal.querySelector('.pm-box').style.opacity='1'; });
+}
+
+function closeProgramModal(){
+  const modal = document.getElementById('prog-modal');
+  const box = modal.querySelector('.pm-box');
+  box.style.transform = 'translateY(16px)';
+  box.style.opacity = '0';
+  setTimeout(()=>{ modal.style.display='none'; }, 180);
+}
+
+function pmMarkChange(code, input){
+  const n = parseInt(input.value);
+  if(isNaN(n)||n<1||n>12){ input.value=getCr(code); return; }
+  if(n===base[code]) delete changes[code];
+  else changes[code]={original:base[code]||3, newVal:n};
+  input.style.borderColor = changes[code] ? '#F59E0B' : '#E2E8F0';
+  input.style.background  = changes[code] ? '#FFFBEB' : 'white';
+  input.style.color = '#B91C1C';
+  localStorage.setItem('cck_reg1_changes',JSON.stringify(changes));
+  updateStats(); renderChanges();
+}
+
+async function pmSaveRow(code){
+  const input = document.getElementById('pm-cr-'+code);
+  const btn   = document.getElementById('pm-save-'+code);
+  const n = parseInt(input?.value);
+  if(isNaN(n)||n<1){ toast('Invalid credit value','err'); return; }
+  if(btn){ btn.textContent='Saving…'; btn.style.opacity='.55'; btn.style.pointerEvents='none'; }
+
+  base[code]=n;
+  const c=courses.find(x=>x.code===code); if(c) c.credits=n;
+  delete changes[code];
+  persist();
+
+  // Also sync the All Courses table input if visible
+  const mainInput = document.getElementById('cr-'+code);
+  if(mainInput) mainInput.value = n;
+  document.getElementById('row-'+code)?.classList.remove('changed-row');
+
+  const client = typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  if(client){
+    try{
+      const {error}=await client.from('courses').update({credits:n}).eq('code',code);
+      if(error) throw error;
+      toast(`${code} → ${n} cr. saved to DB`,'ok');
+    } catch(e){ toast(`${code} saved locally`,'info'); }
+  } else { toast(`${code} → ${n} cr. saved`,'ok'); }
+
+  if(btn){ btn.textContent='Saved ✓'; btn.style.background='#DCFCE7'; btn.style.color='#166534'; btn.style.opacity=''; btn.style.pointerEvents=''; }
+  if(input){ input.style.borderColor='#BBF7D0'; input.style.background='#F0FDF4'; }
+  setTimeout(()=>{
+    if(btn){ btn.textContent='Save'; btn.style.background=''; btn.style.color=''; }
+    if(input){ input.style.borderColor='#E2E8F0'; input.style.background='white'; }
+  }, 1800);
+
+  updateStats(); renderChanges();
+}
+
+async function pmSaveAll(){
+  const majorKey = document.getElementById('pm-major-key').value;
+  const cs = (plans[majorKey]?.courses)||[];
+  const codesInModal = new Set(cs.map(c=>c.code));
+  const pending = Object.entries(changes).filter(([code])=>codesInModal.has(code));
+  if(!pending.length){ toast('No pending changes','info'); return; }
+
+  const client = typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  let saved=0;
+  for(const [code,ch] of pending){
+    base[code]=ch.newVal;
+    const c=courses.find(x=>x.code===code); if(c) c.credits=ch.newVal;
+    if(client){ try{ await client.from('courses').update({credits:ch.newVal}).eq('code',code); }catch(e){} }
+    delete changes[code];
+    const inp = document.getElementById('pm-cr-'+code);
+    const btn = document.getElementById('pm-save-'+code);
+    if(inp){ inp.value=ch.newVal; inp.style.borderColor='#E2E8F0'; inp.style.background='white'; }
+    if(btn){ btn.textContent='Saved ✓'; btn.style.background='#DCFCE7'; btn.style.color='#166534'; setTimeout(()=>{ btn.textContent='Save'; btn.style.background=''; btn.style.color=''; },1800); }
+    saved++;
+  }
+  persist(); updateStats(); renderChanges();
+  toast(`${saved} credit${saved>1?'s':''} saved`,'ok');
+}
+</script>
+
+<!-- ── Program Detail Modal ───────────────────────────────────────────── -->
+<div id="prog-modal" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="position:absolute;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(4px)" onclick="closeProgramModal()"></div>
+  <div class="pm-box" style="position:relative;background:white;border-radius:16px;width:820px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.22);transform:translateY(16px);opacity:0;transition:transform .2s ease,opacity .2s ease;overflow:hidden">
+
+    <!-- Modal header -->
+    <div style="padding:18px 22px 14px;border-bottom:1px solid #F1F5F9;flex-shrink:0">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="min-width:0;flex:1">
+          <div style="font-size:16px;font-weight:800;color:#0F172A;margin-bottom:3px" id="pm-title"></div>
+          <div style="font-size:11px;color:#64748B" id="pm-meta"></div>
+        </div>
+        <button onclick="closeProgramModal()" style="background:none;border:none;cursor:pointer;padding:4px;color:#94A3B8;border-radius:6px;flex-shrink:0;line-height:1" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <!-- Progress bar -->
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+        <div style="flex:1;height:5px;background:#F1F5F9;border-radius:3px;overflow:hidden">
+          <div id="pm-bar-fill" style="height:100%;border-radius:3px;transition:width .4s"></div>
+        </div>
+        <span id="pm-bar-pct" style="font-size:10px;font-weight:700;flex-shrink:0"></span>
+        <span style="font-size:10px;color:#94A3B8">assigned</span>
+      </div>
+    </div>
+
+    <!-- Table toolbar -->
+    <div style="padding:10px 22px;border-bottom:1px solid #F1F5F9;flex-shrink:0;display:flex;align-items:center;gap:10px">
+      <div style="position:relative;flex:1;max-width:240px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:#94A3B8;pointer-events:none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search courses…" oninput="pmFilter(this.value)"
+          style="width:100%;padding:6px 10px 6px 30px;border:1.5px solid #E2E8F0;border-radius:7px;font-size:12px;font-family:inherit;outline:none;color:#0F172A"
+          onfocus="this.style.borderColor='#6366F1'" onblur="this.style.borderColor='#E2E8F0'">
+      </div>
+      <span style="font-size:11px;color:#94A3B8;flex:1">Credits column is editable · other fields are read-only</span>
+      <button onclick="pmSaveAll()" style="padding:6px 14px;background:#0F172A;color:white;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        Save All Changes
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-y:auto;flex:1">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;z-index:1">
+          <tr style="background:#F8FAFC;border-bottom:1.5px solid #E2E8F0">
+            <th style="padding:8px 14px;font-size:10px;font-weight:700;color:#64748B;text-align:left;white-space:nowrap">Code</th>
+            <th style="padding:8px 6px;font-size:10px;font-weight:700;color:#64748B;text-align:left">Course Name</th>
+            <th style="padding:8px 6px;font-size:10px;font-weight:700;color:#64748B;text-align:left;white-space:nowrap">Level</th>
+            <th style="padding:8px 6px;font-size:10px;font-weight:700;color:#64748B;text-align:left">Instructor(s)</th>
+            <th style="padding:8px 14px 8px 6px;font-size:10px;font-weight:700;color:#64748B;text-align:left">Credits</th>
+          </tr>
+        </thead>
+        <tbody id="pm-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:10px 22px;border-top:1px solid #F1F5F9;flex-shrink:0;display:flex;justify-content:flex-end">
+      <button onclick="closeProgramModal()" style="padding:7px 18px;background:#F1F5F9;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Close</button>
+    </div>
+  </div>
+</div>
+<input type="hidden" id="pm-major-key">
+<script>
+function pmFilter(q){
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('#pm-tbody .pm-row').forEach(row=>{
+    const text = row.textContent.toLowerCase();
+    row.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Also hide group header rows when all their courses are hidden (optional improvement)
+}
+</script>
+</body>
+</html>

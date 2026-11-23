@@ -270,17 +270,19 @@ INSERT OR IGNORE INTO system_settings (key, value, description) VALUES
 ('enrollment_data_semester', '"spring2026"', 'Semester whose enrollments the app loads');
 
 -- 13. LOGIN: admin accounts (password stored as PBKDF2 hash, never plain text)
+-- Staff accounts: admin plus the portal users (hod, reg1, reg2, facility, nehad)
 CREATE TABLE IF NOT EXISTS admin_users (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'hod', 'reg1', 'reg2', 'facility', 'nehad')),
     created_at TEXT DEFAULT (datetime('now'))
 );
 
 -- 14. LOGIN: sessions (random token kept in an HttpOnly cookie)
 CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'student')),
+    role TEXT NOT NULL CHECK (role IN ('admin', 'student', 'hod', 'reg1', 'reg2', 'facility', 'nehad')),
     user_id TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
     created_at TEXT DEFAULT (datetime('now'))
@@ -295,6 +297,36 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     attempted_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip, attempted_at);
+
+-- 16. SHARED PORTAL DATA
+-- Everything the portals (HOD, Registration 1/2, Facility, Nehad, admin review) used to keep
+-- in one browser's localStorage. Keys are the old localStorage names (cck_*); per-student keys
+-- are stored as 'u:<student_id>:<key>'. Only the admin can set a portal status to 'approved'.
+CREATE TABLE IF NOT EXISTS shared_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_by TEXT,
+    updated_role TEXT,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_shared_state_updated ON shared_state(updated_at);
+
+-- 17. AUDIT LOG (portal activity shown on the admin dashboard)
+CREATE TABLE IF NOT EXISTS audit_log (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    portal TEXT,
+    action TEXT,
+    entity_type TEXT,
+    entity_id TEXT,
+    description TEXT,
+    details TEXT DEFAULT '{}',
+    old_value TEXT,
+    new_value TEXT,
+    performed_by TEXT,
+    semester TEXT,
+    created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
 
 -- VIEWS
 DROP VIEW IF EXISTS enrollment_summary;

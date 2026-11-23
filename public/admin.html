@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="js/cck-store.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Control Center | CCK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Data is shared through js/cck-store.js (Cloudflare D1); the old Supabase loader was removed -->
+<script src="cck_shared.js"></script>
+<script src="js/portal-sync.js"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+body{background:#EDEEF2;overflow:hidden;}
+
+/* ── Sidebar overrides (dark) ────────────────────────────────────── */
+.portal-sidebar{background:#111827;border-right:none;}
+.portal-sidebar-brand{border-bottom:1px solid rgba(255,255,255,.07);padding:16px 14px;}
+.portal-sidebar-brand-name{color:#F9FAFB;font-size:13px;font-weight:700;}
+.portal-sidebar-brand-role{color:rgba(255,255,255,.35);font-size:11px;}
+.portal-sidebar-user{padding:12px 14px 8px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:6px;}
+.portal-sidebar-user-name{color:rgba(255,255,255,.85);font-size:13px;font-weight:600;}
+.portal-sidebar-user-role{color:rgba(255,255,255,.35);font-size:11px;}
+.portal-nav-section{color:rgba(255,255,255,.28);font-size:9px;font-weight:700;letter-spacing:.1em;padding:10px 14px 4px;}
+.portal-nav-link{color:rgba(255,255,255,.55);border-radius:6px;margin:1px 6px;padding:8px 10px;font-size:12px;}
+.portal-nav-link svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0;}
+.portal-nav-link:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);}
+.portal-nav-link.active{background:rgba(255,255,255,.1);color:#F9FAFB;}
+.portal-sidebar-spacer{flex:1;}
+.portal-sidebar-footer{padding:10px 10px 14px;}
+.btn-portal-logout{width:100%;background:rgba(255,255,255,.05);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.09);border-radius:7px;padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;}
+.btn-portal-logout:hover{background:rgba(255,255,255,.09);color:rgba(255,255,255,.75);}
+.btn-portal-logout svg{width:14px;height:14px;stroke:currentColor;}
+.portal-sidebar-db{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;padding:0 4px;}
+.portal-sidebar-db.online{color:#4ADE80;}
+
+/* ── Pipeline strip ──────────────────────────────────────────────── */
+.pipeline{
+  display:flex;align-items:stretch;background:white;
+  border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:18px;
+}
+.pipe-step{
+  flex:1;padding:16px 12px;border-right:1px solid #F1F5F9;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:background .2s;
+}
+.pipe-step:last-child{border-right:none;}
+.pipe-icon-wrap{
+  width:38px;height:38px;border-radius:10px;background:#F1F5F9;
+  display:flex;align-items:center;justify-content:center;
+}
+.pipe-icon-wrap svg{width:16px;height:16px;stroke:#94A3B8;fill:none;stroke-width:2;}
+.pipe-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;}
+.pipe-status{font-size:11px;font-weight:700;color:#94A3B8;}
+.pipe-step.pipe-submitted{background:#FFFDF5;}
+.pipe-step.pipe-submitted .pipe-icon-wrap{background:#FEF3C7;}
+.pipe-step.pipe-submitted .pipe-icon-wrap svg{stroke:#D97706;}
+.pipe-step.pipe-submitted .pipe-status{color:#D97706;}
+.pipe-step.pipe-approved{background:#F7FFF9;}
+.pipe-step.pipe-approved .pipe-icon-wrap{background:#DCFCE7;}
+.pipe-step.pipe-approved .pipe-icon-wrap svg{stroke:#16A34A;}
+.pipe-step.pipe-approved .pipe-status{color:#16A34A;}
+
+/* ── Status badges ───────────────────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+}
+.badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.badge-approved{background:#DCFCE7;color:#15803D;}
+.badge-approved .badge-dot{background:#16A34A;}
+.badge-submitted{background:#FEF3C7;color:#B45309;}
+.badge-submitted .badge-dot{background:#D97706;}
+.badge-draft{background:#F1F5F9;color:#64748B;}
+.badge-draft .badge-dot{background:#CBD5E1;}
+
+/* ── Portal overview cards ───────────────────────────────────────── */
+.ov-card{
+  background:white;border-radius:12px;border:1px solid #E2E8F0;
+  overflow:hidden;transition:box-shadow .2s,transform .2s;
+}
+.ov-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.07);transform:translateY(-1px);}
+.ov-card-hd{
+  padding:14px 16px;border-bottom:1px solid #F3F6F9;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.ov-card-icon{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.ov-card-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
+.ov-card-label{font-size:13px;font-weight:700;color:#0F172A;}
+.ov-card-stats{padding:12px 16px;}
+.ov-stat{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid #F8FAFC;
+}
+.ov-stat:last-child{border-bottom:none;}
+.ov-stat-k{font-size:11px;color:#64748B;}
+.ov-stat-v{font-size:12px;font-weight:700;color:#0F172A;font-family:'DM Mono',monospace;}
+.ov-card-ft{
+  padding:10px 16px;background:#FAFBFC;border-top:1px solid #F3F6F9;
+  display:flex;gap:8px;
+}
+.btn-rev{
+  flex:1;padding:7px 12px;background:#F1F5F9;color:#374151;
+  border:none;border-radius:7px;font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:background .15s;
+}
+.btn-rev:hover{background:#E2E8F0;}
+.btn-opn{
+  flex:1;padding:7px 12px;background:#111827;color:white;
+  border:none;border-radius:7px;font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;text-decoration:none;
+  text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:background .15s;
+}
+.btn-opn:hover{background:#1F2937;}
+
+/* ── Action buttons ──────────────────────────────────────────────── */
+.btn-approve{
+  padding:7px 16px;background:#15803D;color:white;border:none;border-radius:7px;
+  font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;gap:6px;transition:background .15s;
+}
+.btn-approve:hover{background:#166534;}
+.btn-reject{
+  padding:7px 16px;background:white;color:#DC2626;
+  border:1.5px solid #FECACA;border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .15s;
+}
+.btn-reject:hover{background:#FEF2F2;}
+
+/* ── Content cards ───────────────────────────────────────────────── */
+.content-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;}
+.content-toolbar{
+  padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #F1F5F9;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+/* ── Data rows ───────────────────────────────────────────────────── */
+.drow{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid #F9FAFB;transition:background .1s;
+}
+.drow:last-child{border-bottom:none;}
+.drow:hover{background:#FAFBFF;}
+.av{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;font-family:'DM Mono',monospace;
+}
+.av-cs{background:#DBEAFE;color:#1E40AF;}
+.av-bus{background:#FEF3C7;color:#92400E;}
+.chip{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;}
+.chip-cs{background:#DBEAFE;color:#1E40AF;}
+.chip-bus{background:#FEF3C7;color:#92400E;}
+.chip-gen{background:#DCFCE7;color:#166534;}
+
+/* ── Status banner ───────────────────────────────────────────────── */
+.sbanner{
+  padding:11px 16px;border-radius:8px;margin-bottom:14px;
+  font-size:12px;font-weight:500;border-left:3px solid;
+  display:flex;align-items:center;gap:8px;
+}
+.sbanner svg{width:14px;height:14px;flex-shrink:0;}
+
+/* ── Notification cards ──────────────────────────────────────────── */
+.notif-card{
+  background:white;border-radius:10px;border:1px solid #E2E8F0;
+  padding:14px 16px;margin-bottom:8px;
+  display:flex;align-items:flex-start;gap:12px;
+}
+
+/* ── Section header ──────────────────────────────────────────────── */
+.sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.sec-title{font-size:15px;font-weight:700;color:#0F172A;}
+.sec-sub{font-size:11px;color:#94A3B8;margin-top:2px;}
+
+/* ── Stat cards override ─────────────────────────────────────────── */
+.portal-stats{margin-bottom:18px;}
+.portal-stat-card{background:white;border:1px solid #E2E8F0;border-radius:10px;padding:14px 18px;}
+.portal-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#94A3B8;margin-bottom:5px;}
+.portal-stat-value{font-size:14px;font-weight:700;color:#0F172A;font-family:'DM Mono',monospace;}
+
+/* ── Credit delta ────────────────────────────────────────────────── */
+.cr-val{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;}
+.cr-up{color:#16A34A;} .cr-dn{color:#DC2626;} .cr-eq{color:#64748B;}
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.12);animation:tIn .2s ease;}
+.toast.ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;}
+.toast.err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;}
+.toast.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;}
+@keyframes tIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="portal-page">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────────────── -->
+  <aside class="portal-sidebar">
+    <div class="portal-sidebar-brand">
+      <img src="images/cck-logo-small.png" alt="CCK">
+      <div class="portal-sidebar-brand-text">
+        <div class="portal-sidebar-brand-name">CCK Portal</div>
+        <div class="portal-sidebar-brand-role">Admin</div>
+      </div>
+    </div>
+    <div class="portal-sidebar-user">
+      <div class="portal-sidebar-user-name">Administrator</div>
+      <div class="portal-sidebar-user-role">Control Center</div>
+    </div>
+
+    <div class="portal-nav-section">Review</div>
+    <button class="portal-nav-link active" onclick="showTab('overview',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="portal-nav-link" onclick="showTab('hod',this)">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      HOD Assignments
+      <span id="badge-hod" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+    </button>
+    <button class="portal-nav-link" onclick="showTab('reg1',this)">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Reg 1 – Credits
+      <span id="badge-reg1" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+    </button>
+    <button class="portal-nav-link" onclick="showTab('reg2',this)">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Reg 2 – Instructors
+      <span id="badge-reg2" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+    </button>
+    <button class="portal-nav-link" onclick="showTab('facility',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Facility – Rooms
+      <span id="badge-fac" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+    </button>
+    <button class="portal-nav-link" onclick="showTab('notifications',this)">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications
+      <span id="badge-notifs" style="margin-left:auto;background:#DC2626;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">0</span>
+    </button>
+
+    <div class="portal-nav-section">Portals</div>
+    <a class="portal-nav-link" href="hod.html">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>
+      HOD
+      <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:auto;opacity:.35"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+    <a class="portal-nav-link" href="registration1.html">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+      Registration 1
+      <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:auto;opacity:.35"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+    <a class="portal-nav-link" href="registration2.html">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Registration 2
+      <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:auto;opacity:.35"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+    <a class="portal-nav-link" href="facility.html">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/></svg>
+      Facility
+      <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:auto;opacity:.35"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+
+    <div class="portal-sidebar-spacer"></div>
+    <div class="portal-sidebar-footer">
+      <button class="btn-portal-logout" onclick="cckLogout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+      <div class="portal-sidebar-db" id="db-status">● Offline mode</div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────────── -->
+  <main class="portal-content">
+
+    <!-- Stat row -->
+    <div class="portal-stats">
+      <div class="portal-stat-card"><div class="portal-stat-label">Semester</div><div class="portal-stat-value" id="s-sem" style="font-size:12px">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">HOD</div><div class="portal-stat-value" id="s-hod" style="font-size:12px">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">Reg 1</div><div class="portal-stat-value" id="s-reg1" style="font-size:12px">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">Reg 2</div><div class="portal-stat-value" id="s-reg2" style="font-size:12px">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">Facility</div><div class="portal-stat-value" id="s-fac" style="font-size:12px">—</div></div>
+    </div>
+
+    <!-- ── OVERVIEW ──────────────────────────────────────────────── -->
+    <div id="tab-overview">
+      <!-- Pipeline -->
+      <div class="pipeline">
+        <div class="pipe-step" id="pipe-hod">
+          <div class="pipe-icon-wrap">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <div class="pipe-label">HOD</div>
+          <div class="pipe-status" id="pipe-hod-st">Draft</div>
+        </div>
+        <div class="pipe-step" id="pipe-reg1">
+          <div class="pipe-icon-wrap">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="pipe-label">Reg 1</div>
+          <div class="pipe-status" id="pipe-reg1-st">Draft</div>
+        </div>
+        <div class="pipe-step" id="pipe-reg2">
+          <div class="pipe-icon-wrap">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="pipe-label">Reg 2</div>
+          <div class="pipe-status" id="pipe-reg2-st">Draft</div>
+        </div>
+        <div class="pipe-step" id="pipe-fac">
+          <div class="pipe-icon-wrap">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          </div>
+          <div class="pipe-label">Facility</div>
+          <div class="pipe-status" id="pipe-fac-st">Draft</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <div class="sec-title">Pipeline Overview</div>
+        <div class="sec-sub">Status of all portals for the active semester</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px" id="portal-cards"></div>
+    </div>
+
+    <!-- ── HOD ───────────────────────────────────────────────────── -->
+    <div id="tab-hod" style="display:none">
+      <div class="sec-hd">
+        <div><div class="sec-title">HOD – Course Assignments</div><div class="sec-sub">Review assignments submitted by Head of Department</div></div>
+        <div style="display:flex;gap:8px" id="hod-actions"></div>
+      </div>
+      <div id="hod-banner" style="display:none" class="sbanner"></div>
+      <div class="content-card" id="hod-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No assignments submitted yet.</div></div>
+    </div>
+
+    <!-- ── REG 1 ─────────────────────────────────────────────────── -->
+    <div id="tab-reg1" style="display:none">
+      <div class="sec-hd">
+        <div><div class="sec-title">Registration 1 – Course Credits</div><div class="sec-sub">Review credit changes submitted by Registration 1</div></div>
+        <div style="display:flex;gap:8px" id="reg1-actions"></div>
+      </div>
+      <div id="reg1-banner" style="display:none" class="sbanner"></div>
+      <div class="content-card" id="reg1-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No credit changes submitted yet.</div></div>
+    </div>
+
+    <!-- ── REG 2 ─────────────────────────────────────────────────── -->
+    <div id="tab-reg2" style="display:none">
+      <div class="sec-hd">
+        <div><div class="sec-title">Registration 2 – Instructor Data</div><div class="sec-sub">Review instructor settings submitted by Registration 2</div></div>
+        <div style="display:flex;gap:8px" id="reg2-actions"></div>
+      </div>
+      <div id="reg2-banner" style="display:none" class="sbanner"></div>
+      <div class="content-card" id="reg2-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No instructor data submitted yet.</div></div>
+    </div>
+
+    <!-- ── FACILITY ───────────────────────────────────────────────── -->
+    <div id="tab-facility" style="display:none">
+      <div class="sec-hd">
+        <div><div class="sec-title">Facility – Room Data</div><div class="sec-sub">Review room inventory submitted by Facility</div></div>
+        <div style="display:flex;gap:8px" id="fac-actions"></div>
+      </div>
+      <div id="fac-banner" style="display:none" class="sbanner"></div>
+      <div class="content-card" id="fac-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No room data submitted yet.</div></div>
+    </div>
+
+    <!-- ── NOTIFICATIONS ─────────────────────────────────────────── -->
+    <div id="tab-notifications" style="display:none">
+      <div class="sec-hd">
+        <div><div class="sec-title">Notifications</div><div class="sec-sub">Submissions and updates from all portals</div></div>
+        <button onclick="clearNotifications()" style="padding:6px 14px;border:1.5px solid #E2E8F0;background:white;border-radius:8px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit">Clear All</button>
+      </div>
+      <div id="notifs-list"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No notifications yet.</div></div>
+    </div>
+
+  </main>
+</div>
+<div class="toast-stack" id="ts"></div>
+
+<script>
+const CS_PFX=['CST','CSIT','MAT8'], GEN_PFX=['ENL','GED','GEN','GECU','GEPH','ICT','MAT0'];
+const isCS=c=>CS_PFX.some(p=>c.toUpperCase().startsWith(p));
+const isGen=c=>GEN_PFX.some(p=>c.toUpperCase().startsWith(p));
+const codeGroup=c=>isGen(c)?'gen':isCS(c)?'cs':'bus';
+const ini=n=>n.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i,'').split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase();
+const fmtT=t=>{if(!t)return'—';const[h,m]=t.split(':').map(Number),ap=h>=12?'PM':'AM';return`${h%12||12}:${String(m).padStart(2,'0')} ${ap}`;};
+
+let currentSemKey='spring2026';
+
+// Portal icon SVGs
+const SVG={
+  hod:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  reg1:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>`,
+  reg2:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+  facility:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><polyline points="20 6 9 17 4 12"/></svg>`,
+  x:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  undo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>`,
+  ext:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+};
+const IC={
+  hod:    {bg:'#EEF2FF',clr:'#4F46E5'},
+  reg1:   {bg:'#F0FDF4',clr:'#16A34A'},
+  reg2:   {bg:'#FFF7ED',clr:'#EA580C'},
+  facility:{bg:'#F0F9FF',clr:'#0284C7'}
+};
+
+function showTab(t,btn){
+  ['overview','hod','reg1','reg2','facility','notifications'].forEach(s=>document.getElementById('tab-'+s).style.display=s===t?'block':'none');
+  document.querySelectorAll('.portal-nav-link').forEach(l=>l.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const map={overview:renderOverview,hod:renderHOD,reg1:renderReg1,reg2:renderReg2,facility:renderFacility,notifications:renderNotifications};
+  map[t]?.();
+}
+
+// ── Data readers ──────────────────────────────────────────────────────
+function getHodStatus(sk){return(JSON.parse(localStorage.getItem('cck_hod_status_v3')||'{}'))[sk]||'draft';}
+function getReg1Status(sk){return(JSON.parse(localStorage.getItem('cck_reg1_status')||'{}'))[sk]||'draft';}
+function getReg2Status(sk){return(JSON.parse(localStorage.getItem('cck_reg2_status')||'{}'))[sk]||'draft';}
+function getFacStatus(sk){return(JSON.parse(localStorage.getItem('cck_fac_status')||'{}'))[sk]||'draft';}
+function getAssignments(){
+  const v3=JSON.parse(localStorage.getItem('cck_assignments_v3')||'{}');
+  if(v3[currentSemKey]&&Object.keys(v3[currentSemKey]).length) return v3[currentSemKey];
+  return JSON.parse(localStorage.getItem('cck_hod_assignments')||'{}');
+}
+function getInstData(){return JSON.parse(localStorage.getItem('cck_reg2_inst')||'{}');}
+function getRooms(){
+  const r=localStorage.getItem('cck_facility_rooms')||localStorage.getItem('cck_app_rooms');
+  if(r)try{return JSON.parse(r);}catch(e){}
+  return[];
+}
+function getSemLabel(){
+  if(typeof CCK!=='undefined'&&CCK.getSemesterByKey) return CCK.getSemesterByKey(currentSemKey)?.label||currentSemKey;
+  return currentSemKey;
+}
+
+// ── Badge HTML ────────────────────────────────────────────────────────
+function badge(s){
+  const cls=s==='approved'?'badge-approved':s==='submitted'?'badge-submitted':'badge-draft';
+  const lbl=s==='approved'?'Approved':s==='submitted'?'Submitted':'Draft';
+  return `<span class="badge ${cls}"><span class="badge-dot"></span>${lbl}</span>`;
+}
+
+// ── Action buttons HTML ───────────────────────────────────────────────
+function actionBtns(p, status){
+  if(status==='submitted')
+    return `<button class="btn-approve" onclick="approvePortal('${p}')">${SVG.check}Approve</button><button class="btn-reject" onclick="rejectPortal('${p}')">${SVG.x}Request Changes</button>`;
+  if(status==='approved')
+    return `<button class="btn-reject" onclick="rejectPortal('${p}')">${SVG.undo}Revert to Draft</button>`;
+  return `<span style="font-size:12px;color:#94A3B8;padding:6px 0">Waiting for ${p.toUpperCase()} to submit</span>`;
+}
+
+// ── Banner helper ─────────────────────────────────────────────────────
+function setBanner(el, status, submitted, approved){
+  if(status==='submitted'){
+    el.style.display='flex';
+    el.setAttribute('style','display:flex;padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:500;border-left:3px solid #D97706;background:#FFFCF0;color:#92400E;align-items:center;gap:8px;');
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${submitted}`;
+  }else if(status==='approved'){
+    el.setAttribute('style','display:flex;padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:500;border-left:3px solid #16A34A;background:#F0FDF4;color:#166534;align-items:center;gap:8px;');
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>${approved}`;
+  }else{
+    el.style.display='none';
+  }
+}
+
+function setStatus(portal,status){
+  const keyMap={hod:'cck_hod_status_v3',reg1:'cck_reg1_status',reg2:'cck_reg2_status',facility:'cck_fac_status'};
+  const a=JSON.parse(localStorage.getItem(keyMap[portal])||'{}');
+  a[currentSemKey]=status;
+  localStorage.setItem(keyMap[portal],JSON.stringify(a));
+  if(portal==='hod'&&typeof CCK!=='undefined'&&CCK.setHodStatus) CCK.setHodStatus(status,currentSemKey);
+  updateStats(); renderOverview(); updateBadges();
+}
+
+function approvePortal(p){
+  setStatus(p,'approved');
+  addNotification('Admin',`Admin approved ${p.toUpperCase()} for ${getSemLabel()}`,'approval');
+  toast(`${p.toUpperCase()} approved`,'ok');
+  const map={hod:renderHOD,reg1:renderReg1,reg2:renderReg2,facility:renderFacility};
+  map[p]?.();
+}
+
+function rejectPortal(p){
+  const reason=prompt(`Reason for returning ${p.toUpperCase()} to draft:`);
+  if(reason===null) return;
+  setStatus(p,'draft');
+  addNotification('Admin',`Admin returned ${p.toUpperCase()} for revision: ${reason||'No reason given'}`,'rejection');
+  toast(`${p.toUpperCase()} returned for revision`,'info');
+  const map={hod:renderHOD,reg1:renderReg1,reg2:renderReg2,facility:renderFacility};
+  map[p]?.();
+}
+
+function addNotification(portal,message,type){
+  const notifs=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  notifs.unshift({id:Date.now(),portal,semKey:currentSemKey,semLabel:getSemLabel(),message,timestamp:new Date().toISOString(),read:false,type:type||'info'});
+  localStorage.setItem('cck_admin_notifications',JSON.stringify(notifs));
+}
+
+// ── Overview ──────────────────────────────────────────────────────────
+function renderOverview(){
+  const hst=getHodStatus(currentSemKey),r1st=getReg1Status(currentSemKey),rst=getReg2Status(currentSemKey),fst=getFacStatus(currentSemKey);
+
+  [['hod',hst],['reg1',r1st],['reg2',rst],['fac',fst]].forEach(([p,st])=>{
+    const el=document.getElementById('pipe-'+p);
+    el.className='pipe-step'+(st==='approved'?' pipe-approved':st==='submitted'?' pipe-submitted':'');
+    const stEl=document.getElementById('pipe-'+p+'-st');
+    if(stEl) stEl.textContent=st.charAt(0).toUpperCase()+st.slice(1);
+  });
+
+  const asgn=getAssignments();
+  const instData=getInstData();
+  const rooms=getRooms();
+  const insWithCourses=Object.keys(asgn).filter(k=>asgn[k]?.length>0).length;
+  const totalCourses=Object.values(asgn).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
+  const creditChanges=JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
+  const changedCount=Object.keys(creditChanges).length;
+
+  const portals=[
+    {k:'hod',   label:'HOD',            status:hst,  portal:'hod',
+     stats:[{k:'Instructors assigned',v:insWithCourses},{k:'Total course assignments',v:totalCourses}],link:'hod.html'},
+    {k:'reg1',  label:'Registration 1',  status:r1st, portal:'reg1',
+     stats:[{k:'Course credit overrides',v:changedCount},{k:'Default credit value',v:3}],link:'registration1.html'},
+    {k:'reg2',  label:'Registration 2',  status:rst,  portal:'reg2',
+     stats:[{k:'Instructor records',v:Object.keys(instData).length},{k:'Full-Time',v:Object.values(instData).filter(d=>d.employment==='Full-Time').length},{k:'Part-Time',v:Object.values(instData).filter(d=>d.employment==='Part-Time').length}],link:'registration2.html'},
+    {k:'facility',label:'Facility',      status:fst,  portal:'facility',
+     stats:[{k:'Total rooms',v:rooms.length},{k:'Classrooms',v:rooms.filter(r=>(r.type||r.room_type)==='classroom').length},{k:'Labs',v:rooms.filter(r=>(r.type||r.room_type)==='lab').length},{k:'Halls',v:rooms.filter(r=>(r.type||r.room_type)==='hall').length}],link:'facility.html'}
+  ];
+
+  document.getElementById('portal-cards').innerHTML=portals.map(c=>`
+    <div class="ov-card">
+      <div class="ov-card-hd">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="ov-card-icon" style="background:${IC[c.k].bg};color:${IC[c.k].clr}">${SVG[c.k]}</div>
+          <span class="ov-card-label">${c.label}</span>
+        </div>
+        ${badge(c.status)}
+      </div>
+      <div class="ov-card-stats">
+        ${c.stats.map(s=>`<div class="ov-stat"><span class="ov-stat-k">${s.k}</span><span class="ov-stat-v">${s.v}</span></div>`).join('')}
+      </div>
+      <div class="ov-card-ft">
+        <button class="btn-rev" onclick="showTab('${c.portal}',null)">Review</button>
+        <a href="${c.link}" class="btn-opn">Open ${SVG.ext}</a>
+      </div>
+    </div>`).join('');
+}
+
+// ── HOD ───────────────────────────────────────────────────────────────
+function renderHOD(){
+  const status=getHodStatus(currentSemKey);
+  const asgn=getAssignments();
+  const instData=getInstData();
+  document.getElementById('hod-actions').innerHTML=actionBtns('hod',status);
+  setBanner(document.getElementById('hod-banner'),status,
+    'HOD submitted assignments — please review and approve or request changes.',
+    'HOD assignments approved.');
+
+  const ids=Object.keys(asgn).filter(k=>asgn[k]?.length>0);
+  if(!ids.length){document.getElementById('hod-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No assignments found. HOD needs to assign and submit first.</div>';return;}
+
+  const total=Object.values(asgn).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
+  document.getElementById('hod-content').innerHTML=`
+    <div class="content-toolbar">
+      <span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors · ${total} assignments</span>
+    </div>
+    ${ids.map(insId=>{
+      const codes=asgn[insId]||[];
+      const d=instData[insId]||{};
+      const cs=codes.some(c=>isCS(c));
+      const chips=codes.slice(0,10).map(c=>`<span class="chip chip-${codeGroup(c)}">${c}</span>`).join(' ')+(codes.length>10?`<span style="font-size:10px;color:#94A3B8">+${codes.length-10} more</span>`:'');
+      return `<div class="drow">
+        <div class="av ${cs?'av-cs':'av-bus'}">${ini(insId)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:2px">${insId}</div>
+          <div style="font-size:10px;color:#94A3B8;margin-bottom:5px">${d.employment||'Full-Time'} · ${codes.length} course(s)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px">${chips}</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:#64748B;font-family:'DM Mono',monospace;flex-shrink:0">${codes.length}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── Reg 1 ─────────────────────────────────────────────────────────────
+function renderReg1(){
+  const status=getReg1Status(currentSemKey);
+  document.getElementById('reg1-actions').innerHTML=actionBtns('reg1',status);
+  setBanner(document.getElementById('reg1-banner'),status,
+    'Registration 1 submitted course credits — please review and approve.',
+    'Registration 1 course credits approved.');
+
+  const creditChanges=JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
+  const codes=Object.keys(creditChanges);
+  if(!codes.length){document.getElementById('reg1-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No credit changes found. Registration 1 uses all default credits (3 per course).</div>';return;}
+
+  document.getElementById('reg1-content').innerHTML=`
+    <div class="content-toolbar">
+      <span style="font-size:11px;font-weight:600;color:#64748B">${codes.length} course(s) with modified credits</span>
+      <span style="font-size:11px;color:#94A3B8">Default is 3 credits</span>
+    </div>
+    ${codes.sort().map(code=>{
+      const newCr=creditChanges[code];
+      const cls=newCr>3?'cr-up':newCr<3?'cr-dn':'cr-eq';
+      const arr=newCr>3?'↑':newCr<3?'↓':'=';
+      return `<div class="drow">
+        <div style="flex:1;min-width:0"><span style="font-size:12px;font-weight:700;color:#0F172A;font-family:'DM Mono',monospace">${code}</span></div>
+        <span class="chip chip-${codeGroup(code)}">${isCS(code)?'CS':isGen(code)?'Gen Ed':'Biz'}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:11px;color:#CBD5E1;font-family:'DM Mono',monospace">3 cr</span>
+          <span style="color:#CBD5E1">→</span>
+          <span class="cr-val ${cls}">${newCr} cr</span>
+          <span class="cr-val ${cls}" style="font-size:11px">${arr}</span>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── Reg 2 ─────────────────────────────────────────────────────────────
+function renderReg2(){
+  const status=getReg2Status(currentSemKey);
+  const instData=getInstData();
+  document.getElementById('reg2-actions').innerHTML=actionBtns('reg2',status);
+  setBanner(document.getElementById('reg2-banner'),status,
+    'Registration 2 submitted instructor data — please review and approve.',
+    'Registration 2 data approved.');
+
+  const ids=Object.keys(instData);
+  if(!ids.length){document.getElementById('reg2-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No instructor data found. Registration 2 needs to save and submit first.</div>';return;}
+
+  const ft=Object.values(instData).filter(d=>d.employment==='Full-Time').length;
+  const pt=Object.values(instData).filter(d=>d.employment==='Part-Time').length;
+  document.getElementById('reg2-content').innerHTML=`
+    <div class="content-toolbar">
+      <span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors</span>
+      <span style="font-size:11px;color:#94A3B8">${ft} Full-Time · ${pt} Part-Time</span>
+    </div>
+    ${ids.map(insId=>{
+      const d=instData[insId]||{};
+      const cs=d.teachDepts?.includes('Computer Science');
+      const isPT=d.employment==='Part-Time';
+      return `<div class="drow">
+        <div class="av ${cs?'av-cs':'av-bus'}">${ini(insId)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:4px">${insId}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${isPT?'#FEF3C7':'#DBEAFE'};color:${isPT?'#92400E':'#1E40AF'}">${d.employment||'—'}</span>
+            ${d.qualification?`<span style="font-size:10px;color:#94A3B8">${d.qualification}</span>`:''}
+            <span style="font-size:10px;color:#64748B">${fmtT(d.timeFrom)} – ${fmtT(d.timeTo)}</span>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#64748B;font-family:'DM Mono',monospace;flex-shrink:0">${d.maxCredits||21} cr max</div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── Facility ──────────────────────────────────────────────────────────
+function renderFacility(){
+  const status=getFacStatus(currentSemKey);
+  const rooms=getRooms();
+  document.getElementById('fac-actions').innerHTML=actionBtns('facility',status);
+  setBanner(document.getElementById('fac-banner'),status,
+    'Facility submitted room data — please review and approve.',
+    'Facility data approved.');
+
+  if(!rooms.length){document.getElementById('fac-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No room data found.</div>';return;}
+
+  const TS={classroom:{bg:'#EFF6FF',clr:'#1D4ED8'},lab:{bg:'#F0FDF4',clr:'#15803D'},hall:{bg:'#FFFBEB',clr:'#92400E'}};
+  const cl=rooms.filter(r=>(r.type||r.room_type)==='classroom').length;
+  const lb=rooms.filter(r=>(r.type||r.room_type)==='lab').length;
+  const hl=rooms.filter(r=>(r.type||r.room_type)==='hall').length;
+  document.getElementById('fac-content').innerHTML=`
+    <div class="content-toolbar">
+      <span style="font-size:11px;font-weight:600;color:#64748B">${rooms.length} rooms</span>
+      <span style="font-size:11px;color:#94A3B8">${cl} classrooms · ${lb} labs · ${hl} halls</span>
+    </div>
+    ${rooms.map(r=>{
+      const t=r.type||r.room_type||'classroom';
+      const ts=TS[t]||{bg:'#F1F5F9',clr:'#64748B'};
+      return `<div class="drow">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#0F172A;font-family:'DM Mono',monospace">${r.id||r.room_id||'?'}</div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px">${r.name||''}${r.building?' · '+r.building:''}</div>
+        </div>
+        <span style="padding:2px 9px;border-radius:4px;font-size:10px;font-weight:700;background:${ts.bg};color:${ts.clr}">${t.charAt(0).toUpperCase()+t.slice(1)}</span>
+        <div style="font-size:12px;font-weight:700;color:#64748B;font-family:'DM Mono',monospace;min-width:64px;text-align:right">Cap ${r.capacity||'—'}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── Notifications ─────────────────────────────────────────────────────
+function renderNotifications(){
+  const notifs=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  if(!notifs.length){document.getElementById('notifs-list').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No notifications yet.</div>';return;}
+  const PC={HOD:'#EEF2FF|#4338CA','Registration 1':'#F0FDF4|#16A34A','Registration 2':'#FFF7ED|#EA580C',Facility:'#F0F9FF|#0284C7',Admin:'#FEF2F2|#DC2626'};
+  document.getElementById('notifs-list').innerHTML=notifs.map(n=>{
+    const [bg,clr]=(PC[n.portal]||'#F1F5F9|#475569').split('|');
+    const tLbl=n.type==='approval'?'Approved · ':n.type==='rejection'?'Returned · ':'';
+    return `<div class="notif-card">
+      <div style="width:8px;height:8px;border-radius:50%;background:${clr};flex-shrink:0;margin-top:5px"></div>
+      <div style="flex:1">
+        <span style="background:${bg};color:${clr};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:5px">${n.portal}</span>
+        <div style="font-size:13px;color:#0F172A;font-weight:500">${tLbl}${n.message}</div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:4px">${n.semLabel||n.semKey||''} · ${new Date(n.timestamp).toLocaleString()}</div>
+      </div>
+    </div>`;
+  }).join('');
+  notifs.forEach(n=>n.read=true);
+  localStorage.setItem('cck_admin_notifications',JSON.stringify(notifs));
+  document.getElementById('badge-notifs').style.display='none';
+}
+
+function clearNotifications(){
+  if(!confirm('Clear all notifications?')) return;
+  localStorage.removeItem('cck_admin_notifications');
+  renderNotifications(); updateBadges();
+  toast('Notifications cleared','info');
+}
+
+function updateStats(){
+  document.getElementById('s-sem').textContent=getSemLabel();
+  document.getElementById('s-hod').textContent=getHodStatus(currentSemKey);
+  document.getElementById('s-reg1').textContent=getReg1Status(currentSemKey);
+  document.getElementById('s-reg2').textContent=getReg2Status(currentSemKey);
+  document.getElementById('s-fac').textContent=getFacStatus(currentSemKey);
+}
+
+function updateBadges(){
+  const notifs=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  const unread=notifs.filter(n=>!n.read).length;
+  const nb=document.getElementById('badge-notifs');
+  if(unread>0){nb.textContent=unread;nb.style.display='inline';}else{nb.style.display='none';}
+  document.getElementById('badge-hod').style.display=getHodStatus(currentSemKey)==='submitted'?'inline':'none';
+  document.getElementById('badge-reg1').style.display=getReg1Status(currentSemKey)==='submitted'?'inline':'none';
+  document.getElementById('badge-reg2').style.display=getReg2Status(currentSemKey)==='submitted'?'inline':'none';
+  document.getElementById('badge-fac').style.display=getFacStatus(currentSemKey)==='submitted'?'inline':'none';
+}
+
+function toast(msg,type='ok'){const c=document.getElementById('ts'),d=document.createElement('div');d.className='toast '+type;d.textContent=msg;c.appendChild(d);setTimeout(()=>d.remove(),3400);}
+
+async function init(){
+  const dbEl=document.getElementById('db-status');
+  async function tryDB(){
+    try{
+      const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+      if(!client)return;
+      const{error}=await client.from('semesters').select('id').limit(1);
+      if(!error&&dbEl){dbEl.textContent='● Connected to DB';dbEl.className='portal-sidebar-db online';}
+    }catch(e){}
+  }
+  tryDB(); document.addEventListener('supabase-ready',tryDB); setTimeout(tryDB,1500);
+
+  if(typeof CCK!=='undefined'){
+    await CCK.loadSemesters();
+    // No semester selector — pick active semester automatically
+    currentSemKey=CCK.getActiveSemKey();
+    window.addEventListener('cck-semester-changed',e=>{
+      currentSemKey=e.detail.key;
+      updateStats(); renderOverview(); updateBadges();
+    });
+  }
+  updateStats(); renderOverview(); updateBadges();
+  setInterval(updateBadges,8000);
+}
+
+init();
+</script>
+</body>
+</html>

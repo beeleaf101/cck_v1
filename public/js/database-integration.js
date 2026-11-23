@@ -66,8 +66,8 @@ async function loadCurrentSemesterFromDB() {
     if (!DatabaseState.isConnected) return;
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return;
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return;
         
         // Get current semester setting
         const { data: setting } = await client
@@ -95,8 +95,8 @@ async function setSemesterContext(semesterKey) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return;
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return;
         
         // Get semester ID
         const { data: semester } = await client
@@ -121,8 +121,8 @@ async function saveCurrentSemesterToDB(semesterKey) {
     if (!DatabaseState.isConnected) return;
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return;
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return;
         
         // Insert or replace the setting in one step (no gap where it is missing)
         await client
@@ -172,8 +172,8 @@ async function saveAllocationToDatabase(allocationResults) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return { success: false, error: 'No client' };
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return { success: false, error: 'No client' };
         
         // Get semester ID
         const { data: semester } = await client
@@ -250,8 +250,8 @@ async function loadAllocationFromDatabase(semesterKey) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) {
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') {
             if (localData) return { success: true, data: JSON.parse(localData), source: 'local' };
             return { success: false, error: 'No client' };
         }
@@ -327,8 +327,8 @@ async function saveTimetableToDatabase(timetables, majorNames) {
         return;
     }
 
-    const client = getSupabaseClient();
-    if (!client) return;
+    const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+    if (!client||typeof client.from!=='function') return;
 
     try {
         // Get current semester
@@ -526,8 +526,8 @@ async function loadTimetableFromDatabase(programCode, semesterKey) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) {
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') {
             if (localData) return { success: true, data: JSON.parse(localData), source: 'local' };
             return { success: false };
         }
@@ -589,8 +589,8 @@ async function saveEnrollmentsToDatabase(enrollments, semesterKey) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return { success: false };
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return { success: false };
         
         const { data: semester } = await client
             .from('semesters')
@@ -640,8 +640,8 @@ async function loadEnrollmentsFromDatabase(semesterKey) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return { success: false };
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return { success: false };
         
         const { data: semester } = await client
             .from('semesters')
@@ -675,8 +675,8 @@ async function saveAnalyticsSnapshot(semesterKey) {
     semesterKey = semesterKey || AppState.currentSemester;
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return { success: false };
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return { success: false };
         
         const { data: semester } = await client
             .from('semesters')
@@ -735,8 +735,8 @@ async function saveCourseDemandsToDatabase(demands, semesterKey) {
     }
     
     try {
-        const client = getSupabaseClient();
-        if (!client) return { success: false };
+        const client = typeof getSupabaseClient==='function'?getSupabaseClient():(window._sb||null);
+        if (!client||typeof client.from!=='function') return { success: false };
         
         const { data: semester } = await client
             .from('semesters')
@@ -814,7 +814,7 @@ function calculateGradeDistribution() {
 // INITIALIZATION
 // =====================================================
 
-// initializeDatabase() runs after an admin logs in (see handleLogin in app.js),
+// initializeDatabase() runs after an admin logs in (see startSession in app.js),
 // because the database API only answers logged-in admins.
 
 // Export functions

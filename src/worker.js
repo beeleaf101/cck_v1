@@ -16,11 +16,11 @@ const PBKDF2_ITERATIONS = 20000;
 const QUERY_TABLES = new Set([
   'semesters', 'students', 'courses', 'instructors', 'enrollments', 'course_allocations',
   'timetables', 'timetable_entries', 'course_demand', 'historical_grades',
-  'analytics_snapshots', 'system_settings',
+  'analytics_snapshots', 'system_settings', 'audit_log',
 ]);
 const JSON_COLUMNS = new Set([
   'metadata', 'prerequisites', 'sections', 'courses', 'specializations',
-  'enrollment_by_program', 'grade_distribution', 'value',
+  'enrollment_by_program', 'grade_distribution', 'value', 'details',
 ]);
 const BOOL_COLUMNS = new Set(['is_current', 'is_planning', 'is_active']);
 const STUDENT_FIELDS = [
@@ -33,6 +33,39 @@ const ENROLLMENT_FIELDS = [
   'teaching_method', 'instructor', 'status', 'grade',
 ];
 const NOT_PASSED = new Set(['F', '(FA)', '(W)', 'NP', 'NG']);
+
+// Staff portals: role -> page. The admin can open every page.
+const STAFF_PORTALS = {
+  hod: { page: '/hod.html', label: 'HOD Portal' },
+  reg1: { page: '/registration1.html', label: 'Registration 1' },
+  reg2: { page: '/registration2.html', label: 'Registration 2' },
+  facility: { page: '/facility.html', label: 'Facility Management' },
+  nehad: { page: '/nehad.html', label: 'Course Structure' },
+};
+const STAFF_ROLES = new Set(Object.keys(STAFF_PORTALS));
+// Keys are paths without ".html": Cloudflare serves /hod.html also as /hod and /hod/
+const PROTECTED_PAGES = {
+  '/admin': ['admin'],
+  '/hod': ['admin', 'hod'],
+  '/hod_main.js': ['admin', 'hod'],
+  '/registration1': ['admin', 'reg1'],
+  '/registration2': ['admin', 'reg2'],
+  '/facility': ['admin', 'facility'],
+  '/nehad': ['admin', 'nehad'],
+};
+
+// Shared portal data (former localStorage keys)
+const STATUS_KEYS = new Set(['cck_hod_status_v3', 'cck_reg1_status', 'cck_reg2_status', 'cck_fac_status', 'cck_nehad_status']);
+const ADMIN_ONLY_KEYS = new Set(['cck_nehad_timetable_approved', 'cck_sync_log_v3']);
+const PER_USER_KEYS = new Set(['cck_joined_clubs']);           // stored per student
+const STUDENT_READABLE_KEYS = new Set([
+  'cck_active_sem_key', 'cck_current_semester', 'cck_semesters_v3', 'cck_courses_v3', 'cck_credits_v3',
+  'cck_credits_shared', 'cck_sections_v3', 'cck_rooms_shared', 'cck_app_rooms', 'cck_facility_rooms',
+  'cck_nehad_timetable_approved', 'cck_course_rules', 'cck_course_rules_data', 'cck_course_rules_ts',
+  'cck_tutoring_shared', 'cck_registration_requests',
+]);
+const STATE_KEY_RE = /^cck_[A-Za-z0-9_]{1,80}$/;
+const MAX_STATE_BYTES = 1_500_000;
 const FAILED = new Set(['F', '(FA)']);
 
 // ---------------------------------------------------------------- helpers
@@ -194,6 +227,13 @@ async function enrollmentSemester(env) {
 
 // ---------------------------------------------------------------- auth routes
 
+function staffUser(role, username) {
+  if (role === 'admin') {
+    return { student_id: 'admin', name: 'System Administrator', major: 'Administration', level: 'Admin', gpa: '-', student_type: 'Admin', language: 'English' };
+  }
+  return { student_id: username, name: STAFF_PORTALS[role]?.label || username, role };
+}
+
 async function login(request, env) {
   const body = await readJson(request);
   const loginId = String(body.id || '').trim();
@@ -209,13 +249,13 @@ async function login(request, env) {
   let userId = null;
   let user = null;
 
-  const admin = await env.DB.prepare('SELECT username, password_hash FROM admin_users WHERE username = ?')
+  const admin = await env.DB.prepare('SELECT username, password_hash, role FROM admin_users WHERE username = ?')
     .bind(loginId).first();
   if (admin) {
     if (await verifyPassword(password, admin.password_hash)) {
-      role = 'admin';
+      role = admin.role || 'admin';
       userId = admin.username;
-      user = { student_id: 'admin', name: 'System Administrator', major: 'Administration', level: 'Admin', gpa: '-', student_type: 'Admin', language: 'English' };
+      user = staffUser(role, admin.username);
     }
   } else {
     const student = await env.DB.prepare('SELECT * FROM students WHERE student_id = ?').bind(loginId).first();
@@ -240,7 +280,8 @@ async function login(request, env) {
     env.DB.prepare('DELETE FROM login_attempts WHERE ip = ?').bind(ip),
   ]);
   const secure = new URL(request.url).protocol === 'https:';
-  return json({ role, user }, 200, { 'set-cookie': sessionCookie(token, SESSION_TTL_SECONDS, secure) });
+  return json({ role, user, redirect: STAFF_PORTALS[role]?.page || null }, 200,
+    { 'set-cookie': sessionCookie(token, SESSION_TTL_SECONDS, secure) });
 }
 
 async function logout(request, env) {
@@ -253,8 +294,8 @@ async function logout(request, env) {
 async function me(request, env) {
   const s = await getSession(request, env);
   if (!s) return json({ role: null, user: null });
-  if (s.role === 'admin') {
-    return json({ role: 'admin', user: { student_id: 'admin', name: 'System Administrator', major: 'Administration', level: 'Admin', gpa: '-', student_type: 'Admin', language: 'English' } });
+  if (s.role === 'admin' || STAFF_ROLES.has(s.role)) {
+    return json({ role: s.role, user: staffUser(s.role, s.user_id), redirect: STAFF_PORTALS[s.role]?.page || null });
   }
   const student = await env.DB.prepare('SELECT * FROM students WHERE student_id = ?').bind(s.user_id).first();
   if (!student) return json({ role: null, user: null });
@@ -262,7 +303,8 @@ async function me(request, env) {
 }
 
 async function changePassword(request, env) {
-  const s = await requireSession(request, env, 'admin');
+  const s = await requireSession(request, env);
+  if (s.role === 'student') throw new HttpError(403, 'Not allowed');
   const body = await readJson(request);
   const current = String(body.current_password || '');
   const next = String(body.new_password || '');
@@ -271,8 +313,117 @@ async function changePassword(request, env) {
   if (!admin || !(await verifyPassword(current, admin.password_hash))) throw new HttpError(403, 'Current password is wrong');
   await env.DB.batch([
     env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').bind(await hashPassword(next), s.user_id),
-    env.DB.prepare("DELETE FROM sessions WHERE role = 'admin' AND user_id = ? AND token != ?").bind(s.user_id, s.token),
+    env.DB.prepare("DELETE FROM sessions WHERE role != 'student' AND user_id = ? AND token != ?").bind(s.user_id, s.token),
   ]);
+  return json({ ok: true });
+}
+
+async function setStaffPassword(request, env) {
+  await requireSession(request, env, 'admin');
+  const body = await readJson(request);
+  const username = String(body.username || '');
+  const next = String(body.new_password || '');
+  if (next.length < 10) throw new HttpError(400, 'Password must be at least 10 characters');
+  const res = await env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').bind(await hashPassword(next), username).run();
+  if (!res.meta.changes) throw new HttpError(404, 'No such account');
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND role != ?').bind(username, 'student').run();
+  return json({ ok: true });
+}
+
+// ---------------------------------------------------------------- shared portal data
+function storageKeyFor(s, key) {
+  if (PER_USER_KEYS.has(key)) return `u:${s.user_id}:${key}`;
+  return key;
+}
+
+function canRead(s, key) {
+  if (s.role === 'admin' || STAFF_ROLES.has(s.role)) return true;
+  return STUDENT_READABLE_KEYS.has(key);
+}
+
+function parseJson(v, fallback) {
+  try { return JSON.parse(v); } catch { return fallback; }
+}
+
+// Students only see their own registration requests
+function filterForStudent(key, value, studentId) {
+  if (key !== 'cck_registration_requests') return value;
+  const list = parseJson(value, []);
+  return JSON.stringify(Array.isArray(list) ? list.filter((r) => String(r.studentId) === String(studentId)) : []);
+}
+
+async function getState(request, env) {
+  const s = await getSession(request, env);
+  if (!s) return json({ role: null, user_id: null, state: {}, now: Date.now() });
+  const since = parseInt(new URL(request.url).searchParams.get('since') || '0', 10) || 0;
+  const rows = (await env.DB.prepare('SELECT key, value, updated_at FROM shared_state WHERE updated_at > ?').bind(since).all()).results;
+  const state = {};
+  const prefix = `u:${s.user_id}:`;
+  for (const r of rows) {
+    if (r.key.startsWith('u:')) {
+      if (r.key.startsWith(prefix)) state[r.key.slice(prefix.length)] = r.value;
+      continue;
+    }
+    if (PER_USER_KEYS.has(r.key) || !canRead(s, r.key)) continue;
+    state[r.key] = s.role === 'student' ? filterForStudent(r.key, r.value, s.user_id) : r.value;
+  }
+  return json({ role: s.role, user_id: s.user_id, state, now: Date.now() });
+}
+
+async function putState(request, env, key) {
+  const s = await requireSession(request, env);
+  if (!STATE_KEY_RE.test(key)) throw new HttpError(400, 'Invalid key');
+  const body = await readJson(request);
+  const remove = body.remove === true;
+  const value = remove ? null : String(body.value ?? '');
+  if (value && value.length > MAX_STATE_BYTES) throw new HttpError(413, 'Value too large');
+  const isStaff = s.role === 'admin' || STAFF_ROLES.has(s.role);
+  const storeKey = storageKeyFor(s, key);
+  const old = await env.DB.prepare('SELECT value FROM shared_state WHERE key = ?').bind(storeKey).first();
+  let newValue = value;
+
+  if (s.role === 'student') {
+    if (PER_USER_KEYS.has(key)) {
+      // fine: own key
+    } else if (key === 'cck_registration_requests' && !remove) {
+      // A student may add or withdraw their own requests, never touch others' or approve
+      const current = parseJson(old?.value, []);
+      const mine = parseJson(value, []).filter((r) => String(r.studentId) === String(s.user_id));
+      const before = new Map((Array.isArray(current) ? current : []).filter((r) => String(r.studentId) === String(s.user_id)).map((r) => [String(r.id), r]));
+      for (const r of mine) {
+        const prev = before.get(String(r.id));
+        if (r.status && r.status !== 'pending' && r.status !== (prev && prev.status)) {
+          throw new HttpError(403, 'Only staff can approve or reject requests');
+        }
+      }
+      const others = (Array.isArray(current) ? current : []).filter((r) => String(r.studentId) !== String(s.user_id));
+      newValue = JSON.stringify(others.concat(mine));
+    } else {
+      throw new HttpError(403, 'Not allowed');
+    }
+  } else if (!isStaff) {
+    throw new HttpError(403, 'Not allowed');
+  } else if (s.role !== 'admin') {
+    if (ADMIN_ONLY_KEYS.has(key)) throw new HttpError(403, 'Only the admin can change this');
+    if (STATUS_KEYS.has(key)) {
+      // Portals can save drafts and submit; only the admin can approve
+      const was = parseJson(old?.value, {}) || {};
+      const now = remove ? {} : (parseJson(value, {}) || {});
+      for (const [sem, st] of Object.entries(now)) {
+        if (st === 'approved' && was[sem] !== 'approved') throw new HttpError(403, 'Only the admin can approve');
+      }
+    }
+  }
+
+  if (remove) {
+    await env.DB.prepare('DELETE FROM shared_state WHERE key = ?').bind(storeKey).run();
+  } else {
+    await env.DB.prepare(
+      `INSERT INTO shared_state (key, value, updated_by, updated_role, updated_at) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by,
+         updated_role = excluded.updated_role, updated_at = excluded.updated_at`
+    ).bind(storeKey, newValue, s.user_id, s.role, Date.now()).run();
+  }
   return json({ ok: true });
 }
 
@@ -280,6 +431,7 @@ async function changePassword(request, env) {
 
 async function getData(request, env) {
   const s = await requireSession(request, env);
+  if (STAFF_ROLES.has(s.role)) throw new HttpError(403, 'Not allowed');
   const sem = await enrollmentSemester(env);
   const enrollRows = (await env.DB.prepare(
     `SELECT ${ENROLLMENT_FIELDS.join(', ')} FROM enrollments WHERE semester_id = ? ORDER BY rowid`
@@ -316,6 +468,7 @@ function buildStudentStats(records) {
 
 async function getHistoricalGrades(request, env) {
   const s = await requireSession(request, env);
+  if (STAFF_ROLES.has(s.role)) throw new HttpError(403, 'Not allowed');
   const sql = `SELECT student_id, student_name, course_code, course_name, grade, credit_hours, gpa, cgpa,
                semester_label AS semester, verification FROM historical_grades`;
   const records = s.role === 'admin'
@@ -613,6 +766,10 @@ async function handleApi(request, env, url) {
   if (path === '/api/auth/logout' && m === 'POST') return logout(request, env);
   if (path === '/api/auth/me' && m === 'GET') return me(request, env);
   if (path === '/api/auth/password' && m === 'POST') return changePassword(request, env);
+  if (path === '/api/admin/staff-password' && m === 'POST') return setStaffPassword(request, env);
+  if (path === '/api/state' && m === 'GET') return getState(request, env);
+  const st = path.match(/^\/api\/state\/([A-Za-z0-9_]{1,90})$/);
+  if (st && m === 'PUT') return putState(request, env, st[1]);
   if (path === '/api/data' && m === 'GET') return getData(request, env);
   if (path === '/api/historical-grades' && m === 'GET') return getHistoricalGrades(request, env);
   if (path === '/api/students' && m === 'POST') return createStudent(request, env);
@@ -635,6 +792,14 @@ export default {
         if (err instanceof HttpError) return withSecurityHeaders(json({ error: err.message }, err.status));
         console.error(err);
         return withSecurityHeaders(json({ error: 'Server error' }, 500));
+      }
+    }
+    const pageKey = decodeURIComponent(url.pathname).toLowerCase().replace(/\/+$/, '').replace(/\.html$/, '').replace(/\/index$/, '');
+    const allowed = PROTECTED_PAGES[pageKey];
+    if (allowed) {
+      const s = await getSession(request, env);
+      if (!s || !allowed.includes(s.role)) {
+        return withSecurityHeaders(Response.redirect(new URL('/?login=required', url).toString(), 302));
       }
     }
     return withSecurityHeaders(await env.ASSETS.fetch(request));

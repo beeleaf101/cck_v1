@@ -119,7 +119,16 @@
     QueryBuilder.prototype.single = function () { this._single = true; return this; };
     QueryBuilder.prototype.maybeSingle = function () { this._single = true; this._maybe = true; return this; };
 
+    // Tables that exist in the D1 database. Portal code written for Supabase also asks for
+    // tables such as instructor_assignments or rooms; those answer "not available" without a
+    // request, and the code falls back to the shared store (js/cck-store.js).
+    const D1_TABLES = ['semesters', 'students', 'courses', 'instructors', 'enrollments', 'course_allocations',
+        'timetables', 'timetable_entries', 'course_demand', 'historical_grades', 'analytics_snapshots', 'system_settings', 'audit_log'];
+
     QueryBuilder.prototype.execute = async function () {
+        if (D1_TABLES.indexOf(this.q.table) === -1) {
+            return { data: null, error: { message: 'Table not in the D1 database: ' + this.q.table, status: 404 } };
+        }
         const r = await request('POST', '/api/query', this.q);
         if (r.error) return { data: null, error: r.error };
         let data = r.data ? r.data.data : null;

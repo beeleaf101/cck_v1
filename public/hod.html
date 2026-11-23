@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="js/cck-store.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOD – Course Assignment | CCK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Data is shared through js/cck-store.js (Cloudflare D1); the old Supabase loader was removed -->
+<script src="cck_shared.js"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
+body{background:#F3F4F6;overflow:hidden;}
+
+/* List of instructors */
+.inst-list-wrap{background:white;border-radius:10px;border:1px solid #F1F5F9;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;flex-direction:column;overflow:hidden;}
+.inst-list-hd{padding:10px 14px;border-bottom:1px solid #F3F4F6;font-size:11px;font-weight:600;color:#64748B;background:#FAFAFA;flex-shrink:0;}
+.inst-rows{overflow-y:auto;flex:1;}
+.ir{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #F9FAFB;cursor:pointer;transition:background .12s;border-left:3px solid transparent;}
+.ir:last-child{border-bottom:none;}
+.ir:hover{background:#F8FAFC;}
+.ir.sel{background:#FFF1F1;border-left-color:#DC2626;}
+.ir:not(.sel){border-left-color:transparent;}
+
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.av-cs{background:#DBEAFE;color:#1E40AF;}
+.av-bus{background:#FEF3C7;color:#92400E;}
+
+.ir-name{font-size:12px;font-weight:600;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ir-sub{font-size:10px;color:#94A3B8;}
+.ir-cr{text-align:right;flex-shrink:0;}
+.cr-n{font-size:12px;font-weight:800;}
+.cr-s{font-size:10px;color:#94A3B8;}
+.mini-bar{width:44px;height:4px;background:#E2E8F0;border-radius:2px;margin-top:3px;overflow:hidden;}
+.mini-fill{height:100%;border-radius:2px;}
+
+/* Assignment panel */
+.ap{background:white;border-radius:10px;border:1px solid #F1F5F9;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;flex-direction:column;overflow:hidden;}
+.ap-hd{padding:14px 16px;border-bottom:1px solid #F3F4F6;flex-shrink:0;}
+.ap-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94A3B8;gap:10px;padding:40px;text-align:center;}
+.ap-empty svg{width:36px;height:36px;opacity:.2;}
+.cr-summary{padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #F3F4F6;flex-shrink:0;}
+.cr-prog{height:6px;background:#E2E8F0;border-radius:4px;overflow:hidden;margin-top:4px;}
+.cr-prog-f{height:100%;border-radius:4px;transition:width .35s;}
+.timing-row{padding:7px 16px;border-bottom:1px solid #F9FAFB;font-size:11px;color:#64748B;display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.timing-row svg{width:11px;height:11px;flex-shrink:0;}
+
+.clist{overflow-y:auto;flex:1;}
+.citem{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #F9FAFB;transition:background .1s;}
+.citem:last-child{border-bottom:none;}
+.citem:hover{background:#FAFAFA;}
+.citem input[type=checkbox]{width:14px;height:14px;accent-color:#1E293B;cursor:pointer;flex-shrink:0;}
+.cc{font-size:12px;font-weight:700;color:#DC2626;min-width:78px;}
+.cn{font-size:12px;color:#374151;flex:1;}
+.ccr{font-size:11px;font-weight:600;color:#94A3B8;min-width:30px;text-align:right;}
+.over-w{font-size:10px;color:#EF4444;font-weight:700;}
+
+.ap-foot{padding:12px 16px;border-top:1px solid #F3F4F6;flex-shrink:0;}
+.assign-layout{display:grid;grid-template-columns:260px 1fr;gap:14px;height:calc(100vh - 48px - 110px - 28px);}
+
+/* Summary cards */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;}
+.sc{background:white;border-radius:10px;border:1px solid #F1F5F9;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;}
+.sc-hd{padding:12px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #F9FAFB;}
+.sc-chips{padding:10px 14px;display:flex;flex-wrap:wrap;gap:4px;min-height:34px;}
+.sc-ft{padding:8px 14px;background:#FAFAFA;border-top:1px solid #F3F4F6;display:flex;justify-content:space-between;font-size:11px;color:#64748B;}
+.s-ok{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#DCFCE7;color:#166534;}
+.s-warn{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;}
+.s-over{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#FEE2E2;color:#991B1B;}
+.chip{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+.chip-cs{background:#DBEAFE;color:#1E40AF;}
+.chip-bus{background:#FEF3C7;color:#92400E;}
+.chip-gen{background:#DCFCE7;color:#166534;}
+
+/* Dept label pills - refined design */
+.dept-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.02em;line-height:1.2;}
+.dp-cs {background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;}
+.dp-bus{background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;}
+.dp-gen{background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;}
+
+/* Course search inside panel */
+.course-search-wrap{position:relative;padding:9px 12px;border-bottom:1px solid #F1F5F9;flex-shrink:0;background:white;}
+.course-search-wrap svg{position:absolute;left:21px;top:50%;transform:translateY(-50%);pointer-events:none;color:#94A3B8;}
+.course-search{width:100%;padding:7px 10px 7px 30px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-family:inherit;color:#0F172A;outline:none;transition:border-color .15s;background:white;}
+.course-search:focus{border-color:#0F172A;box-shadow:0 0 0 3px rgba(15,23,42,.06);}
+.citem.hidden{display:none;}
+.no-results{padding:20px 16px;text-align:center;font-size:12px;color:#94A3B8;display:none;}
+
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.12);animation:tIn .2s ease;}
+.toast.ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;}
+.toast.err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;}
+.toast.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;}
+@keyframes tIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* ── Workflow status nav item ──────────────────────────────────────────── */
+.nav-submit-section{padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#94A3B8;}
+#btn-submit-admin{
+  display:flex;align-items:center;gap:9px;
+  width:calc(100% - 16px);margin:2px 8px;
+  padding:9px 12px;
+  border:none;border-radius:9px;
+  font-size:12px;font-weight:700;font-family:inherit;
+  cursor:pointer;text-align:left;
+  transition:background .15s,color .15s,box-shadow .15s;
+  position:relative;
+}
+/* Draft — subtle green row */
+#btn-submit-admin[data-status="draft"]{
+  background:rgba(22,163,74,.10);
+  color:#15803D;
+}
+#btn-submit-admin[data-status="draft"]:hover{
+  background:rgba(22,163,74,.18);
+  box-shadow:0 2px 8px rgba(22,163,74,.18);
+}
+#btn-submit-admin[data-status="draft"] .submit-icon{stroke:#15803D;}
+
+/* Submitted — amber */
+#btn-submit-admin[data-status="submitted"]{
+  background:rgba(217,119,6,.10);
+  color:#B45309;
+  pointer-events:none;
+}
+#btn-submit-admin[data-status="submitted"] .submit-icon{stroke:#B45309;}
+
+/* Approved — blue */
+#btn-submit-admin[data-status="approved"]{
+  background:rgba(29,78,216,.10);
+  color:#1D4ED8;
+  pointer-events:none;
+}
+#btn-submit-admin[data-status="approved"] .submit-icon{stroke:#1D4ED8;}
+
+/* Archived — grey */
+#btn-submit-admin[data-status="resubmit"]{
+  background:rgba(234,88,12,.10);
+  color:#C2410C;
+}
+#btn-submit-admin[data-status="resubmit"]:hover{
+  background:rgba(234,88,12,.18);
+}
+#btn-submit-admin[data-status="resubmit"] .submit-icon{stroke:#C2410C;}
+
+#btn-submit-admin[data-status="archived"]{
+  background:rgba(148,163,184,.10);
+  color:#94A3B8;
+  pointer-events:none;
+  opacity:.8;
+}
+#btn-submit-admin[data-status="archived"] .submit-icon{stroke:#94A3B8;}
+
+/* Status dot on right */
+.submit-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  margin-left:auto;
+}
+#btn-submit-admin[data-status="draft"]      .submit-dot{background:#16A34A;}
+#btn-submit-admin[data-status="submitted"]  .submit-dot{background:#D97706;}
+#btn-submit-admin[data-status="approved"]   .submit-dot{background:#2563EB;}
+#btn-submit-admin[data-status="archived"]   .submit-dot{background:#94A3B8;}
+#btn-submit-admin[data-status="resubmit"]   .submit-dot{background:#EA580C;}
+</style>
+</head>
+<body>
+<div class="portal-page">
+
+    <aside class="portal-sidebar">
+      <div class="portal-sidebar-brand">
+        <img src="images/cck-logo-small.png" alt="CCK">
+        <div class="portal-sidebar-brand-text">
+          <div class="portal-sidebar-brand-name">CCK Portal</div>
+          <div class="portal-sidebar-brand-role">Head of Department</div>
+        </div>
+      </div>
+      <div class="portal-sidebar-user">
+        <div class="portal-sidebar-user-name">Head of Department</div>
+        <div class="portal-sidebar-user-role">Course Assignment</div>
+      </div>
+
+      <div class="portal-nav-section">Views</div>
+      <button class="portal-nav-link active" onclick="showView('assign',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Assign Courses
+      </button>
+      <button class="portal-nav-link" onclick="showView('summary',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/></svg>
+        Summary
+      </button>
+      <button class="portal-nav-link" onclick="showView('unassigned',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Unassigned
+        <span id="un-b" style="margin-left:auto;background:#F59E0B;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">0</span>
+      </button>
+      <button class="portal-nav-link" onclick="showView('timetable',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Timetable
+      </button>
+      <button class="portal-nav-link" onclick="showView('tutoring',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Tutoring Classes
+      </button>
+
+      <div class="nav-submit-section">Workflow</div>
+      <button id="btn-submit-admin" data-status="draft" onclick="submitToAdmin()">
+        <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        <span id="submit-admin-lbl">Submit to Admin</span>
+        <span class="submit-dot"></span>
+      </button>
+      <div class="portal-sidebar-spacer"></div>
+      <div class="portal-sidebar-footer">
+        <button class="btn-portal-logout" onclick="cckLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </button>
+        <div class="portal-sidebar-db offline" id="db-status">● Offline mode</div>
+      </div>
+    </aside>
+
+    <main class="portal-content">
+      <div class="portal-stats">
+        <div class="portal-stat-card"><div class="portal-stat-label">Instructors</div><div class="portal-stat-value" id="s-inst">—</div></div>
+        <div class="portal-stat-card"><div class="portal-stat-label">Assigned</div><div class="portal-stat-value" id="s-asgn">—</div></div>
+        <div class="portal-stat-card"><div class="portal-stat-label">Overloaded</div><div class="portal-stat-value" id="s-over" style="color:#DC2626">0</div></div>
+        <div class="portal-stat-card"><div class="portal-stat-label">Unassigned</div><div class="portal-stat-value" id="s-un">—</div></div>
+      </div>
+
+      <!-- ASSIGN VIEW -->
+      <div id="v-assign">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <div class="portal-search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="q" placeholder="Search instructor…" oninput="renderList()">
+          </div>
+          <div class="filter-chips" id="dc">
+            <button class="filter-chip active" onclick="setDC('all',this)">All</button>
+            <button class="filter-chip" onclick="setDC('cs',this)">CS</button>
+            <button class="filter-chip" onclick="setDC('bus',this)">Business</button>
+            <button class="filter-chip" onclick="setDC('gen',this)">Gen Ed</button>
+          </div>
+        </div>
+        <div class="assign-layout">
+          <div class="inst-list-wrap">
+            <div class="inst-list-hd">Select instructor to assign →</div>
+            <div class="inst-rows" id="ilist"></div>
+          </div>
+          <div id="apanel"><div class="ap" id="ap-inner"><div class="ap-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p style="font-size:13px">Select an instructor to assign courses</p></div></div></div>
+        </div>
+      </div>
+
+      <!-- SUMMARY VIEW -->
+      <div id="v-summary" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div><h2 style="font-size:15px;font-weight:700">Assignment Summary</h2><div class="section-sub">All instructors and their teaching loads</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-save-portal" onclick="saveAll()">Save All Assignments</button>
+            <button class="btn-save-portal" style="background:#1E40AF" onclick="downloadAllSummaries()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download All
+            </button>
+          </div>
+        </div>
+        <div class="sg" id="sg"></div>
+      </div>
+
+      <!-- UNASSIGNED VIEW -->
+      <div id="v-unassigned" style="display:none">
+        <div style="margin-bottom:14px"><h2 style="font-size:15px;font-weight:700">Unassigned Courses</h2><div class="section-sub">Courses not yet assigned to any instructor</div></div>
+        <div class="portal-table-wrap">
+          <table class="portal-table">
+            <thead><tr><th>Code</th><th>Name</th><th>Dept</th><th>Credits</th></tr></thead>
+            <tbody id="un-tbody"></tbody>
+          </table>
+          <div id="no-un" style="padding:28px;text-align:center;color:#94A3B8;font-size:13px;display:none">All courses have been assigned! ✓</div>
+        </div>
+      </div>
+
+      <!-- TUTORING CLASSES VIEW -->
+      <div id="v-tutoring" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div>
+            <h2 style="font-size:15px;font-weight:700">Tutoring Class Assignments</h2>
+            <div class="section-sub">Assign tutoring courses per instructor — visible across all portals</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div class="filter-chips">
+              <button class="filter-chip active" id="tut-f-all" onclick="setTutFilter('all',this)">All</button>
+              <button class="filter-chip" onclick="setTutFilter('cs',this)">CS</button>
+              <button class="filter-chip" onclick="setTutFilter('bus',this)">Business</button>
+              <button class="filter-chip" onclick="setTutFilter('gen',this)">Gen Ed</button>
+              <button class="filter-chip" onclick="setTutFilter('pt',this)">Part-Time</button>
+            </div>
+            <input type="text" id="tut-q" placeholder="Search instructor…"
+              style="padding:7px 11px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:12px;font-family:inherit;width:180px;"
+              oninput="renderTutoring()">
+            <button class="btn-save-portal" id="btn-save-tut" onclick="saveTutoring()">
+              <svg id="tut-save-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+              </svg>
+              <span id="tut-save-label">Save Tutoring</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tutoring grid of instructor cards -->
+        <div id="tut-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;"></div>
+      </div>
+
+      <!-- TIMETABLE VIEW -->
+      <div id="v-timetable" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div><h2 style="font-size:15px;font-weight:700">Instructor Timetables</h2><div class="section-sub">Summer schedule for each instructor</div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="tt-dept" onchange="renderTimetable()" style="padding:6px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:12px;background:white;cursor:pointer">
+              <option value="all">All Departments</option>
+              <option value="cs">Computer Science</option>
+              <option value="bus">Business</option>
+            </select>
+            <select id="tt-inst" onchange="renderTimetable()" style="padding:6px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:12px;background:white;cursor:pointer">
+              <option value="all">All Instructors</option>
+            </select>
+          </div>
+        </div>
+        <div id="tt-grid"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<div class="toast-stack" id="ts"></div>
+
+<!-- ASSIGN INSTRUCTOR MODAL -->
+<div id="assign-modal" style="display:none;position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px)" onclick="closeAssignModal()"></div>
+  <div style="position:relative;background:white;border-radius:14px;width:420px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden">
+    <div style="padding:18px 20px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#0F172A">Assign Instructor</div>
+        <div id="am-course-name" style="font-size:11px;color:#94A3B8;margin-top:2px"></div>
+      </div>
+      <button onclick="closeAssignModal()" style="background:none;border:none;cursor:pointer;padding:4px;color:#94A3B8;border-radius:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="font-size:11px;font-weight:600;color:#64748B;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Select Instructor</div>
+      <div id="am-inst-list" style="max-height:320px;overflow-y:auto;border:1px solid #E5E7EB;border-radius:8px"></div>
+    </div>
+    <input type="hidden" id="am-course-code">
+  </div>
+</div>
+
+<script src="hod_main.js"></script>
+</body>
+</html>

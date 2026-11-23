@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="js/cck-store.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CCK Course Structure — Dr. Nehad</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#C8102E;--red2:#a00d24;--rtint:#fff0f2;
+  --ink:#1a1a1a;--ink2:#444;--ink3:#888;
+  --line:#e8e8e8;--bg:#f5f5f3;--white:#fff;
+  --lec-bg:#eef3ff;--lec-ink:#1e3a8a;
+  --lab-bg:#fff3ec;--lab-ink:#7c2d12;
+  --both-bg:#edfaf1;--both-ink:#14532d;
+  --sh:0 2px 8px rgba(0,0,0,.07);
+  --sh2:0 8px 28px rgba(0,0,0,.12);
+  --r:8px;--rl:14px
+}
+body{font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--bg);overflow:hidden;height:100vh}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+#login-screen.hidden{opacity:0;pointer-events:none}
+.lbox{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);padding:40px;width:360px;box-shadow:var(--sh2)}
+.lmark{width:42px;height:42px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;margin-bottom:18px}
+.lbox h1{font-size:19px;font-weight:700;margin-bottom:3px}
+.lbox .sub{font-size:12px;color:var(--ink3);margin-bottom:26px}
+.lfield{margin-bottom:14px}
+.lfield label{display:block;font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.lfield input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r);font:inherit;font-size:14px;background:var(--bg);outline:none;transition:border-color .15s}
+.lfield input:focus{border-color:var(--red);background:#fff}
+#lerr{display:none;color:var(--red);font-size:12px;margin-bottom:10px;padding:8px 10px;background:var(--rtint);border:1px solid #ffc8cf;border-radius:var(--r)}
+.lbtn{width:100%;padding:11px;background:var(--red);color:#fff;border:none;border-radius:var(--r);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.lbtn:hover{background:var(--red2)}
+.lhint{text-align:center;font-size:12px;color:var(--ink3);margin-top:14px}
+
+/* APP */
+#app{display:none;height:100vh}
+#app.visible{display:flex}
+
+/* SIDEBAR */
+.sb{width:204px;flex-shrink:0;background:var(--ink);color:#fff;display:flex;flex-direction:column;height:100vh;overflow-y:auto}
+.sb-brand{padding:18px 14px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-mark{width:30px;height:30px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-bottom:7px}
+.sb-brand h2{font-size:12px;font-weight:700}
+.sb-brand p{font-size:10px;color:rgba(255,255,255,.38);margin-top:1px}
+.sb-user{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:9px}
+.sb-av{width:28px;height:28px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:600}
+.sb-urole{font-size:10px;color:rgba(255,255,255,.38)}
+.sb-nav{flex:1;padding:6px 0}
+.sb-sec{font-size:10px;font-weight:600;letter-spacing:.07em;color:rgba(255,255,255,.28);text-transform:uppercase;padding:9px 14px 3px}
+.sb-link{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.58);cursor:pointer;transition:.1s;position:relative}
+.sb-link:hover{background:rgba(255,255,255,.05);color:#fff}
+.sb-link.on{background:rgba(200,16,46,.18);color:#fff}
+.sb-link.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red);border-radius:0 2px 2px 0}
+.sb-link svg{width:13px;height:13px;flex-shrink:0}
+.sb-num{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:var(--red);color:#fff}
+.sb-foot{padding:10px 14px;border-top:1px solid rgba(255,255,255,.08)}
+.logout-btn{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;background:rgba(255,255,255,.05);border:none;border-radius:6px;font:inherit;font-size:12px;font-weight:500;color:rgba(255,255,255,.45);cursor:pointer;transition:.1s}
+.logout-btn:hover{background:rgba(200,16,46,.2);color:#fff}
+.logout-btn svg{width:12px;height:12px}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:26px}
+.page{display:none}
+.page.on{display:block}
+.ptitle{font-size:19px;font-weight:700;margin-bottom:3px}
+.psub{font-size:13px;color:var(--ink3);margin-bottom:22px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);padding:14px 18px;cursor:pointer;transition:.15s}
+.stat:hover{box-shadow:var(--sh2);transform:translateY(-1px)}
+.snum{font-size:28px;font-weight:700;line-height:1;margin-bottom:3px}
+.slbl{font-size:12px;font-weight:600;color:var(--ink2)}
+.ssub{font-size:11px;color:var(--ink3);margin-top:2px}
+.stat.lec .snum{color:var(--lec-ink)}
+.stat.lab .snum{color:var(--lab-ink)}
+.stat.both .snum{color:var(--both-ink)}
+
+/* CHARTS */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);padding:18px}
+.ctitle{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:14px}
+.bar-row{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.bar-lbl{width:34px;font-size:11px;color:var(--ink3);text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.bar-num{width:26px;font-size:11px;font-weight:600;color:var(--ink2)}
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.dlegend{flex:1}
+.dl-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:12px}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dl-lbl{flex:1;color:var(--ink2)}
+.dl-val{font-weight:600}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.srch{padding:7px 11px;border:1.5px solid var(--line);border-radius:var(--r);font:inherit;font-size:13px;background:#fff;outline:none;width:210px;transition:border-color .15s}
+.srch:focus{border-color:var(--red)}
+.sel{padding:7px 9px;border:1.5px solid var(--line);border-radius:var(--r);font:inherit;font-size:12px;background:#fff;outline:none;cursor:pointer}
+.tr{margin-left:auto;display:flex;gap:7px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--r);font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:.12s}
+.btn svg{width:13px;height:13px}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-red:hover{background:var(--red2)}
+.btn-dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-dark:hover{background:#333}
+.btn-ghost{background:#fff;color:var(--ink2);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--ink3)}
+.btn-green{background:#16a34a;color:#fff}
+.btn-green:hover{background:#15803d}
+
+/* TABLE */
+.tbox{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-bottom:18px}
+.thead{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.thead h3{font-size:13px;font-weight:600}
+.tcnt{font-size:11px;font-weight:600;color:var(--ink3);background:var(--line);padding:2px 8px;border-radius:20px}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 11px;text-align:left;font-size:11px;font-weight:600;color:var(--ink3);background:#fff;border-bottom:1px solid var(--line);white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+td{padding:8px 11px;font-size:12px;color:var(--ink2);border-bottom:1px solid var(--bg)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+tr.chg td{background:#fffbeb}
+.code{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--red);font-size:11px}
+.ni{width:60px;padding:4px 6px;border:1.5px solid var(--line);border-radius:5px;font:inherit;font-size:12px;text-align:center;outline:none}
+.ni:focus{border-color:var(--red)}
+.ni:disabled{opacity:.3;background:var(--bg)}
+.ebtn{padding:3px 9px;border:1.5px solid var(--line);border-radius:5px;background:#fff;font:inherit;font-size:11px;font-weight:600;color:var(--ink3);cursor:pointer;transition:.12s}
+.ebtn:hover{border-color:var(--red);color:var(--red);background:var(--rtint)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);vertical-align:middle;margin-left:4px}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600}
+.bl{background:var(--lec-bg);color:var(--lec-ink)}
+.blab{background:var(--lab-bg);color:var(--lab-ink)}
+.bb{background:var(--both-bg);color:var(--both-ink)}
+
+/* CHIPS */
+.chips{display:flex;gap:5px}
+.chip{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;background:#fff;border:1.5px solid var(--line);color:var(--ink3);transition:.12s}
+.chip:hover{border-color:var(--ink3);color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.onlab{background:var(--lab-ink);border-color:var(--lab-ink);color:#fff}
+.chip.onboth{background:var(--both-ink);border-color:var(--both-ink);color:#fff}
+
+/* RULES */
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.rcard{background:#fff;border:1px solid var(--line);border-radius:var(--rl);padding:18px}
+.rcard h4{font-size:13px;font-weight:700;margin-bottom:12px}
+.rrow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bg)}
+.rrow:last-of-type{border-bottom:none}
+.rrow label{font-size:12px;color:var(--ink2)}
+.ri{width:88px;padding:5px 7px;border:1.5px solid var(--line);border-radius:5px;font:inherit;font-size:12px;text-align:center;outline:none}
+.ri:focus{border-color:var(--red)}
+.rnote{font-size:11px;color:var(--ink3);margin-top:9px;line-height:1.5}
+.rfoot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:9px;border-top:1px solid var(--line)}
+.rst{font-size:11px;font-weight:600;color:var(--ink3)}
+.rst.saved{color:#16a34a}
+.rst.dirty{color:#d97706}
+
+/* EXPORT */
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.ecard{background:#fff;border:1px solid var(--line);border-radius:var(--rl);padding:18px}
+.ecard h4{font-size:13px;font-weight:700;margin-bottom:5px}
+.ecard p{font-size:12px;color:var(--ink3);margin-bottom:14px;line-height:1.5}
+.dropzone{border:2px dashed var(--line);border-radius:var(--rl);padding:28px;text-align:center;cursor:pointer;background:var(--bg);transition:.15s}
+.dropzone:hover,.dropzone.drag{border-color:var(--red);background:var(--rtint)}
+.dropzone h4{font-size:13px;font-weight:600;color:var(--ink2);margin:10px 0 4px}
+.dropzone p{font-size:12px;color:var(--ink3)}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.38);backdrop-filter:blur(3px);align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--rl);width:440px;max-width:94vw;box-shadow:var(--sh2);overflow:hidden}
+.mhead{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between}
+.mhead h3{font-size:14px;font-weight:700}
+.mhead p{font-size:12px;color:var(--ink3);margin-top:2px}
+.mx{background:none;border:none;cursor:pointer;padding:3px;color:var(--ink3);border-radius:5px}
+.mx:hover{background:var(--line);color:var(--ink)}
+.mbody{padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.mfoot{padding:12px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:7px;background:var(--bg)}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{padding:8px 11px;border:1.5px solid var(--line);border-radius:var(--r);font:inherit;font-size:13px;outline:none;background:#fff;transition:border-color .15s}
+.fg input:focus,.fg select:focus{border-color:var(--red)}
+.fg input:disabled{opacity:.35;background:var(--bg)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+/* SAVE BADGE */
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--line);color:var(--ink3)}
+.sbadge.saved{background:#dcfce7;color:#16a34a}
+
+/* TIMETABLE */
+.tt-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.tt-mode-tabs{display:flex;gap:5px}
+.tt-tab{padding:6px 13px;border-radius:var(--r);font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--ink3);transition:.12s}
+.tt-tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tt-sel{padding:7px 9px;border:1.5px solid var(--line);border-radius:var(--r);font:inherit;font-size:12px;background:#fff;outline:none;cursor:pointer;min-width:200px}
+.tt-grid-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-bottom:14px}
+.tt-grid-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.tt-grid-head h3{font-size:13px;font-weight:700}
+.tt-grid-head p{font-size:11px;color:var(--ink3);margin-top:1px}
+.tt-table-scroll{overflow-x:auto}
+.tt-table{width:100%;border-collapse:collapse;min-width:600px}
+.tt-table th{padding:8px 10px;text-align:center;font-size:11px;font-weight:700;color:#fff;background:var(--ink);white-space:nowrap}
+.tt-table th:first-child{text-align:left;width:72px;background:#374151}
+.tt-table td{padding:4px;border:1px solid var(--line);vertical-align:top;height:44px;min-width:100px}
+.tt-table td:first-child{font-size:11px;color:var(--ink3);text-align:center;padding:6px 4px;font-weight:600;white-space:nowrap;background:var(--bg);border-right:2px solid var(--line)}
+.tt-slot{background:#eef3ff;border:1px solid #bfdbfe;border-radius:5px;padding:4px 6px;font-size:10px;font-weight:600;color:#1e3a8a;line-height:1.3;cursor:pointer;transition:.12s;position:relative}
+.tt-slot:hover{background:#dbeafe}
+.tt-slot.lab-slot{background:#fff3ec;border-color:#fed7aa;color:#7c2d12}
+.tt-slot.lab-slot:hover{background:#ffedd5}
+.tt-slot .tt-slot-x{position:absolute;top:2px;right:3px;font-size:10px;color:inherit;opacity:.5;cursor:pointer;font-weight:700}
+.tt-slot .tt-slot-x:hover{opacity:1}
+.tt-empty-cell{width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;transition:.12s;opacity:0}
+.tt-empty-cell:hover{background:#f0f4ff;opacity:1}
+.tt-empty-cell svg{width:12px;height:12px;color:var(--ink3)}
+td:hover .tt-empty-cell{opacity:1}
+.tt-assign-modal .modal{width:520px}
+.tt-assign-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.submit-bar{background:#fff;border:1px solid var(--line);border-radius:var(--rl);padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.submit-bar-info h4{font-size:13px;font-weight:700;margin-bottom:2px}
+.submit-bar-info p{font-size:12px;color:var(--ink3)}
+.submit-status{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.submit-status.draft{background:#f3f4f6;color:var(--ink3)}
+.submit-status.submitted{background:#FEF3C7;color:#92400E}
+.submit-status.approved{background:#DCFCE7;color:#15803D}
+.tt-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.tt-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2)}
+.tt-legend-dot{width:10px;height:10px;border-radius:3px}
+
+/* TOAST */
+.twrap{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:7px;z-index:9999}
+.toast{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:var(--r);font-size:13px;font-weight:500;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18);opacity:0;transform:translateY(5px);transition:opacity .2s,transform .2s;max-width:320px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:#16a34a}
+.toast.err{background:var(--red)}
+.toast.info{background:var(--ink2)}
+.toast svg{flex-shrink:0;width:13px;height:13px}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="lbox">
+    <div class="lmark">CCK</div>
+    <h1>Course Structure Portal</h1>
+    <p class="sub">Canadian College of Kuwait — Dr. Nehad</p>
+    <div class="lfield">
+      <label>Username</label>
+      <input type="text" id="lu" placeholder="nehad" autocomplete="username">
+    </div>
+    <div class="lfield">
+      <label>Password</label>
+      <input type="password" id="lp" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+    </div>
+    <div id="lerr">Incorrect username or password.</div>
+    <button class="lbtn" onclick="doLogin()">Sign In</button>
+
+  </div>
+</div>
+
+<!-- ═══ APP ══════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-brand">
+      <div class="sb-mark">CCK</div>
+      <h2>Course Structure</h2>
+      <p>Spring 2026</p>
+    </div>
+    <div class="sb-user">
+      <div class="sb-av">N</div>
+      <div>
+        <div class="sb-uname">Dr. Nehad</div>
+        <div class="sb-urole">Course Admin</div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-sec">Overview</div>
+      <div class="sb-link on" data-page="dashboard" onclick="goTo('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="sb-sec">Courses</div>
+      <div class="sb-link" data-page="all" onclick="goTo('all')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        All Courses
+        <span class="sb-num" id="nb-total">127</span>
+      </div>
+      <div class="sb-link" data-page="lec" onclick="goTo('lec')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Lectures
+        <span class="sb-num" style="background:#1e3a8a" id="nb-lec">89</span>
+      </div>
+      <div class="sb-link" data-page="lab" onclick="goTo('lab')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11l-3 3"/><path d="M9 14h10M12 14v9"/></svg>
+        Labs &amp; Combined
+        <span class="sb-num" style="background:#7c2d12" id="nb-lab">38</span>
+      </div>
+      <div class="sb-sec">Timetables</div>
+      <div class="sb-link" data-page="timetable" onclick="goTo('timetable')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Timetables
+        <span class="sb-num" style="background:#6d28d9" id="nb-tt-status"></span>
+      </div>
+      <div class="sb-sec">Settings</div>
+      <div class="sb-link" data-page="rules" onclick="goTo('rules')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        Session Rules
+      </div>
+      <div class="sb-link" data-page="export" onclick="goTo('export')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Export / Import
+      </div>
+    </nav>
+    <div class="sb-foot">
+      <button class="logout-btn" onclick="cckLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page on" id="pg-dashboard">
+      <div class="ptitle">Dashboard</div>
+      <div class="psub">Overview &nbsp;&middot;&nbsp; Last saved: <span class="sbadge" id="save-lbl">Not saved yet</span></div>
+      <div class="stats">
+        <div class="stat" onclick="goTo('all')">
+          <div class="snum" id="ds-total">127</div>
+          <div class="slbl">Total Courses</div>
+          <div class="ssub">All departments</div>
+        </div>
+        <div class="stat lec" onclick="goTo('lec')">
+          <div class="snum" id="ds-lec">89</div>
+          <div class="slbl">Lecture Only</div>
+          <div class="ssub">Classroom sessions</div>
+        </div>
+        <div class="stat lab" onclick="goTo('lab')">
+          <div class="snum" id="ds-lab">1</div>
+          <div class="slbl">Lab Only</div>
+          <div class="ssub">Practical sessions</div>
+        </div>
+        <div class="stat both" onclick="goTo('lab')">
+          <div class="snum" id="ds-both">37</div>
+          <div class="slbl">Lec + Lab</div>
+          <div class="ssub">Combined sessions</div>
+        </div>
+      </div>
+      <div class="charts">
+        <div class="card">
+          <div class="ctitle">Credits Distribution</div>
+          <div id="bars"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Session Type Breakdown</div>
+          <div class="donut-wrap">
+            <canvas id="donut" width="150" height="150"></canvas>
+            <div class="dlegend" id="dlegend"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tbox">
+        <div class="thead">
+          <h3>Unsaved Changes</h3>
+          <span class="tcnt" id="mod-cnt">No changes yet</span>
+        </div>
+        <div class="tscroll">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Lec hrs</th><th>Lab hrs</th><th>Credits</th></tr></thead>
+            <tbody id="mod-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL COURSES -->
+    <div class="page" id="pg-all">
+      <div class="ptitle">All Courses</div>
+      <div class="psub">Edit session types, lecture hours, lab hours, and credits for all 127 courses.</div>
+      <div class="toolbar">
+        <input class="srch" type="text" id="s-all" placeholder="Search code or name..." oninput="renderTable('all')">
+        <select class="sel" id="ft-all" onchange="renderTable('all')">
+          <option value="">All Types</option>
+          <option value="lecture">Lecture Only</option>
+          <option value="lab">Lab Only</option>
+          <option value="lecture+lab">Lec + Lab</option>
+        </select>
+        <select class="sel" id="fd-all" onchange="renderTable('all')">
+          <option value="">All Departments</option>
+          <option value="cs">Computer Science</option>
+          <option value="bus">Business</option>
+          <option value="gen">General Ed</option>
+        </select>
+        <div class="tr">
+          <button class="btn btn-ghost" onclick="saveAll()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save All
+          </button>
+          <button class="btn btn-dark" onclick="openBulk()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Bulk Edit
+          </button>
+        </div>
+      </div>
+      <div class="tbox">
+        <div class="thead"><h3>Courses</h3><span class="tcnt" id="cnt-all"></span></div>
+        <div class="tscroll">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Dept</th><th>Type</th><th>Lec hrs/wk</th><th>Lab hrs/wk</th><th>Credits</th><th>Instructor</th><th></th></tr></thead>
+            <tbody id="body-all"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LECTURES -->
+    <div class="page" id="pg-lec">
+      <div class="ptitle">Lecture-Only Courses</div>
+      <div class="psub">Courses with no lab component.</div>
+      <div class="toolbar">
+        <input class="srch" type="text" id="s-lec" placeholder="Search..." oninput="renderTable('lec')">
+        <select class="sel" id="fd-lec" onchange="renderTable('lec')">
+          <option value="">All Departments</option>
+          <option value="cs">Computer Science</option>
+          <option value="bus">Business</option>
+          <option value="gen">General Ed</option>
+        </select>
+        <div class="tr"><button class="btn btn-ghost" onclick="saveAll()">Save All</button></div>
+      </div>
+      <div class="tbox">
+        <div class="thead"><h3>Lecture Courses</h3><span class="tcnt" id="cnt-lec"></span></div>
+        <div class="tscroll">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Dept</th><th>Lec hrs/wk</th><th>Credits</th><th>Instructor</th><th></th></tr></thead>
+            <tbody id="body-lec"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LABS -->
+    <div class="page" id="pg-lab">
+      <div class="ptitle">Labs &amp; Combined</div>
+      <div class="psub">Courses with a lab or practical component.</div>
+      <div class="toolbar">
+        <input class="srch" type="text" id="s-lab" placeholder="Search..." oninput="renderTable('lab')">
+        <div class="chips">
+          <div class="chip on" id="ch-all"  onclick="setLabChip('all')">All</div>
+          <div class="chip"    id="ch-lab"  onclick="setLabChip('lab')">Lab Only</div>
+          <div class="chip"    id="ch-both" onclick="setLabChip('lecture+lab')">Lec + Lab</div>
+        </div>
+        <div class="tr"><button class="btn btn-ghost" onclick="saveAll()">Save All</button></div>
+      </div>
+      <div class="tbox">
+        <div class="thead"><h3>Lab Courses</h3><span class="tcnt" id="cnt-lab"></span></div>
+        <div class="tscroll">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Dept</th><th>Type</th><th>Lec hrs/wk</th><th>Lab hrs/wk</th><th>Credits</th><th>Instructor</th><th></th></tr></thead>
+            <tbody id="body-lab"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SESSION RULES -->
+    <div class="page" id="pg-rules">
+      <div class="ptitle">Session Rules</div>
+      <div class="psub">Set default durations and weekly hours used by the timetable generator.</div>
+      <div class="rgrid">
+        <div class="rcard">
+          <h4>Lecture Sessions</h4>
+          <div class="rrow"><label>Min duration (min)</label><input class="ri" type="number" id="r-lec-min" min="45" max="120" step="15" value="75" onchange="markDirty()"></div>
+          <div class="rrow"><label>Max duration (min)</label><input class="ri" type="number" id="r-lec-max" min="45" max="180" step="15" value="90" onchange="markDirty()"></div>
+          <div class="rrow"><label>Default duration (min)</label><input class="ri" type="number" id="r-lec-def" min="45" max="180" step="15" value="75" onchange="markDirty()"></div>
+          <div class="rrow"><label>Earliest start</label><input class="ri" type="time" id="r-lec-early" value="08:00" style="width:100px" onchange="markDirty()"></div>
+          <div class="rrow"><label>Latest end</label><input class="ri" type="time" id="r-lec-late" value="19:00" style="width:100px" onchange="markDirty()"></div>
+          <p class="rnote">Controls lecture slot length and scheduling window.</p>
+          <div class="rfoot"><span class="rst" id="lec-rst">Unsaved</span><button class="btn btn-red" onclick="saveRules()">Save Rules</button></div>
+        </div>
+        <div class="rcard">
+          <h4>Lab Sessions</h4>
+          <div class="rrow"><label>Min duration (min)</label><input class="ri" type="number" id="r-lab-min" min="60" max="240" step="30" value="120" onchange="markDirty()"></div>
+          <div class="rrow"><label>Max duration (min)</label><input class="ri" type="number" id="r-lab-max" min="60" max="240" step="30" value="180" onchange="markDirty()"></div>
+          <div class="rrow"><label>Default duration (min)</label><input class="ri" type="number" id="r-lab-def" min="60" max="240" step="30" value="150" onchange="markDirty()"></div>
+          <div class="rrow"><label>Earliest start</label><input class="ri" type="time" id="r-lab-early" value="08:00" style="width:100px" onchange="markDirty()"></div>
+          <div class="rrow"><label>Latest end</label><input class="ri" type="time" id="r-lab-late" value="20:00" style="width:100px" onchange="markDirty()"></div>
+          <p class="rnote">Lab sessions need longer blocks than lectures.</p>
+          <div class="rfoot"><span class="rst" id="lab-rst">Unsaved</span><button class="btn btn-red" onclick="saveRules()">Save Rules</button></div>
+        </div>
+        <div class="rcard">
+          <h4>Weekly Contact Hours</h4>
+          <div class="rrow"><label>Lecture-only (hrs/wk)</label><input class="ri" type="number" id="r-wk-lec" min="1" max="10" step=".5" value="3" onchange="markDirty()"></div>
+          <div class="rrow"><label>Lab-only (hrs/wk)</label><input class="ri" type="number" id="r-wk-lab" min="1" max="10" step=".5" value="3" onchange="markDirty()"></div>
+          <div class="rrow"><label>Combined lecture (hrs/wk)</label><input class="ri" type="number" id="r-wk-cl" min="1" max="10" step=".5" value="3" onchange="markDirty()"></div>
+          <div class="rrow"><label>Combined lab (hrs/wk)</label><input class="ri" type="number" id="r-wk-clab" min="1" max="6" step=".5" value="1" onchange="markDirty()"></div>
+          <p class="rnote">Default weekly hours. Individual course values take priority.</p>
+          <div class="rfoot"><span class="rst" id="wk-rst">Unsaved</span><button class="btn btn-red" onclick="saveRules()">Save Rules</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Current Summary</div>
+        <div id="rules-summary" style="font-size:13px;line-height:2;color:var(--ink3)"></div>
+      </div>
+    </div>
+
+    <!-- EXPORT / IMPORT -->
+    <div class="page" id="pg-export">
+      <div class="ptitle">Export &amp; Import</div>
+      <div class="psub">Download course data or import a file to update structures.</div>
+      <div class="egrid">
+        <div class="ecard">
+          <h4>All Courses (Excel)</h4>
+          <p>All 127 courses with codes, types, hours, credits, and instructors.</p>
+          <button class="btn btn-dark" onclick="exportExcel('all')">Download Excel</button>
+        </div>
+        <div class="ecard">
+          <h4>Labs &amp; Combined (Excel)</h4>
+          <p>Only courses with a lab component, for lab room scheduling.</p>
+          <button class="btn btn-ghost" onclick="exportExcel('lab')">Download Excel</button>
+        </div>
+        <div class="ecard">
+          <h4>Session Rules (Excel)</h4>
+          <p>Current session rule configuration as a reference spreadsheet.</p>
+          <button class="btn btn-ghost" onclick="exportRulesExcel()">Download Excel</button>
+        </div>
+        <div class="ecard">
+          <h4>Full Schedule (CSV)</h4>
+          <p>All courses with instructor assignments in CSV format.</p>
+          <button class="btn btn-ghost" onclick="exportCSV()">Download CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:6px">Import from CSV</h3>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:14px;line-height:1.6">Upload a previously exported CSV to update courses. Required columns: <b>Code, Type, Lec_hrs, Lab_hrs, Credits</b>. A preview will appear before anything is applied.</p>
+        <div class="dropzone" id="drop-zone"
+             onclick="el('imp-file').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleDrop(event)">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--ink3);display:block;margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h4>Drop file here or click to browse</h4>
+          <p>Accepts .csv exported from this portal</p>
+          <input type="file" id="imp-file" accept=".csv" onchange="handleFile(this)" style="display:none">
+        </div>
+        <div id="imp-preview" style="display:none;margin-top:14px">
+          <div class="thead" style="border-radius:var(--rl) var(--rl) 0 0">
+            <h3><span id="imp-cnt">0</span> changes ready</h3>
+            <div style="display:flex;gap:7px">
+              <button class="btn btn-ghost" onclick="cancelImport()">Cancel</button>
+              <button class="btn btn-green" onclick="applyImport()">Apply Import</button>
+            </div>
+          </div>
+          <div class="tscroll" style="max-height:260px;border:1px solid var(--line);border-top:none;border-radius:0 0 var(--rl) var(--rl)">
+            <table>
+              <thead><tr><th>Code</th><th>Name</th><th>Old Type</th><th>New Type</th><th>Old Lec</th><th>New Lec</th><th>Old Lab</th><th>New Lab</th><th>Old Cr</th><th>New Cr</th></tr></thead>
+              <tbody id="imp-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMETABLES -->
+    <div class="page" id="pg-timetable">
+      <div class="ptitle">Timetables</div>
+      <div class="psub">View and assign day/time slots for instructors and courses. Submit to Admin when ready.</div>
+
+      <!-- Submit Bar -->
+      <div class="submit-bar" id="tt-submit-bar">
+        <div class="submit-bar-info">
+          <h4>Timetable Submission</h4>
+          <p id="tt-submit-desc">Assign time slots then submit to Admin for approval.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <span class="submit-status draft" id="tt-submit-status">Draft</span>
+          <button class="btn btn-red" id="tt-submit-btn" onclick="submitTimetableToAdmin()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Submit to Admin
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode tabs -->
+      <div class="tt-controls">
+        <div class="tt-mode-tabs">
+          <button class="tt-tab on" id="tt-mode-instructor" onclick="setTTMode('instructor')">By Instructor</button>
+          <button class="tt-tab" id="tt-mode-course" onclick="setTTMode('course')">By Course</button>
+        </div>
+        <select class="tt-sel" id="tt-selector" onchange="renderTimetable()">
+          <option value="">— Select —</option>
+        </select>
+        <button class="btn btn-ghost" onclick="exportTimetableExcel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
+
+      <div class="tt-legend">
+        <div class="tt-legend-item"><div class="tt-legend-dot" style="background:#bfdbfe"></div> Lecture</div>
+        <div class="tt-legend-item"><div class="tt-legend-dot" style="background:#fed7aa"></div> Lab</div>
+        <div class="tt-legend-item"><div class="tt-legend-dot" style="background:#bbf7d0"></div> Lec+Lab</div>
+      </div>
+
+      <!-- Timetable grid -->
+      <div id="tt-grid-container"></div>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<!-- TIMETABLE ASSIGN MODAL -->
+<div class="overlay tt-assign-modal" id="tt-assign-modal">
+  <div class="modal" style="width:500px;max-width:96vw">
+    <div class="mhead">
+      <div><h3 id="tt-m-title">Assign Time Slot</h3><p id="tt-m-sub"></p></div>
+      <button class="mx" onclick="closeTTModal()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="mbody">
+      <input type="hidden" id="tt-m-code">
+      <input type="hidden" id="tt-m-day">
+      <div class="fg">
+        <label>Course</label>
+        <select id="tt-m-course"></select>
+      </div>
+      <div class="tt-assign-form">
+        <div class="fg">
+          <label>Day</label>
+          <select id="tt-m-daysel">
+            <option value="Sunday">Sunday</option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Start Time</label>
+          <input type="time" id="tt-m-start" value="08:00" min="07:00" max="20:00">
+        </div>
+        <div class="fg">
+          <label>End Time</label>
+          <input type="time" id="tt-m-end" value="09:50" min="07:30" max="21:00">
+        </div>
+        <div class="fg">
+          <label>Section</label>
+          <input type="text" id="tt-m-section" placeholder="01" value="01">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Room (optional)</label>
+        <input type="text" id="tt-m-room" placeholder="e.g. B2-023">
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="closeTTModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="saveTTSlot()">Save Slot</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="edit-modal">
+  <div class="modal">
+    <div class="mhead">
+      <div><h3 id="m-title">Edit Course</h3><p id="m-sub"></p></div>
+      <button class="mx" onclick="closeEdit()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="mbody">
+      <input type="hidden" id="m-code">
+      <div class="fg">
+        <label>Session Type</label>
+        <select id="m-type" onchange="onTypeChange()">
+          <option value="lecture">Lecture Only</option>
+          <option value="lab">Lab Only</option>
+          <option value="lecture+lab">Lecture + Lab</option>
+        </select>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Lecture hrs/week</label><input type="number" id="m-lec" min="0" max="10" step=".5" value="3"></div>
+        <div class="fg"><label>Lab hrs/week</label><input type="number" id="m-lab" min="0" max="10" step=".5" value="0"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Credits</label><input type="number" id="m-cr" min="1" max="10" value="3"></div>
+        <div class="fg"><label>Default Duration (min)</label><input type="number" id="m-dur" min="30" max="300" step="15" value="75"></div>
+      </div>
+      <div class="fg"><label>Notes</label><input type="text" id="m-notes" placeholder="Optional scheduling notes"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-dark" onclick="saveEdit()">Save Course</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK EDIT MODAL -->
+<div class="overlay" id="bulk-modal">
+  <div class="modal">
+    <div class="mhead">
+      <div><h3>Bulk Edit Courses</h3><p>Apply hour changes to a group at once</p></div>
+      <button class="mx" onclick="closeBulk()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="mbody">
+      <div class="fg">
+        <label>Apply To</label>
+        <select id="bt" onchange="updateBulkCount()">
+          <option value="all">All Courses</option>
+          <option value="lecture">Lecture-Only Courses</option>
+          <option value="lab">Lab-Only Courses</option>
+          <option value="lecture+lab">Lecture+Lab Courses</option>
+          <option value="cs">Computer Science dept</option>
+          <option value="bus">Business dept</option>
+          <option value="gen">General Ed dept</option>
+        </select>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Set Lecture hrs/wk</label><input type="number" id="b-lec" min="0" max="10" step=".5" placeholder="leave blank to keep"></div>
+        <div class="fg"><label>Set Lab hrs/wk</label><input type="number" id="b-lab" min="0" max="10" step=".5" placeholder="leave blank to keep"></div>
+      </div>
+      <p id="b-cnt" style="font-size:13px;color:var(--ink3)"></p>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="closeBulk()">Cancel</button>
+      <button class="btn btn-dark" onclick="applyBulk()">Apply Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="twrap" id="twrap"></div>
+<script>
+
+// ── DATA ──────────────────────────────────────────────────
+var BASE_COURSES = {"ACC0012": {"code": "ACC0012", "name": "Business Project", "credits": 4, "contact_hours": 4, "session_type": "lab", "lecture_hrs_per_week": 0, "lab_hrs_per_week": 4, "past_enrollment": 10}, "ACC0014": {"code": "ACC0014", "name": "Accounting for Small Businesses", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 12}, "ACC2201": {"code": "ACC2201", "name": "Financial Accounting I", "credits": 5, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 5, "lab_hrs_per_week": 0, "past_enrollment": 79}, "ACC2202": {"code": "ACC2202", "name": "Financial Accounting II", "credits": 5, "contact_hours": 5, "session_type": "lecture", "lecture_hrs_per_week": 5, "lab_hrs_per_week": 0, "past_enrollment": 9}, "ACC2209": {"code": "ACC2209", "name": "Financial Accounting III", "credits": 5, "contact_hours": 5, "session_type": "lecture", "lecture_hrs_per_week": 5, "lab_hrs_per_week": 0, "past_enrollment": 20}, "ACC2211": {"code": "ACC2211", "name": "Payroll and Compliance", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 2}, "ACC2214": {"code": "ACC2214", "name": "Financial Information for Marketing", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}, "ACC2233": {"code": "ACC2233", "name": "Management Accounting I", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 8}, "ACC2234": {"code": "ACC2234", "name": "Management Accounting II", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 7}, "ACC2262": {"code": "ACC2262", "name": "Introduction to Personal Taxation", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 17}, "ACC2265": {"code": "ACC2265", "name": "Audit Principles & Bus Issues", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 5}, "ACC2343": {"code": "ACC2343", "name": "Spreadsheet Applications", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 28}, "ACC2385": {"code": "ACC2385", "name": "Accounting Software Applications", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 34}, "BUAC3005": {"code": "BUAC3005", "name": "Intermediate Accounting", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 14}, "BUAC3050": {"code": "BUAC3050", "name": "Accounting for Government and Not for Profit Org", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 10}, "BUAC3100": {"code": "BUAC3100", "name": "Principles of Financial Accounting", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "BUAC3120": {"code": "BUAC3120", "name": "Managerial Accounting", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 9}, "BUAC3380": {"code": "BUAC3380", "name": "Managerial Finance", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 1}, "BUAC4120": {"code": "BUAC4120", "name": "Financial Statement Presentation and Analysis", "credits": 2, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 2, "lab_hrs_per_week": 1, "past_enrollment": 0}, "BUAC4380": {"code": "BUAC4380", "name": "Intermediate Corporate Finance", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "BUAC4455": {"code": "BUAC4455", "name": "Advanced Financial Accounting", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 4}, "BUAC4720": {"code": "BUAC4720", "name": "Cost Accounting", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 2}, "BUAC4780": {"code": "BUAC4780", "name": "Advanced Corporate Finance", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 2}, "BUAD3090": {"code": "BUAD3090", "name": "Business Law", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 16}, "BUAD3091": {"code": "BUAD3091", "name": "Employment Law", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 15}, "BUCO3005": {"code": "BUCO3005", "name": "Management Information Systems", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 10}, "BUCO3160": {"code": "BUCO3160", "name": "Information Technology for Business", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 0}, "BUEN3025": {"code": "BUEN3025", "name": "Enterprise Development and Business Planning", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}, "BUEN3100": {"code": "BUEN3100", "name": "Business Analysis and Decision Making", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 7}, "BUEN3230": {"code": "BUEN3230", "name": "Supply Chain & Logistics Management", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "BUEN4150": {"code": "BUEN4150", "name": "Management of Innovation", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}, "BUEN4200": {"code": "BUEN4200", "name": "Business Strategy", "credits": 3, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 0}, "BUEN4250": {"code": "BUEN4250", "name": "Entrepreneurial Leadership Practicum I", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 13}, "BUEN4251": {"code": "BUEN4251", "name": "Entrepreneurial Leadership Practicum II", "credits": 2, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 2, "lab_hrs_per_week": 1, "past_enrollment": 4}, "BUHR4120": {"code": "BUHR4120", "name": "HR Management for Entrepreneurs", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 12}, "BUMG3015": {"code": "BUMG3015", "name": "Organizational Behaviour", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "BUMG3105": {"code": "BUMG3105", "name": "Operations Management", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 14}, "BUMG3110": {"code": "BUMG3110", "name": "Advanced Organizational Behaviour", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 12}, "BUMK3099": {"code": "BUMK3099", "name": "Introduction to Marketing", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 13}, "BUMT3030": {"code": "BUMT3030", "name": "Business Statistics", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 15}, "BUS2301": {"code": "BUS2301", "name": "Business Comp Apps", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 138}, "CSIT3014": {"code": "CSIT3014", "name": "Discrete Mathematics for Information Technology", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 24}, "CSIT3111": {"code": "CSIT3111", "name": "Advanced Networking Technologies", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 20}, "CSIT3115": {"code": "CSIT3115", "name": "Data Structure", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 20}, "CSIT3211": {"code": "CSIT3211", "name": "Foundations of Computer Security", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 0}, "CSIT3216": {"code": "CSIT3216", "name": "Server Operating Systems", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 0}, "CSIT3225": {"code": "CSIT3225", "name": "Introduction to Programming with Python", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 0}, "CSIT3235": {"code": "CSIT3235", "name": "Software Quality Assurance", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 0}, "CSIT3271": {"code": "CSIT3271", "name": "System Security", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 8}, "CSIT3280": {"code": "CSIT3280", "name": "Information Technology Project Management", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 22}, "CSIT3345": {"code": "CSIT3345", "name": "Advanced Web Application Development", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 20}, "CSIT4105": {"code": "CSIT4105", "name": "Search Engine Principles", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 6}, "CSIT4125": {"code": "CSIT4125", "name": "Website & Cloud Security", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 0}, "CSIT4190": {"code": "CSIT4190", "name": "Integration Project I", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 8}, "CSIT4235": {"code": "CSIT4235", "name": "Special Topics in Web & Mobile App Dev", "credits": 2, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 2, "lab_hrs_per_week": 1, "past_enrollment": 0}, "CSIT4290": {"code": "CSIT4290", "name": "Integration Project II", "credits": 3, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 0}, "CSIT4330": {"code": "CSIT4330", "name": "Data Warehousing and Data Mining", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 24}, "CST2234": {"code": "CST2234", "name": "Systems Analysis and Design", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 14}, "CST2335": {"code": "CST2335", "name": "Mobile Graphical Interface Programming", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 16}, "CST2355": {"code": "CST2355", "name": "Database Systems", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 20}, "CST8101": {"code": "CST8101", "name": "Computer Essentials", "credits": 3, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 78}, "CST8102": {"code": "CST8102", "name": "Oper System Fundamentals (GNU/Linux)", "credits": 4, "contact_hours": 5, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 18}, "CST8109": {"code": "CST8109", "name": "Network Programming", "credits": 4, "contact_hours": 5, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 20}, "CST8116": {"code": "CST8116", "name": "Introduction to Comp. Programming", "credits": 4, "contact_hours": 5, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 80}, "CST8117": {"code": "CST8117", "name": "Cross-Platform Design", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 31}, "CST8215": {"code": "CST8215", "name": "Intro to Database", "credits": 5, "contact_hours": 5, "session_type": "lecture+lab", "lecture_hrs_per_week": 5, "lab_hrs_per_week": 1, "past_enrollment": 72}, "CST8276": {"code": "CST8276", "name": "Advanced Database Topics", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 24}, "CST8277": {"code": "CST8277", "name": "Enterprise Application Programming", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 8}, "CST8283": {"code": "CST8283", "name": "Business Programming", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 28}, "CST8284": {"code": "CST8284", "name": "Object-Oriented Programming (Java)", "credits": 4, "contact_hours": 5, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 18}, "CST8285": {"code": "CST8285", "name": "Web Programming", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 24}, "CST8288": {"code": "CST8288", "name": "Obj-Orient Pgm with Design Patterns", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 16}, "CST8300": {"code": "CST8300", "name": "Achieving Success in Changing Environment", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 36}, "CST8333": {"code": "CST8333", "name": "Programming Language Research Project", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 20}, "CST8334": {"code": "CST8334", "name": "Software Development Project", "credits": 4, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 18}, "ECO2200": {"code": "ECO2200", "name": "Economic Issues", "credits": 4, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 23}, "ENL001": {"code": "ENL001", "name": "English for Foundation 1", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 5}, "ENL002": {"code": "ENL002", "name": "English for Foundation 2", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 155}, "ENL1813": {"code": "ENL1813", "name": "Communications I", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 109}, "ENL1823": {"code": "ENL1823", "name": "Communications II", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 30}, "FIN2230": {"code": "FIN2230", "name": "Business Finance", "credits": 4, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 18}, "GECU4100": {"code": "GECU4100", "name": "Technologies, Cultures & Societies", "credits": 1, "contact_hours": 2, "session_type": "lecture+lab", "lecture_hrs_per_week": 1, "lab_hrs_per_week": 1, "past_enrollment": 4}, "GED0022": {"code": "GED0022", "name": "Positive Psychology", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 14}, "GED2234": {"code": "GED2234", "name": "Contemporary Ethical Issues", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 8}, "GEEC3150": {"code": "GEEC3150", "name": "Principles of Microeconomics", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 18}, "GEEC3250": {"code": "GEEC3250", "name": "Principles of Macroeconomics", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "GEN2003": {"code": "GEN2003", "name": "Healthy Lifestyle", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 49}, "GEPH3033": {"code": "GEPH3033", "name": "Professional Integrity & Ethics", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 12}, "ICT001": {"code": "ICT001", "name": "Computer Skills for Foundation 1", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 5}, "ICT002": {"code": "ICT002", "name": "Computer Skills for Foundation 2", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 155}, "LAW1702": {"code": "LAW1702", "name": "Business Law", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 7}, "MAT001": {"code": "MAT001", "name": "Core Math for Foundation 1", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 5}, "MAT002": {"code": "MAT002", "name": "Core Math for Foundation 2", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 155}, "MAT8001": {"code": "MAT8001", "name": "Technical Maths for Computer Science", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 50}, "MGT2008": {"code": "MGT2008", "name": "Business Plan Applied", "credits": 3, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 5}, "MGT2201": {"code": "MGT2201", "name": "Business Fundamentals", "credits": 4, "contact_hours": 3, "session_type": "lecture+lab", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 1, "past_enrollment": 88}, "MGT2202": {"code": "MGT2202", "name": "Emerging Technology for Business", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}, "MGT2203": {"code": "MGT2203", "name": "Financial Mgmt for Small Businesses", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 5}, "MGT2204": {"code": "MGT2204", "name": "Social Innovation", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 10}, "MGT2223": {"code": "MGT2223", "name": "Career Preparation for Entrepreneurs", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "MGT2224": {"code": "MGT2224", "name": "Managing for Business Success", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 5}, "MGT2225": {"code": "MGT2225", "name": "Project Mgmt for Business Start-ups", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 9}, "MGT2228": {"code": "MGT2228", "name": "Global Entrepreneurship", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "MGT2232": {"code": "MGT2232", "name": "Entrepreneurship & Innovation", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 22}, "MKT0018": {"code": "MKT0018", "name": "Marketing for Mgmt & Entrep", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 18}, "MKT0019": {"code": "MKT0019", "name": "Marketing Research", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}, "MKT2205": {"code": "MKT2205", "name": "Marketing Foundations", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 3}, "MKT2207": {"code": "MKT2207", "name": "Marketing Channels", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 3}, "MKT2208": {"code": "MKT2208", "name": "Digital Marketing", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 2}, "MKT2213": {"code": "MKT2213", "name": "Skills for the Workplace", "credits": 2, "contact_hours": 2, "session_type": "lecture", "lecture_hrs_per_week": 2, "lab_hrs_per_week": 0, "past_enrollment": 7}, "MKT2216": {"code": "MKT2216", "name": "Skills Transferable to Bus", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 16}, "MKT2218": {"code": "MKT2218", "name": "Digital Marketing", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}, "MKT2260": {"code": "MKT2260", "name": "Industry Marketing Plan", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 2}, "MKT2261": {"code": "MKT2261", "name": "Mktg Plan Project Field Work", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 2}, "MKT2283": {"code": "MKT2283", "name": "Sales Management", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 5}, "MKT2285": {"code": "MKT2285", "name": "Marketing Research", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 3}, "MKT2291": {"code": "MKT2291", "name": "Integrated Marketing Communications I", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 6}, "MKT2292": {"code": "MKT2292", "name": "Integrated Marketing Communications II", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 2}, "MKT2206": {"code": "MKT2206", "name": "Marketing Principles", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 4}, "MKT2217": {"code": "MKT2217", "name": "Consumer Behaviour", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 3}, "MKT2282": {"code": "MKT2282", "name": "Business Communications", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 4}, "QUA0002": {"code": "QUA0002", "name": "Basic Mathematics", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 9}, "QUA0008": {"code": "QUA0008", "name": "Statistics", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 3}, "QUA2210": {"code": "QUA2210", "name": "Business Mathematics", "credits": 4, "contact_hours": 4, "session_type": "lecture", "lecture_hrs_per_week": 4, "lab_hrs_per_week": 0, "past_enrollment": 66}, "RET2213": {"code": "RET2213", "name": "eCommerce", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 7}, "RET2214": {"code": "RET2214", "name": "Retail Management", "credits": 3, "contact_hours": 4, "session_type": "lecture+lab", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 1, "past_enrollment": 9}, "RET2223": {"code": "RET2223", "name": "Professional Selling", "credits": 3, "contact_hours": 3, "session_type": "lecture", "lecture_hrs_per_week": 3, "lab_hrs_per_week": 0, "past_enrollment": 6}};
+var INST_NAMES   = {"INS001": "Mrs. Anusha Zulfiqar Ali Shalwani", "INS002": "Dr. Fahad Awad Aber S. Al-Enezi", "INS003": "Dr. Omar Jaber Radwan Aburumman", "INS004": "Mr. Mohamed Awad Farhan Sanhat", "INS005": "Ms. Farah Faisal Fahad Al-Yaqout", "INS006": "Mr. Eisa Adel Hasan H. Shamsah", "INS007": "Ms. Maria I. Al-Sendah", "INS008": "Dr. Adel Thamer Shaher", "INS009": "Naser Mohammad S. Al-Selahi", "INS010": "Mrs. Rana Khan Moh'd Ishaque", "INS011": "Hussain Jassim Mohammad Alali", "INS012": "Mrs. Huda Ahmad Amin Abu Mousa", "INS013": "Sheena Ray Varghese", "INS014": "Mr. Mohamad Ahmad Yousuf Dawaoud", "INS015": "Ms. Bshaier Jasem Mohamad Al-Buloshi", "INS016": "Mr. Saad Ali Husain Kakouli", "INS017": "Sulaiman Mohammad Alraqum", "INS018": "Dr. Ahad Al-Otaibi", "INS019": "Dr. Seyed Ghasem Saatchi", "INS020": "Tareq Ahmad Ali Al-Zayyat", "INS021": "Mr. Roshdi Hussam Roshdi Al-Debeki", "INS022": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,", "INS023": "Mr. Omar Samir El Borno", "INS024": "Ms. Abrar Maneef  Al-Enezi"};
+
+// ── STATE ─────────────────────────────────────────────────
+var courses    = {};
+var changes    = {};
+var importData = [];
+var labChip    = 'all';
+
+// ── HELPERS ───────────────────────────────────────────────
+function dept(code) {
+    var cs  = ['CST','CSIT','MAT8'];
+    var gen = ['ENL','GED','GEN','GECU','GEPH','ICT','MAT0'];
+    var up  = code.toUpperCase();
+    for (var i = 0; i < cs.length;  i++) { if (up.indexOf(cs[i])  === 0) return 'cs'; }
+    for (var j = 0; j < gen.length; j++) { if (up.indexOf(gen[j]) === 0) return 'gen'; }
+    return 'bus';
+}
+function deptLabel(code) {
+    var d = dept(code);
+    return d === 'cs' ? 'CS' : d === 'gen' ? 'Gen Ed' : 'Business';
+}
+function instructor(code) {
+    var hod = JSON.parse(localStorage.getItem('cck_hod_assignments') || '{}');
+    var ids = Object.keys(hod);
+    for (var i = 0; i < ids.length; i++) {
+        if (hod[ids[i]].indexOf(code) !== -1) return INST_NAMES[ids[i]] || ids[i];
+    }
+    return 'TBA';
+}
+function badge(t) {
+    if (t === 'lecture')    return '<span class="badge bl">Lecture</span>';
+    if (t === 'lab')        return '<span class="badge blab">Lab Only</span>';
+    return '<span class="badge bb">Lec+Lab</span>';
+}
+function el(id) { return document.getElementById(id); }
+
+// ── LOGIN ─────────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+});
+function doLogin() {
+    // Login happens on the main page (server-checked); send the user there
+    window.location.href = '/';
+    return;
+    var u = el('lu').value.trim();
+    var p = el('lp').value.trim();
+    if (false) {
+        el('login-screen').classList.add('hidden');
+        el('app').classList.add('visible');
+        el('lerr').style.display = 'none';
+        localStorage.setItem('cck_nehad_authed', '1');
+        init();
+    } else {
+        el('lerr').style.display = 'block';
+        el('lp').value = '';
+    }
+}
+function doLogout() {
+    localStorage.removeItem('cck_nehad_authed');
+    el('login-screen').classList.remove('hidden');
+    el('app').classList.remove('visible');
+    el('lu').value = '';
+    el('lp').value = '';
+}
+
+// ── INIT ──────────────────────────────────────────────────
+function init() {
+    courses = JSON.parse(JSON.stringify(BASE_COURSES));
+    try {
+        var saved = localStorage.getItem('cck_course_rules_data');
+        if (saved) Object.assign(courses, JSON.parse(saved));
+    } catch(e) {}
+    loadRules();
+    renderAll();
+    updateStats();
+    drawDonut();
+    drawBars();
+    renderModified();
+    updateRulesSummary();
+    var ts = localStorage.getItem('cck_course_rules_ts');
+    if (ts) {
+        el('save-lbl').textContent = 'Saved ' + new Date(parseInt(ts)).toLocaleString();
+        el('save-lbl').classList.add('saved');
+    }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────
+function goTo(page) {
+    var links = document.querySelectorAll('.sb-link');
+    for (var i = 0; i < links.length; i++) links[i].classList.remove('on');
+    var pages = document.querySelectorAll('.page');
+    for (var j = 0; j < pages.length; j++) pages[j].classList.remove('on');
+    var nav = document.querySelector('[data-page="' + page + '"]');
+    if (nav) nav.classList.add('on');
+    var pg = el('pg-' + page);
+    if (pg) pg.classList.add('on');
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function renderAll() {
+    renderTable('all');
+    renderTable('lec');
+    renderTable('lab');
+}
+
+function renderTable(mode) {
+    var q     = (el('s-' + mode) || {value:''}).value.toLowerCase();
+    var typeF = mode === 'all' ? (el('ft-all') || {value:''}).value : '';
+    var deptF = mode === 'lec' ? (el('fd-lec') || {value:''}).value
+                               : mode === 'all' ? (el('fd-all') || {value:''}).value : '';
+    var list  = Object.values(courses);
+
+    if (mode === 'lec') list = list.filter(function(c){ return c.session_type === 'lecture'; });
+    if (mode === 'lab') list = list.filter(function(c){ return c.session_type !== 'lecture'; });
+    if (mode === 'lab' && labChip !== 'all') {
+        list = list.filter(function(c){ return c.session_type === labChip; });
+    }
+    if (q)     list = list.filter(function(c){ return (c.code+c.name).toLowerCase().indexOf(q) !== -1; });
+    if (typeF) list = list.filter(function(c){ return c.session_type === typeF; });
+    if (deptF) list = list.filter(function(c){ return dept(c.code) === deptF; });
+    list.sort(function(a,b){ return a.code.localeCompare(b.code); });
+
+    el('cnt-' + mode).textContent = list.length + ' course' + (list.length !== 1 ? 's' : '');
+
+    var rows = list.map(function(c) {
+        var ch    = !!changes[c.code];
+        var inst  = instructor(c.code);
+        var isLec = c.session_type === 'lecture';
+        var isLab = c.session_type === 'lab';
+        var chg   = ch ? ' class="chg"' : '';
+        var dot   = ch ? '<span class="dot"></span>' : '';
+        var code  = c.code; // local var for inline handlers
+
+        if (mode === 'all') {
+            return '<tr' + chg + '>'
+                + '<td><span class="code">' + code + '</span>' + dot + '</td>'
+                + '<td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + c.name + '</td>'
+                + '<td><small style="font-weight:600;color:var(--ink3)">' + deptLabel(code) + '</small></td>'
+                + '<td>' + badge(c.session_type) + '</td>'
+                + '<td><input class="ni" type="number" min="0" max="10" step=".5" value="' + c.lecture_hrs_per_week + '" onchange="fc(\'' + code + '\',\'lecture_hrs_per_week\',+this.value)"' + (isLab?' disabled':'') + '></td>'
+                + '<td><input class="ni" type="number" min="0" max="10" step=".5" value="' + c.lab_hrs_per_week + '" onchange="fc(\'' + code + '\',\'lab_hrs_per_week\',+this.value)"' + (isLec?' disabled':'') + '></td>'
+                + '<td><input class="ni" type="number" min="1" max="10" value="' + c.credits + '" onchange="fc(\'' + code + '\',\'credits\',+this.value)"></td>'
+                + '<td style="font-size:11px;color:var(--ink3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + inst + '</td>'
+                + '<td><button class="ebtn" onclick="openEdit(\'' + code + '\')">Edit</button></td>'
+                + '</tr>';
+        }
+        if (mode === 'lec') {
+            return '<tr' + chg + '>'
+                + '<td><span class="code">' + code + '</span>' + dot + '</td>'
+                + '<td>' + c.name + '</td>'
+                + '<td><small style="font-weight:600;color:var(--ink3)">' + deptLabel(code) + '</small></td>'
+                + '<td><input class="ni" type="number" min="0" max="10" step=".5" value="' + c.lecture_hrs_per_week + '" onchange="fc(\'' + code + '\',\'lecture_hrs_per_week\',+this.value)"></td>'
+                + '<td><input class="ni" type="number" min="1" max="10" value="' + c.credits + '" onchange="fc(\'' + code + '\',\'credits\',+this.value)"></td>'
+                + '<td style="font-size:11px;color:var(--ink3)">' + inst + '</td>'
+                + '<td><button class="ebtn" onclick="openEdit(\'' + code + '\')">Edit</button></td>'
+                + '</tr>';
+        }
+        // lab mode
+        return '<tr' + chg + '>'
+            + '<td><span class="code">' + code + '</span>' + dot + '</td>'
+            + '<td>' + c.name + '</td>'
+            + '<td><small style="font-weight:600;color:var(--ink3)">' + deptLabel(code) + '</small></td>'
+            + '<td>' + badge(c.session_type) + '</td>'
+            + '<td><input class="ni" type="number" min="0" max="10" step=".5" value="' + c.lecture_hrs_per_week + '" onchange="fc(\'' + code + '\',\'lecture_hrs_per_week\',+this.value)"' + (isLab?' disabled':'') + '></td>'
+            + '<td><input class="ni" type="number" min="0" max="10" step=".5" value="' + c.lab_hrs_per_week + '" onchange="fc(\'' + code + '\',\'lab_hrs_per_week\',+this.value)"></td>'
+            + '<td><input class="ni" type="number" min="1" max="10" value="' + c.credits + '" onchange="fc(\'' + code + '\',\'credits\',+this.value)"></td>'
+            + '<td style="font-size:11px;color:var(--ink3)">' + inst + '</td>'
+            + '<td><button class="ebtn" onclick="openEdit(\'' + code + '\')">Edit</button></td>'
+            + '</tr>';
+    }).join('');
+
+    el('body-' + mode).innerHTML = rows || '<tr><td colspan="9" style="text-align:center;padding:22px;color:var(--ink3)">No matching courses.</td></tr>';
+}
+
+// ── FILTERS ───────────────────────────────────────────────
+function setLabChip(val) {
+    labChip = val;
+    el('ch-all').className  = 'chip' + (val === 'all' ? ' on' : '');
+    el('ch-lab').className  = 'chip' + (val === 'lab' ? ' onlab' : '');
+    el('ch-both').className = 'chip' + (val === 'lecture+lab' ? ' onboth' : '');
+    renderTable('lab');
+}
+
+// ── FIELD CHANGE ──────────────────────────────────────────
+function fc(code, field, val) {
+    if (!changes[code]) changes[code] = {};
+    changes[code][field] = val;
+    courses[code][field] = val;
+    updateStats();
+    renderModified();
+}
+
+// ── SAVE ALL ──────────────────────────────────────────────
+function saveAll() {
+    var keys = Object.keys(changes);
+    if (!keys.length) { toast('No changes to save', 'info'); return; }
+    localStorage.setItem('cck_course_rules_data', JSON.stringify(courses));
+    localStorage.setItem('cck_nehad_rules', JSON.stringify({ courses: courses, savedAt: Date.now(), savedBy: 'nehad' }));
+    var credMap = {};
+    Object.values(courses).forEach(function(c) { credMap[c.code] = c.credits; });
+    localStorage.setItem('cck_credits_nehad', JSON.stringify(credMap));
+    var ts = Date.now();
+    localStorage.setItem('cck_course_rules_ts', String(ts));
+    var lbl = el('save-lbl');
+    lbl.textContent = 'Saved ' + new Date(ts).toLocaleString();
+    lbl.classList.add('saved');
+    keys.forEach(function(code) {
+        var row = document.querySelector('[id*="' + code + '"]');
+        if (row) row.classList.remove('chg');
+    });
+    var cnt = keys.length;
+    changes = {};
+    renderModified();
+    toast(cnt + ' course' + (cnt !== 1 ? 's' : '') + ' saved', 'ok');
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function updateStats() {
+    var list  = Object.values(courses);
+    var lec   = list.filter(function(c){ return c.session_type === 'lecture'; }).length;
+    var lab   = list.filter(function(c){ return c.session_type === 'lab'; }).length;
+    var both  = list.filter(function(c){ return c.session_type === 'lecture+lab'; }).length;
+    el('ds-total').textContent = list.length;
+    el('ds-lec').textContent   = lec;
+    el('ds-lab').textContent   = lab;
+    el('ds-both').textContent  = both;
+    el('nb-total').textContent = list.length;
+    el('nb-lec').textContent   = lec;
+    el('nb-lab').textContent   = lab + both;
+}
+
+// ── DONUT ─────────────────────────────────────────────────
+function drawDonut() {
+    var list  = Object.values(courses);
+    var lec   = list.filter(function(c){ return c.session_type === 'lecture'; }).length;
+    var lab   = list.filter(function(c){ return c.session_type === 'lab'; }).length;
+    var both  = list.filter(function(c){ return c.session_type === 'lecture+lab'; }).length;
+    var total = list.length || 1;
+    var c     = el('donut');
+    var ctx   = c.getContext('2d');
+    var cx = 75, cy = 75, r = 58;
+    ctx.clearRect(0, 0, 150, 150);
+    var segs = [
+        { v: lec,  col: '#1e3a8a', lbl: 'Lecture' },
+        { v: lab,  col: '#7c2d12', lbl: 'Lab Only' },
+        { v: both, col: '#14532d', lbl: 'Lec+Lab' }
+    ];
+    var start = -Math.PI / 2;
+    segs.forEach(function(s) {
+        if (!s.v) return;
+        var a = (s.v / total) * Math.PI * 2;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, start, start + a);
+        ctx.closePath(); ctx.fillStyle = s.col; ctx.fill();
+        start += a;
+    });
+    ctx.beginPath(); ctx.arc(cx, cy, r - 18, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.fillStyle = '#1a1a1a'; ctx.textAlign = 'center';
+    ctx.font = 'bold 15px IBM Plex Sans,sans-serif';
+    ctx.fillText(total, cx, cy + 3);
+    ctx.fillStyle = '#888'; ctx.font = '10px IBM Plex Sans,sans-serif';
+    ctx.fillText('courses', cx, cy + 14);
+    var pct = function(v) { return Math.round(v / total * 100); };
+    el('dlegend').innerHTML = segs.map(function(s) {
+        return '<div class="dl-row"><div class="dl-dot" style="background:' + s.col + '"></div>'
+            + '<span class="dl-lbl">' + s.lbl + '</span>'
+            + '<span class="dl-val">' + s.v + ' (' + pct(s.v) + '%)</span></div>';
+    }).join('');
+}
+
+// ── BARS ──────────────────────────────────────────────────
+function drawBars() {
+    var buckets = {};
+    Object.values(courses).forEach(function(c) { buckets[c.credits] = (buckets[c.credits] || 0) + 1; });
+    var keys = Object.keys(buckets).sort(function(a,b){ return b - a; });
+    var max  = 1;
+    keys.forEach(function(k){ if (buckets[k] > max) max = buckets[k]; });
+    var colors = {'1':'#7c2d12','2':'#c8973a','3':'#1e3a8a','4':'#14532d','5':'#6d28d9'};
+    el('bars').innerHTML = keys.map(function(cr) {
+        var w   = Math.round(buckets[cr] / max * 100);
+        var col = colors[cr] || '#6b7280';
+        return '<div class="bar-row">'
+            + '<div class="bar-lbl">' + cr + 'cr</div>'
+            + '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%;background:' + col + '"></div></div>'
+            + '<div class="bar-num">' + buckets[cr] + '</div>'
+            + '</div>';
+    }).join('');
+}
+
+// ── MODIFIED ──────────────────────────────────────────────
+function renderModified() {
+    var keys  = Object.keys(changes);
+    var badge = el('mod-cnt');
+    var body  = el('mod-body');
+    if (!keys.length) {
+        badge.textContent = 'No changes yet';
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--ink3)">No unsaved changes.</td></tr>';
+        return;
+    }
+    badge.textContent = keys.length + ' unsaved';
+    body.innerHTML = keys.map(function(code) {
+        var c = courses[code];
+        return '<tr>'
+            + '<td><span class="code">' + code + '</span></td>'
+            + '<td style="font-size:12px">' + c.name + '</td>'
+            + '<td>' + badge(c.session_type) + '</td>'
+            + '<td>' + c.lecture_hrs_per_week + 'h</td>'
+            + '<td>' + c.lab_hrs_per_week + 'h</td>'
+            + '<td>' + c.credits + ' cr</td>'
+            + '</tr>';
+    }).join('');
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────
+function openEdit(code) {
+    var c = courses[code];
+    el('m-code').value    = code;
+    el('m-title').textContent = 'Edit: ' + code;
+    el('m-sub').textContent   = c.name;
+    el('m-type').value    = c.session_type;
+    el('m-lec').value     = c.lecture_hrs_per_week;
+    el('m-lab').value     = c.lab_hrs_per_week;
+    el('m-cr').value      = c.credits;
+    el('m-dur').value     = c.duration || 75;
+    el('m-notes').value   = c.notes || '';
+    onTypeChange();
+    el('edit-modal').classList.add('open');
+}
+function closeEdit() { el('edit-modal').classList.remove('open'); }
+function onTypeChange() {
+    var t = el('m-type').value;
+    el('m-lec').disabled = (t === 'lab');
+    el('m-lab').disabled = (t === 'lecture');
+    if (t === 'lecture') el('m-lab').value = 0;
+    if (t === 'lab')     el('m-lec').value = 0;
+}
+function saveEdit() {
+    var code = el('m-code').value;
+    var upd  = {
+        session_type:         el('m-type').value,
+        lecture_hrs_per_week: +el('m-lec').value,
+        lab_hrs_per_week:     +el('m-lab').value,
+        credits:              +el('m-cr').value,
+        duration:             +el('m-dur').value,
+        notes:                 el('m-notes').value
+    };
+    Object.assign(courses[code], upd);
+    if (!changes[code]) changes[code] = {};
+    Object.assign(changes[code], upd);
+    renderAll(); updateStats(); drawDonut(); renderModified();
+    closeEdit();
+    toast(code + ' updated — click Save All to persist', 'ok');
+}
+
+// ── BULK EDIT ─────────────────────────────────────────────
+function openBulk() {
+    el('bulk-modal').classList.add('open');
+    updateBulkCount();
+}
+function closeBulk() { el('bulk-modal').classList.remove('open'); }
+function updateBulkCount() {
+    var target      = el('bt').value;
+    var typeTargets = ['lecture','lab','lecture+lab'];
+    var deptTargets = ['cs','bus','gen'];
+    var list        = Object.values(courses);
+    if (typeTargets.indexOf(target) !== -1) {
+        list = list.filter(function(c){ return c.session_type === target; });
+    } else if (deptTargets.indexOf(target) !== -1) {
+        list = list.filter(function(c){ return dept(c.code) === target; });
+    }
+    el('b-cnt').textContent = 'Affects ' + list.length + ' course' + (list.length !== 1 ? 's' : '') + '.';
+}
+function applyBulk() {
+    var target      = el('bt').value;
+    var newLec      = el('b-lec').value;
+    var newLab      = el('b-lab').value;
+    var typeTargets = ['lecture','lab','lecture+lab'];
+    var deptTargets = ['cs','bus','gen'];
+    var list        = Object.values(courses);
+    if (typeTargets.indexOf(target) !== -1) {
+        list = list.filter(function(c){ return c.session_type === target; });
+    } else if (deptTargets.indexOf(target) !== -1) {
+        list = list.filter(function(c){ return dept(c.code) === target; });
+    }
+    var cnt = 0;
+    list.forEach(function(c) {
+        var ch = {};
+        if (newLec !== '') ch.lecture_hrs_per_week = +newLec;
+        if (newLab !== '') ch.lab_hrs_per_week     = +newLab;
+        if (Object.keys(ch).length) {
+            Object.assign(courses[c.code], ch);
+            if (!changes[c.code]) changes[c.code] = {};
+            Object.assign(changes[c.code], ch);
+            cnt++;
+        }
+    });
+    closeBulk();
+    renderAll(); updateStats(); renderModified();
+    toast('Bulk update applied to ' + cnt + ' courses — click Save All to persist', 'ok');
+}
+
+// ── SESSION RULES ─────────────────────────────────────────
+var ruleIds = {
+    'r-lec-min':'lecMin', 'r-lec-max':'lecMax', 'r-lec-def':'lecDef',
+    'r-lec-early':'lecEarly', 'r-lec-late':'lecLate',
+    'r-lab-min':'labMin', 'r-lab-max':'labMax', 'r-lab-def':'labDef',
+    'r-lab-early':'labEarly', 'r-lab-late':'labLate',
+    'r-wk-lec':'wkLec', 'r-wk-lab':'wkLab',
+    'r-wk-cl':'wkCombLec', 'r-wk-clab':'wkCombLab'
+};
+function loadRules() {
+    var r = JSON.parse(localStorage.getItem('cck_session_rules') || '{}');
+    Object.keys(ruleIds).forEach(function(id) {
+        if (r[ruleIds[id]] !== undefined) el(id).value = r[ruleIds[id]];
+    });
+    if (Object.keys(r).length) {
+        ['lec','lab','wk'].forEach(function(k){ setRst(k,'saved','Saved'); });
+    }
+}
+function markDirty() {
+    ['lec','lab','wk'].forEach(function(k){ setRst(k,'dirty','Unsaved'); });
+}
+function setRst(k,cls,txt) {
+    var e = el(k + '-rst');
+    if (e) { e.className = 'rst ' + cls; e.textContent = txt; }
+}
+function saveRules() {
+    var r = {};
+    Object.keys(ruleIds).forEach(function(id) {
+        var v = el(id).value;
+        r[ruleIds[id]] = (id.indexOf('early') !== -1 || id.indexOf('late') !== -1) ? v : +v;
+    });
+    r.savedAt = Date.now();
+    localStorage.setItem('cck_session_rules', JSON.stringify(r));
+    localStorage.setItem('cck_course_rules',  JSON.stringify(r));
+    ['lec','lab','wk'].forEach(function(k){ setRst(k,'saved','Saved'); });
+    updateRulesSummary();
+    toast('Session rules saved', 'ok');
+}
+function updateRulesSummary() {
+    var r  = JSON.parse(localStorage.getItem('cck_session_rules') || '{}');
+    var e  = el('rules-summary');
+    if (!Object.keys(r).length) {
+        e.innerHTML = '<em style="color:var(--ink3)">No rules saved yet.</em>';
+        return;
+    }
+    e.innerHTML =
+        '<b>Lecture:</b> ' + (r.lecDef||75) + ' min default, range ' + (r.lecMin||75) + '-' + (r.lecMax||90) + ' min, ' + (r.lecEarly||'08:00') + ' to ' + (r.lecLate||'19:00') + '<br>'
+        + '<b>Lab:</b> ' + (r.labDef||150) + ' min default, range ' + (r.labMin||120) + '-' + (r.labMax||180) + ' min, ' + (r.labEarly||'08:00') + ' to ' + (r.labLate||'20:00') + '<br>'
+        + '<b>Weekly:</b> Lecture-only ' + (r.wkLec||3) + 'h, Lab-only ' + (r.wkLab||3) + 'h, Combined lec ' + (r.wkCombLec||3) + 'h + lab ' + (r.wkCombLab||1) + 'h<br>'
+        + '<small style="color:var(--ink3)">Last saved: ' + (r.savedAt ? new Date(r.savedAt).toLocaleString() : 'never') + '</small>';
+}
+
+// ── EXPORT ────────────────────────────────────────────────
+function getInstMap() {
+    var hod = JSON.parse(localStorage.getItem('cck_hod_assignments') || '{}');
+    var map = {};
+    Object.keys(hod).forEach(function(iid) {
+        hod[iid].forEach(function(code) { map[code] = INST_NAMES[iid] || iid; });
+    });
+    return map;
+}
+function exportCSV() {
+    var map  = getInstMap();
+    var rows = Object.values(courses).sort(function(a,b){ return a.code.localeCompare(b.code); });
+    var out  = ['Code,Name,Department,Type,Instructor,Lec_hrs,Lab_hrs,Credits'];
+    rows.forEach(function(c) {
+        out.push([c.code, '"' + c.name.replace(/"/g,'""') + '"', deptLabel(c.code),
+                  c.session_type, map[c.code]||'TBA',
+                  c.lecture_hrs_per_week, c.lab_hrs_per_week, c.credits].join(','));
+    });
+    dlBlob(out.join('\n'), 'text/csv', 'cck_schedule.csv');
+    toast('CSV exported', 'ok');
+}
+function exportExcel(mode) {
+    var map  = getInstMap();
+    var list = Object.values(courses).sort(function(a,b){ return a.code.localeCompare(b.code); });
+    if (mode === 'lab') list = list.filter(function(c){ return c.session_type !== 'lecture'; });
+    var hdr  = ['Code','Name','Department','Type','Lec_hrs/wk','Lab_hrs/wk','Credits','Instructor'];
+    var rows = list.map(function(c) {
+        return [c.code, c.name, deptLabel(c.code), c.session_type,
+                c.lecture_hrs_per_week, c.lab_hrs_per_week, c.credits, map[c.code]||'TBA'];
+    });
+    dlBlob(buildXLSX([hdr].concat(rows), 'Courses'),
+           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+           'cck_courses_' + mode + '.xlsx');
+    toast('Excel exported (' + list.length + ' courses)', 'ok');
+}
+function exportRulesExcel() {
+    var r    = JSON.parse(localStorage.getItem('cck_session_rules') || '{}');
+    var data = [
+        ['Setting','Value','Notes'],
+        ['Lecture Min (min)', r.lecMin||75, ''],
+        ['Lecture Max (min)', r.lecMax||90, ''],
+        ['Lecture Default (min)', r.lecDef||75, ''],
+        ['Lecture Earliest', r.lecEarly||'08:00', ''],
+        ['Lecture Latest End', r.lecLate||'19:00', ''],
+        ['Lab Min (min)', r.labMin||120, ''],
+        ['Lab Max (min)', r.labMax||180, ''],
+        ['Lab Default (min)', r.labDef||150, ''],
+        ['Lab Earliest', r.labEarly||'08:00', ''],
+        ['Lab Latest End', r.labLate||'20:00', ''],
+        ['Weekly Lec-only (hrs)', r.wkLec||3, ''],
+        ['Weekly Lab-only (hrs)', r.wkLab||3, ''],
+        ['Weekly Combined Lec (hrs)', r.wkCombLec||3, ''],
+        ['Weekly Combined Lab (hrs)', r.wkCombLab||1, ''],
+        ['Saved At', r.savedAt ? new Date(r.savedAt).toISOString() : 'Not saved', '']
+    ];
+    dlBlob(buildXLSX(data,'Session Rules'),
+           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+           'cck_session_rules.xlsx');
+    toast('Rules exported', 'ok');
+}
+
+// ── IMPORT ────────────────────────────────────────────────
+function handleDrop(e) {
+    e.preventDefault();
+    el('drop-zone').classList.remove('drag');
+    if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+}
+function handleFile(inp) {
+    if (inp.files[0]) processFile(inp.files[0]);
+}
+function processFile(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var lines = e.target.result.split('\n').filter(function(l){ return l.trim(); });
+        var hdrs  = lines[0].split(',').map(function(h){ return h.trim().replace(/^"|"$/g,''); });
+        var rows  = lines.slice(1).map(function(l) {
+            var vals=[],cur='',inQ=false;
+            for (var i=0; i<l.length; i++) {
+                if (l[i]==='"') inQ=!inQ;
+                else if (l[i]===',' && !inQ) { vals.push(cur.trim()); cur=''; }
+                else cur+=l[i];
+            }
+            vals.push(cur.trim());
+            var obj={};
+            hdrs.forEach(function(h,i){ obj[h]=vals[i]||''; });
+            return obj;
+        });
+        importData = [];
+        var preview = [];
+        rows.forEach(function(row) {
+            var code = row.Code || row.code;
+            if (!code || !courses[code]) return;
+            var c=courses[code], ch={};
+            var nType = row.Type||row.type;
+            var nLec  = row.Lec_hrs!==undefined && row.Lec_hrs!=='' ? +row.Lec_hrs : undefined;
+            var nLab  = row.Lab_hrs!==undefined && row.Lab_hrs!=='' ? +row.Lab_hrs : undefined;
+            var nCr   = row.Credits!==undefined && row.Credits!=='' ? +row.Credits  : undefined;
+            if (nType && nType!==c.session_type)                       ch.session_type=nType;
+            if (nLec!==undefined && nLec!==c.lecture_hrs_per_week)     ch.lecture_hrs_per_week=nLec;
+            if (nLab!==undefined && nLab!==c.lab_hrs_per_week)         ch.lab_hrs_per_week=nLab;
+            if (nCr!==undefined  && nCr!==c.credits)                   ch.credits=nCr;
+            if (Object.keys(ch).length) {
+                importData.push({code:code,ch:ch,old:{session_type:c.session_type,lecture_hrs_per_week:c.lecture_hrs_per_week,lab_hrs_per_week:c.lab_hrs_per_week,credits:c.credits}});
+                preview.push({code:code,name:c.name,ch:ch,old:{session_type:c.session_type,lecture_hrs_per_week:c.lecture_hrs_per_week,lab_hrs_per_week:c.lab_hrs_per_week,credits:c.credits}});
+            }
+        });
+        el('imp-cnt').textContent = importData.length;
+        el('imp-body').innerHTML  = preview.map(function(r) {
+            return '<tr>'
+                + '<td><span class="code">' + r.code + '</span></td>'
+                + '<td style="font-size:12px">' + r.name + '</td>'
+                + '<td>' + r.old.session_type + '</td>'
+                + '<td><b>' + (r.ch.session_type||r.old.session_type) + '</b></td>'
+                + '<td>' + r.old.lecture_hrs_per_week + '</td>'
+                + '<td><b>' + (r.ch.lecture_hrs_per_week!==undefined ? r.ch.lecture_hrs_per_week : r.old.lecture_hrs_per_week) + '</b></td>'
+                + '<td>' + r.old.lab_hrs_per_week + '</td>'
+                + '<td><b>' + (r.ch.lab_hrs_per_week!==undefined ? r.ch.lab_hrs_per_week : r.old.lab_hrs_per_week) + '</b></td>'
+                + '<td>' + r.old.credits + '</td>'
+                + '<td><b>' + (r.ch.credits!==undefined ? r.ch.credits : r.old.credits) + '</b></td>'
+                + '</tr>';
+        }).join('') || '<tr><td colspan="10" style="text-align:center;padding:18px;color:var(--ink3)">No changes detected.</td></tr>';
+        el('imp-preview').style.display = 'block';
+        toast(importData.length ? importData.length + ' changes ready to preview' : 'No changes found', importData.length ? 'info' : 'err');
+    };
+    reader.readAsText(file);
+}
+function cancelImport() {
+    importData = [];
+    el('imp-preview').style.display = 'none';
+    el('imp-file').value = '';
+}
+function applyImport() {
+    importData.forEach(function(item) {
+        Object.assign(courses[item.code], item.ch);
+        if (!changes[item.code]) changes[item.code] = {};
+        Object.assign(changes[item.code], item.ch);
+    });
+    var cnt = importData.length;
+    cancelImport();
+    renderAll(); updateStats(); drawDonut(); renderModified();
+    toast(cnt + ' courses imported — click Save All to persist', 'ok');
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function toast(msg, type) {
+    if (!type) type = 'ok';
+    var wrap = el('twrap');
+    var div  = document.createElement('div');
+    div.className = 'toast ' + type;
+    var icon = (type === 'ok')
+        ? '<polyline points="20 6 9 17 4 12"/>'
+        : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    div.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' + icon + '</svg>' + msg;
+    wrap.appendChild(div);
+    requestAnimationFrame(function() { div.classList.add('show'); });
+    setTimeout(function() {
+        div.classList.remove('show');
+        setTimeout(function() { div.remove(); }, 300);
+    }, 3400);
+}
+
+// ── DOWNLOAD ──────────────────────────────────────────────
+function dlBlob(data, mime, filename) {
+    var blob = new Blob([data], {type: mime});
+    var a    = document.createElement('a');
+    a.href   = URL.createObjectURL(blob);
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);
+}
+
+// ── XLSX BUILDER ──────────────────────────────────────────
+function buildXLSX(data, sheetName) {
+    function esc(s) {
+        return String(s)
+            .replace(/[\uD800-\uDFFF]/g,'')
+            .replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD]/g,'')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function col(i) {
+        var s='',c=i;
+        do { s=String.fromCharCode(65+(c%26))+s; c=Math.floor(c/26)-1; } while(c>=0);
+        return s;
+    }
+    var ss=[], ssm={};
+    function addSS(v) {
+        if (ssm[v]===undefined) { ssm[v]=ss.length; ss.push(v); }
+        return ssm[v];
+    }
+    var xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+    data.forEach(function(row,ri) {
+        xml += '<row r="' + (ri+1) + '">';
+        row.forEach(function(cell,ci) {
+            var addr = col(ci)+(ri+1);
+            if (typeof cell === 'number') {
+                xml += '<c r="' + addr + '" t="n"><v>' + cell + '</v></c>';
+            } else {
+                xml += '<c r="' + addr + '" t="s"><v>' + addSS(esc(String(cell||''))) + '</v></c>';
+            }
+        });
+        xml += '</row>';
+    });
+    xml += '</sheetData></worksheet>';
+    var ssXML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="' + ss.length + '" uniqueCount="' + ss.length + '">'
+        + ss.map(function(s){ return '<si><t>' + s + '</t></si>'; }).join('') + '</sst>';
+    var wbXML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        + '<sheets><sheet name="' + esc(sheetName) + '" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    var rels  = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>';
+    var ct    = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>';
+    var _rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+    var zip   = tinyZip();
+    zip.add('[Content_Types].xml', ct);
+    zip.add('_rels/.rels',         _rels);
+    zip.add('xl/workbook.xml',     wbXML);
+    zip.add('xl/_rels/workbook.xml.rels', rels);
+    zip.add('xl/worksheets/sheet1.xml',   xml);
+    zip.add('xl/sharedStrings.xml',       ssXML);
+    return zip.build();
+}
+function tinyZip() {
+    var files = [];
+    function s2a(s) { return new TextEncoder().encode(s); }
+    function crc32(buf) {
+        var c=0xFFFFFFFF, t=new Uint32Array(256);
+        for (var i=0;i<256;i++) { var v=i; for (var j=0;j<8;j++) v=(v&1)?(0xEDB88320^(v>>>1)):(v>>>1); t[i]=v; }
+        for (var k=0;k<buf.length;k++) c=t[(c^buf[k])&0xFF]^(c>>>8);
+        return (c^0xFFFFFFFF)>>>0;
+    }
+    function u16(v) { return [v&0xFF,(v>>8)&0xFF]; }
+    function u32(v) { return [v&0xFF,(v>>8)&0xFF,(v>>16)&0xFF,(v>>24)&0xFF]; }
+    function cat() {
+        var a=Array.prototype.slice.call(arguments);
+        var len=a.reduce(function(n,x){ return n+x.length; },0);
+        var r=new Uint8Array(len),o=0;
+        a.forEach(function(x){ r.set(x,o); o+=x.length; });
+        return r;
+    }
+    return {
+        add: function(name,content) { files.push({n:s2a(name),d:s2a(content)}); },
+        build: function() {
+            var locs=[],off=0,cd=[];
+            files.forEach(function(f) {
+                var crc=crc32(f.d);
+                var loc=cat(
+                    new Uint8Array([0x50,0x4B,0x03,0x04]),
+                    new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+                    new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+                    new Uint8Array(u32(crc)),new Uint8Array(u32(f.d.length)),new Uint8Array(u32(f.d.length)),
+                    new Uint8Array(u16(f.n.length)),new Uint8Array(u16(0)),
+                    f.n,f.d
+                );
+                locs.push(loc);
+                cd.push({n:f.n,crc:crc,sz:f.d.length,off:off});
+                off+=loc.length;
+            });
+            var cde=cd.map(function(e) {
+                return cat(
+                    new Uint8Array([0x50,0x4B,0x01,0x02]),
+                    new Uint8Array(u16(20)),new Uint8Array(u16(20)),
+                    new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+                    new Uint8Array(u32(e.crc)),new Uint8Array(u32(e.sz)),new Uint8Array(u32(e.sz)),
+                    new Uint8Array(u16(e.n.length)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+                    new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+                    new Uint8Array(u32(0)),new Uint8Array(u32(e.off)),e.n
+                );
+            });
+            var cdbuf=cat.apply(null,cde);
+            var eocd=cat(
+                new Uint8Array([0x50,0x4B,0x05,0x06]),new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+                new Uint8Array(u16(files.length)),new Uint8Array(u16(files.length)),
+                new Uint8Array(u32(cdbuf.length)),new Uint8Array(u32(off)),new Uint8Array(u16(0))
+            );
+            return cat.apply(null,locs.concat([cdbuf,eocd]));
+        }
+    };
+}
+
+
+// ════════════════════════════════════════════════════════
+// TIMETABLES MODULE
+// ════════════════════════════════════════════════════════
+
+var TT_DAYS    = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+var TT_HOURS   = ['07:00','08:00','08:30','09:00','09:30','10:00','10:30','11:00',
+                  '11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00',
+                  '15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00',
+                  '19:30','20:00'];
+var ttMode     = 'instructor'; // 'instructor' | 'course'
+var ttSlots    = {};  // { "INS001": [{course,day,start,end,section,room},...], ... }
+var ttCurrKey  = '';  // selected instructor id or course code
+
+function getTTSlots() {
+    try { return JSON.parse(localStorage.getItem('cck_nehad_tt_slots') || '{}'); } catch(e) { return {}; }
+}
+function saveTTSlots(data) {
+    localStorage.setItem('cck_nehad_tt_slots', JSON.stringify(data));
+    localStorage.setItem('cck_nehad_timetable', JSON.stringify({
+        slots: data,
+        savedAt: Date.now(),
+        savedBy: 'nehad'
+    }));
+}
+
+function getTTStatus() {
+    try { return JSON.parse(localStorage.getItem('cck_nehad_status') || '{}'); } catch(e) { return {}; }
+}
+
+// Build instructor->courses map from instructors data embedded in page
+function getInstructorCourseMap() {
+    // Use INST_NAMES + hod assignments + course data from BASE_COURSES
+    var map = {};
+    var hod = JSON.parse(localStorage.getItem('cck_hod_assignments') || '{}');
+    // Build instructor->courses from HOD assignments
+    Object.keys(hod).forEach(function(iid) {
+        if (INST_NAMES[iid]) {
+            map[iid] = { name: INST_NAMES[iid], courses: hod[iid] || [] };
+        }
+    });
+    // Fill in any instructor not yet in HOD assignments using INST_NAMES
+    // (from embedded instructors data in BASE_COURSES instructor field)
+    Object.keys(INST_NAMES).forEach(function(iid) {
+        if (!map[iid]) {
+            // Try to find their courses from BASE_COURSES instructor function
+            var cs = [];
+            Object.keys(BASE_COURSES).forEach(function(code) {
+                if (instructor(code) === INST_NAMES[iid]) cs.push(code);
+            });
+            map[iid] = { name: INST_NAMES[iid], courses: cs };
+        }
+    });
+    return map;
+}
+
+function getInstructorsWithCourses() {
+    // Combine: instructors that have assigned courses
+    var instData = [];
+    // Try loading from embedded instructors JSON via known course-instructor mapping
+    var instCourses = {};
+    // Read from cck_hod_assignments first
+    var hod = JSON.parse(localStorage.getItem('cck_hod_assignments') || '{}');
+    Object.keys(INST_NAMES).forEach(function(iid) {
+        var cs = hod[iid] || [];
+        if (!cs.length) {
+            // fallback: scan courses
+            Object.keys(BASE_COURSES).forEach(function(code) {
+                if (instructor(code) === INST_NAMES[iid]) cs.push(code);
+            });
+        }
+        instCourses[iid] = cs;
+    });
+    Object.keys(INST_NAMES).forEach(function(iid) {
+        instData.push({ id: iid, name: INST_NAMES[iid], courses: instCourses[iid] || [] });
+    });
+    instData.sort(function(a,b){ return a.name.localeCompare(b.name); });
+    return instData;
+}
+
+function setTTMode(mode) {
+    ttMode = mode;
+    el('tt-mode-instructor').className = 'tt-tab' + (mode === 'instructor' ? ' on' : '');
+    el('tt-mode-course').className     = 'tt-tab' + (mode === 'course' ? ' on' : '');
+    populateTTSelector();
+    ttCurrKey = '';
+    renderTimetable();
+}
+
+function populateTTSelector() {
+    var sel = el('tt-selector');
+    sel.innerHTML = '<option value="">— Select —</option>';
+    if (ttMode === 'instructor') {
+        var insts = getInstructorsWithCourses();
+        insts.forEach(function(ins) {
+            var opt = document.createElement('option');
+            opt.value = ins.id;
+            opt.textContent = ins.name + ' (' + ins.courses.length + ' courses)';
+            sel.appendChild(opt);
+        });
+    } else {
+        var codes = Object.keys(BASE_COURSES).sort();
+        codes.forEach(function(code) {
+            var c = BASE_COURSES[code];
+            var opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = code + ' — ' + c.name;
+            sel.appendChild(opt);
+        });
+    }
+    if (ttCurrKey) sel.value = ttCurrKey;
+}
+
+function renderTimetable() {
+    ttCurrKey = el('tt-selector').value;
+    var container = el('tt-grid-container');
+    if (!ttCurrKey) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink3);font-size:13px">Select an ' + (ttMode === 'instructor' ? 'instructor' : 'course') + ' above to view their timetable.</div>';
+        return;
+    }
+    var slots = getTTSlots();
+    var mySlots = slots[ttCurrKey] || [];
+
+    if (ttMode === 'instructor') {
+        var insts = getInstructorsWithCourses();
+        var ins   = insts.filter(function(i){ return i.id === ttCurrKey; })[0];
+        if (!ins) { container.innerHTML = ''; return; }
+        container.innerHTML = buildTTGrid(ins.name, ins.courses, mySlots, ttCurrKey);
+    } else {
+        var c = BASE_COURSES[ttCurrKey];
+        var inst = instructor(ttCurrKey);
+        container.innerHTML = buildTTGrid(ttCurrKey + ' — ' + c.name, [ttCurrKey], mySlots, ttCurrKey);
+    }
+    // Attach click events
+    container.querySelectorAll('.tt-empty-cell').forEach(function(cell) {
+        cell.addEventListener('click', function() {
+            openTTModal(this.dataset.key, this.dataset.day, this.dataset.hour);
+        });
+    });
+    container.querySelectorAll('.tt-slot-x').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            removeTTSlot(this.dataset.key, this.dataset.idx);
+        });
+    });
+}
+
+function buildTTGrid(title, courseCodes, mySlots, key) {
+    // Build slot lookup: {day: [{...slot, idx}]}
+    var daySlots = {};
+    TT_DAYS.forEach(function(d){ daySlots[d] = []; });
+    mySlots.forEach(function(s, idx) {
+        if (daySlots[s.day]) daySlots[s.day].push(Object.assign({}, s, {idx: idx}));
+    });
+
+    var subtitle = ttMode === 'instructor'
+        ? courseCodes.length + ' assigned course(s)'
+        : 'Instructor: ' + (instructor(courseCodes[0]) || 'TBA');
+
+    var html = '<div class="tt-grid-wrap">'
+        + '<div class="tt-grid-head"><div><h3>' + escH(title) + '</h3><p>' + subtitle + '</p></div>'
+        + '<span style="font-size:11px;color:var(--ink3)">' + mySlots.length + ' slot(s) assigned</span></div>'
+        + '<div class="tt-table-scroll"><table class="tt-table">'
+        + '<thead><tr><th>Time</th>';
+    TT_DAYS.forEach(function(d){ html += '<th>' + d + '</th>'; });
+    html += '</tr></thead><tbody>';
+
+    TT_HOURS.forEach(function(hour) {
+        html += '<tr><td>' + fmtTime(hour) + '</td>';
+        TT_DAYS.forEach(function(day) {
+            var slotsHere = daySlots[day].filter(function(s){ return s.start <= hour && s.end > hour; });
+            html += '<td>';
+            if (slotsHere.length) {
+                slotsHere.forEach(function(s) {
+                    var c = BASE_COURSES[s.course] || {};
+                    var slotClass = 'tt-slot' + (c.session_type === 'lab' ? ' lab-slot' : c.session_type === 'lecture+lab' ? ' lab-slot' : '');
+                    html += '<div class="' + slotClass + '">'
+                        + '<span class="tt-slot-x" data-key="' + key + '" data-idx="' + s.idx + '">✕</span>'
+                        + '<div style="font-size:10px;font-weight:700">' + escH(s.course) + '</div>'
+                        + '<div style="font-size:9px;opacity:.8">' + s.start + '–' + s.end + '</div>'
+                        + (s.room ? '<div style="font-size:9px;opacity:.7">📍' + escH(s.room) + '</div>' : '')
+                        + (s.section ? '<div style="font-size:9px;opacity:.7">§' + escH(s.section) + '</div>' : '')
+                        + '</div>';
+                });
+            } else {
+                html += '<div class="tt-empty-cell" data-key="' + key + '" data-day="' + day + '" data-hour="' + hour + '">'
+                    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+                    + '</div>';
+            }
+            html += '</td>';
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div></div>';
+
+    // Add course list below
+    if (ttMode === 'instructor' && courseCodes.length) {
+        html += '<div class="tbox" style="margin-top:10px"><div class="thead"><h3>Assigned Courses</h3>'
+            + '<span class="tcnt">' + courseCodes.length + '</span></div>'
+            + '<div class="tscroll"><table><thead><tr>'
+            + '<th>Code</th><th>Name</th><th>Type</th><th>Slots Assigned</th><th></th></tr></thead><tbody>';
+        courseCodes.forEach(function(code) {
+            var c = BASE_COURSES[code];
+            if (!c) return;
+            var count = mySlots.filter(function(s){ return s.course === code; }).length;
+            html += '<tr><td><span class="code">' + code + '</span></td>'
+                + '<td style="font-size:12px">' + escH(c.name) + '</td>'
+                + '<td>' + badge(c.session_type) + '</td>'
+                + '<td><span style="font-weight:600;color:' + (count ? '#16a34a' : 'var(--ink3)') + '">' + count + '</span></td>'
+                + '<td><button class="ebtn" onclick="openTTModalForCourse(\'' + key + '\',\'' + code + '\')">+ Add Slot</button></td>'
+                + '</tr>';
+        });
+        html += '</tbody></table></div></div>';
+    }
+
+    return html;
+}
+
+function fmtTime(t) {
+    var p = t.split(':');
+    var h = parseInt(p[0]), m = parseInt(p[1]);
+    var ap = h >= 12 ? 'PM' : 'AM';
+    var h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+}
+function escH(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openTTModal(key, day, hour) {
+    var insts = getInstructorsWithCourses();
+    var ins   = insts.filter(function(i){ return i.id === key; })[0];
+
+    el('tt-m-title').textContent = ttMode === 'instructor' ? 'Assign Slot for ' + (ins ? ins.name.split(' ').slice(-1)[0] : key) : 'Assign Time Slot';
+    el('tt-m-sub').textContent = day + (hour ? ' at ' + fmtTime(hour) : '');
+    el('tt-m-code').value = key;
+
+    // Populate course dropdown
+    var cSel = el('tt-m-course');
+    cSel.innerHTML = '';
+    var cList = (ttMode === 'instructor' && ins) ? ins.courses : [key];
+    if (ttMode === 'course') {
+        var opt = document.createElement('option');
+        opt.value = key; opt.textContent = key + ' — ' + (BASE_COURSES[key] ? BASE_COURSES[key].name : '');
+        cSel.appendChild(opt);
+    } else {
+        cList.forEach(function(code) {
+            var opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = code + (BASE_COURSES[code] ? ' — ' + BASE_COURSES[code].name : '');
+            cSel.appendChild(opt);
+        });
+    }
+
+    el('tt-m-daysel').value = day || 'Sunday';
+    el('tt-m-start').value  = hour || '08:00';
+    // Auto-set end time +2h or +1:50
+    if (hour) {
+        var p = hour.split(':');
+        var eh = parseInt(p[0]) + 1, em = parseInt(p[1]) + 50;
+        if (em >= 60) { eh++; em -= 60; }
+        el('tt-m-end').value = (eh < 10 ? '0' : '') + eh + ':' + (em < 10 ? '0' : '') + em;
+    } else {
+        el('tt-m-end').value = '09:50';
+    }
+    el('tt-m-section').value = '01';
+    el('tt-m-room').value = '';
+    el('tt-assign-modal').classList.add('open');
+}
+
+function openTTModalForCourse(key, code) {
+    openTTModal(key, 'Sunday', '08:00');
+    el('tt-m-course').value = code;
+}
+
+function closeTTModal() { el('tt-assign-modal').classList.remove('open'); }
+
+function saveTTSlot() {
+    var key     = el('tt-m-code').value;
+    var course  = el('tt-m-course').value;
+    var day     = el('tt-m-daysel').value;
+    var start   = el('tt-m-start').value;
+    var end     = el('tt-m-end').value;
+    var section = el('tt-m-section').value.trim() || '01';
+    var room    = el('tt-m-room').value.trim();
+
+    if (!course || !day || !start || !end) { toast('Please fill all required fields', 'err'); return; }
+    if (start >= end) { toast('End time must be after start time', 'err'); return; }
+
+    var slots = getTTSlots();
+    if (!slots[key]) slots[key] = [];
+
+    // Check for conflict
+    var conflict = slots[key].filter(function(s) {
+        return s.day === day && s.course === course &&
+               !((end <= s.start) || (start >= s.end));
+    });
+    if (conflict.length) { toast('Conflict: ' + course + ' already has a slot on ' + day + ' at that time', 'err'); return; }
+
+    slots[key].push({ course: course, day: day, start: start, end: end, section: section, room: room });
+    saveTTSlots(slots);
+    closeTTModal();
+    renderTimetable();
+    updateTTSubmitBar();
+    toast('Slot added: ' + course + ' on ' + day + ' ' + start + '–' + end, 'ok');
+}
+
+function removeTTSlot(key, idx) {
+    var slots = getTTSlots();
+    if (!slots[key]) return;
+    var removed = slots[key].splice(idx, 1);
+    saveTTSlots(slots);
+    renderTimetable();
+    updateTTSubmitBar();
+    if (removed.length) toast('Slot removed: ' + removed[0].course, 'info');
+}
+
+function getTotalSlotCount() {
+    var slots = getTTSlots();
+    var total = 0;
+    Object.values(slots).forEach(function(arr){ total += arr.length; });
+    return total;
+}
+
+function updateTTSubmitBar() {
+    var status = getTTStatus();
+    var sk = 'spring2026';
+    var st = status[sk] || 'draft';
+    var stEl = el('tt-submit-status');
+    var descEl = el('tt-submit-desc');
+    var btnEl = el('tt-submit-btn');
+    var nbEl = el('nb-tt-status');
+
+    if (stEl) {
+        stEl.className = 'submit-status ' + st;
+        stEl.textContent = st.charAt(0).toUpperCase() + st.slice(1);
+    }
+    var count = getTotalSlotCount();
+    if (descEl) descEl.textContent = count + ' time slot(s) assigned across all instructors/courses.';
+    if (nbEl) nbEl.textContent = st === 'submitted' ? '!' : st === 'approved' ? '✓' : '';
+    if (btnEl) {
+        if (st === 'approved') {
+            btnEl.textContent = 'Approved ✓';
+            btnEl.disabled = true;
+            btnEl.style.background = '#16a34a';
+        } else if (st === 'submitted') {
+            btnEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Submitted';
+            btnEl.disabled = false;
+            btnEl.style.background = '#d97706';
+        } else {
+            btnEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit to Admin';
+            btnEl.disabled = false;
+            btnEl.style.background = '';
+        }
+    }
+}
+
+function submitTimetableToAdmin() {
+    var count = getTotalSlotCount();
+    if (count === 0) { toast('No slots assigned yet. Please add time slots before submitting.', 'err'); return; }
+
+    var sk = 'spring2026';
+    var status = getTTStatus();
+    status[sk] = 'submitted';
+    localStorage.setItem('cck_nehad_status', JSON.stringify(status));
+
+    // Write full submission package for admin
+    var slots = getTTSlots();
+    localStorage.setItem('cck_nehad_submission', JSON.stringify({
+        slots: slots,
+        status: 'submitted',
+        submittedAt: Date.now(),
+        semesterKey: sk,
+        totalSlots: count
+    }));
+
+    // Notify admin
+    var notifs = JSON.parse(localStorage.getItem('cck_admin_notifications') || '[]');
+    notifs.unshift({
+        id: Date.now(),
+        portal: 'nehad',
+        semKey: sk,
+        semLabel: 'Spring 2026',
+        message: 'Dr. Nehad submitted timetable data (' + count + ' slots) for Spring 2026',
+        timestamp: new Date().toISOString(),
+        read: false,
+        type: 'submission'
+    });
+    localStorage.setItem('cck_admin_notifications', JSON.stringify(notifs));
+
+    updateTTSubmitBar();
+    toast('Timetable submitted to Admin (' + count + ' slots)', 'ok');
+}
+
+function exportTimetableExcel() {
+    var slots = getTTSlots();
+    var rows  = [['Instructor/Course Key','Course Code','Course Name','Day','Start','End','Section','Room']];
+    Object.keys(slots).forEach(function(key) {
+        slots[key].forEach(function(s) {
+            var c = BASE_COURSES[s.course] || {};
+            rows.push([key, s.course, c.name || '', s.day, s.start, s.end, s.section, s.room]);
+        });
+    });
+    if (rows.length === 1) { toast('No slots to export', 'err'); return; }
+    dlBlob(buildXLSX(rows, 'Timetables'),
+           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+           'cck_timetables.xlsx');
+    toast('Timetable exported (' + (rows.length - 1) + ' slots)', 'ok');
+}
+
+// ── INIT timetable on page load ───────────────────────────
+var _origInit = init;
+init = function() {
+    _origInit();
+    populateTTSelector();
+    updateTTSubmitBar();
+};
+
+
+// The server only serves this page to a logged-in Nehad (or admin) account,
+// so the page opens straight into the app.
+if (window.CCK_SESSION && (window.CCK_SESSION.role === 'nehad' || window.CCK_SESSION.role === 'admin')) {
+    el('login-screen').classList.add('hidden');
+    el('app').classList.add('visible');
+    setTimeout(init, 50);
+}
+
+</script>
+</body>
+</html>

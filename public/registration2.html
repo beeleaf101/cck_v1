@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="js/cck-store.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registration 2 – Instructor Management | CCK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Data is shared through js/cck-store.js (Cloudflare D1); the old Supabase loader was removed -->
+<link rel="stylesheet" href="styles.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
+body{background:#F3F4F6;overflow:hidden;}
+
+/* Tabs */
+.tab-bar{display:flex;gap:2px;background:#F1F5F9;border-radius:10px;padding:3px;margin-bottom:16px;width:fit-content;}
+.tab-btn{padding:8px 22px;border:none;border-radius:8px;font-size:12px;font-weight:600;color:#64748B;background:transparent;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
+.tab-btn.active{background:white;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+
+/* Instructor cards */
+.inst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.ic{background:white;border-radius:10px;border:1px solid #F1F5F9;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;}
+.ic-head{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F9FAFB;}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;letter-spacing:-.5px;}
+.av-cs{background:#DBEAFE;color:#1E40AF;}
+.av-bus{background:#FEF3C7;color:#92400E;}
+.ic-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.ic-foot{padding:10px 16px;background:#FAFAFA;border-top:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+
+/* Form fields */
+.fl{display:flex;flex-direction:column;gap:3px;}
+.fl label{font-size:10px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;}
+.fi,.fs{padding:7px 10px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:12px;color:#1E293B;background:white;width:100%;transition:border-color .15s;font-family:inherit;}
+.fi:focus,.fs:focus{outline:none;border-color:#1E293B;box-shadow:0 0 0 3px rgba(30,41,59,.07);}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* Employment toggle */
+.emp-tog{display:flex;border-radius:7px;overflow:hidden;border:1.5px solid #E5E7EB;}
+.emp-tog button{flex:1;padding:6px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .15s;background:white;color:#94A3B8;font-family:inherit;}
+.emp-tog .ft-on{background:#1E3A8A;color:white;}
+.emp-tog .pt-on{background:#B45309;color:white;}
+
+/* Credit bar */
+.cr-bar{height:5px;background:#E2E8F0;border-radius:3px;overflow:hidden;}
+.cr-fill{height:100%;border-radius:3px;transition:width .35s;}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.chip{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+.chip-cs{background:#DBEAFE;color:#1E40AF;}
+.chip-bus{background:#FEF3C7;color:#92400E;}
+.chip-gen{background:#DCFCE7;color:#166534;}
+
+/* Teaching dept label toggles */
+.dept-lbl-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:5px;border:1px solid;font-size:10px;font-weight:700;letter-spacing:.02em;line-height:1.2;cursor:pointer;transition:all .13s;font-family:inherit;white-space:nowrap;}
+.dept-lbl-btn.dlb-cs{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;}
+.dept-lbl-btn.dlb-cs.on{background:#DBEAFE;color:#1E3A8A;border-color:#93C5FD;}
+.dept-lbl-btn.dlb-bus{background:#FFFBEB;color:#B45309;border-color:#FDE68A;}
+.dept-lbl-btn.dlb-bus.on{background:#FEF3C7;color:#92400E;border-color:#FCD34D;}
+.dept-lbl-btn.dlb-gen{background:#F0FDF4;color:#15803D;border-color:#BBF7D0;}
+.dept-lbl-btn.dlb-gen.on{background:#DCFCE7;color:#14532D;border-color:#86EFAC;}
+
+/* Qual badges */
+.qual-badge{display:inline-flex;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;}
+.qual-phd{background:#EDE9FE;color:#5B21B6;}
+.qual-master{background:#DCFCE7;color:#166534;}
+.qual-assoc{background:#FEF3C7;color:#92400E;}
+.qual-bachelor{background:#F1F5F9;color:#475569;}
+
+/* Delete button */
+.btn-del-inst{padding:5px 10px;border:1px solid #FECACA;background:#FFF5F5;color:#DC2626;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-del-inst:hover{background:#DC2626;color:white;}
+.btn-edit-inst{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border:1px solid #E2E8F0;background:white;color:#475569;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-edit-inst:hover{background:#F1F5F9;border-color:#CBD5E1;color:#0F172A;}
+
+/* Add modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:white;border-radius:14px;padding:26px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-title{font-size:16px;font-weight:700;color:#0F172A;margin-bottom:20px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-grid .full{grid-column:1/-1;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #F1F5F9;}
+.btn-cancel{padding:8px 18px;border:1.5px solid #E5E7EB;background:white;color:#64748B;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-cancel:hover{background:#F8FAFC;}
+.btn-confirm{padding:8px 18px;border:none;background:#1E293B;color:white;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-confirm:hover{background:#334155;}
+
+/* Tutoring table */
+.tutoring-wrap{background:white;border-radius:10px;border:1px solid #F1F5F9;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;}
+.tut-toolbar{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F1F5F9;flex-wrap:wrap;}
+.tut-toolbar h3{font-size:14px;font-weight:700;color:#0F172A;margin-right:auto;}
+.tut-search{padding:7px 11px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:12px;font-family:inherit;width:210px;}
+.tut-search:focus{outline:none;border-color:#1E293B;}
+.tut-table{width:100%;border-collapse:collapse;font-size:12px;}
+.tut-table th{padding:9px 14px;background:#F8FAFC;color:#64748B;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left;border-bottom:1px solid #F1F5F9;white-space:nowrap;}
+.tut-table td{padding:11px 14px;border-bottom:1px solid #F8FAFC;color:#1E293B;vertical-align:middle;}
+.tut-table tr:last-child td{border-bottom:none;}
+.tut-table tr:hover td{background:#FAFAFA;}
+.tut-inp{padding:5px 8px;border:1.5px solid #E5E7EB;border-radius:6px;font-size:12px;font-family:inherit;color:#1E293B;background:white;}
+.tut-inp:focus{outline:none;border-color:#1E293B;}
+.pay-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+.pay-ft{background:#DBEAFE;color:#1E40AF;}
+.pay-pt{background:#FEF9C3;color:#92400E;}
+.pay-section{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+
+/* Save All loading */
+.btn-saving{opacity:.75;pointer-events:none;}
+.spin-icon{animation:spin .7s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Toasts */
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.12);display:flex;align-items:center;gap:8px;animation:tIn .2s ease;}
+.toast.ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;}
+.toast.err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;}
+.toast.info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;}
+@keyframes tIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* Add instructor btn */
+.btn-add-inst{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#166534;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.btn-add-inst:hover{background:#14532D;}
+
+/* ── Workflow status nav item ──────────────────────────────────────────── */
+.nav-submit-section{padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#94A3B8;}
+#btn-submit-admin{
+  display:flex;align-items:center;gap:9px;
+  width:calc(100% - 16px);margin:2px 8px;
+  padding:9px 12px;
+  border:none;border-radius:9px;
+  font-size:12px;font-weight:700;font-family:inherit;
+  cursor:pointer;text-align:left;
+  transition:background .15s,color .15s,box-shadow .15s;
+  position:relative;
+}
+/* Draft — subtle green row */
+#btn-submit-admin[data-status="draft"]{
+  background:rgba(22,163,74,.10);
+  color:#15803D;
+}
+#btn-submit-admin[data-status="draft"]:hover{
+  background:rgba(22,163,74,.18);
+  box-shadow:0 2px 8px rgba(22,163,74,.18);
+}
+#btn-submit-admin[data-status="draft"] .submit-icon{stroke:#15803D;}
+
+/* Submitted — amber */
+#btn-submit-admin[data-status="submitted"]{
+  background:rgba(217,119,6,.10);
+  color:#B45309;
+  pointer-events:none;
+}
+#btn-submit-admin[data-status="submitted"] .submit-icon{stroke:#B45309;}
+
+/* Approved — blue, no interaction */
+#btn-submit-admin[data-status="approved"]{
+  background:rgba(29,78,216,.10);
+  color:#1D4ED8;
+  pointer-events:none;
+}
+#btn-submit-admin[data-status="approved"] .submit-icon{stroke:#1D4ED8;}
+
+/* Resubmit — orange, clickable */
+#btn-submit-admin[data-status="resubmit"]{
+  background:rgba(234,88,12,.12);
+  color:#C2410C;
+}
+#btn-submit-admin[data-status="resubmit"]:hover{
+  background:rgba(234,88,12,.20);
+  box-shadow:0 2px 8px rgba(234,88,12,.18);
+}
+#btn-submit-admin[data-status="resubmit"] .submit-icon{stroke:#C2410C;}
+
+/* Archived — grey */
+#btn-submit-admin[data-status="archived"]{
+  background:rgba(148,163,184,.10);
+  color:#94A3B8;
+  pointer-events:none;
+  opacity:.8;
+}
+#btn-submit-admin[data-status="archived"] .submit-icon{stroke:#94A3B8;}
+
+/* Status dot on right */
+.submit-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  margin-left:auto;
+}
+#btn-submit-admin[data-status="draft"]      .submit-dot{background:#16A34A;}
+#btn-submit-admin[data-status="submitted"]  .submit-dot{background:#D97706;}
+#btn-submit-admin[data-status="approved"]   .submit-dot{background:#2563EB;}
+#btn-submit-admin[data-status="resubmit"]   .submit-dot{background:#EA580C;}
+#btn-submit-admin[data-status="archived"]   .submit-dot{background:#94A3B8;}
+</style>
+<script src="cck_shared.js"></script>
+</head>
+<body>
+<div class="portal-page">
+
+  <aside class="portal-sidebar">
+    <div class="portal-sidebar-brand">
+      <img src="images/cck-logo-small.png" alt="CCK">
+      <div class="portal-sidebar-brand-text">
+        <div class="portal-sidebar-brand-name">CCK Portal</div>
+        <div class="portal-sidebar-brand-role">Registration 2</div>
+      </div>
+    </div>
+    <div class="portal-sidebar-user">
+      <div class="portal-sidebar-user-name">Registration Officer 2</div>
+      <div class="portal-sidebar-user-role">Instructor Management</div>
+    </div>
+
+    <div class="portal-nav-section">Filter By</div>
+    <button class="portal-nav-link active" onclick="setFilter('all',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      All Instructors
+    </button>
+    <button class="portal-nav-link" onclick="setFilter('cs',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Computer Science
+    </button>
+    <button class="portal-nav-link" onclick="setFilter('bus',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Business
+    </button>
+    <button class="portal-nav-link" onclick="setFilter('gen',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      General Education
+    </button>
+    <button class="portal-nav-link" onclick="setFilter('ft',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Full-Time Only
+    </button>
+    <button class="portal-nav-link" onclick="setFilter('pt',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Part-Time Only
+    </button>
+
+    <button class="portal-nav-link" onclick="setFilter('timetable',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Timetable
+      <span id="tt-approved-badge-r2" style="margin-left:auto;background:#16A34A;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">✓</span>
+    </button>
+
+      <div class="nav-submit-section">Workflow</div>
+      <button id="btn-submit-admin" data-status="draft" onclick="submitToAdmin()">
+        <svg class="submit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        <span id="submit-admin-lbl">Submit to Admin</span>
+        <span class="submit-dot"></span>
+      </button>
+
+    <div class="portal-sidebar-spacer"></div>
+    <div class="portal-sidebar-footer">
+      <button class="btn-portal-logout" onclick="cckLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+      <div class="portal-sidebar-db offline" id="db-status">● Offline mode</div>
+    </div>
+  </aside>
+
+  <main class="portal-content">
+
+    <!-- Stats -->
+    <div class="portal-stats">
+      <div class="portal-stat-card"><div class="portal-stat-label">Total</div><div class="portal-stat-value" id="s-total">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">Full-Time</div><div class="portal-stat-value" id="s-ft">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">Part-Time</div><div class="portal-stat-value" id="s-pt">—</div></div>
+      <div class="portal-stat-card"><div class="portal-stat-label">PhD Holders</div><div class="portal-stat-value" id="s-phd">—</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-ins" onclick="switchTab('ins')">Instructors</button>
+    </div>
+
+    <!-- ── INSTRUCTORS TAB ── -->
+    <div id="view-ins">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <div class="portal-search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="q" placeholder="Search instructor…" oninput="renderCards()">
+        </div>
+        <button class="btn-add-inst" onclick="openAddModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Instructor
+        </button>
+        <button class="btn-save-portal" id="btn-save-all" style="margin-left:auto;" onclick="saveAll()">
+          <svg id="save-all-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+          </svg>
+          <span id="save-all-label">Save All</span>
+        </button>
+      </div>
+      <div class="inst-grid" id="grid"></div>
+    </div>
+    </div>
+
+    <!-- TIMETABLE SECTION -->
+    <div id="sec-timetable-r2" style="display:none;padding:16px">
+      <div style="margin-bottom:14px">
+        <h2 style="font-size:15px;font-weight:700;margin:0">Approved Timetable</h2>
+        <div style="font-size:12px;color:#64748B;margin-top:2px">Timetable approved by Admin from Dr. Nehad</div>
+      </div>
+      <div id="reg2-tt-content"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Add Instructor Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal-box">
+    <div class="modal-title">Add New Instructor</div>
+    <div class="modal-grid">
+      <div class="fl full">
+        <label>Full Name *</label>
+        <input type="text" class="fi" id="new-name" placeholder="e.g. Dr. Ahmad Al-Rashidi">
+      </div>
+      <div class="fl">
+        <label>Title</label>
+        <select class="fs" id="new-title">
+          <option value="">—</option>
+          <option>Dr.</option><option>Mr.</option><option>Mrs.</option><option>Ms.</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Department *</label>
+        <select class="fs" id="new-dept">
+          <option value="Computer Science">Computer Science</option>
+          <option value="Business">Business</option>
+        </select>
+      </div>
+      <div class="fl full">
+        <label>Email</label>
+        <input type="email" class="fi" id="new-email" placeholder="firstname.lastname@cck.edu.kw">
+      </div>
+      <div class="fl">
+        <label>Employment</label>
+        <select class="fs" id="new-emp">
+          <option value="Full-Time">Full-Time</option>
+          <option value="Part-Time">Part-Time</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Qualification</label>
+        <select class="fs" id="new-qual">
+          <option>PhD</option><option selected>Master</option><option>Associate</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Available From</label>
+        <input type="time" class="fi" id="new-from" value="09:00">
+      </div>
+      <div class="fl">
+        <label>Available To</label>
+        <input type="time" class="fi" id="new-to" value="17:00">
+      </div>
+      <div class="fl full">
+        <label>Notes</label>
+        <input type="text" class="fi" id="new-notes" placeholder="Optional notes…">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmAdd()">Add Instructor</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box" style="width:540px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div class="modal-title" style="margin-bottom:0">Edit Instructor</div>
+      <button onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:#94A3B8;padding:4px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <!-- Instructor identity -->
+    <div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #F1F5F9;">
+      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Identity</div>
+      <div class="modal-grid">
+        <div class="fl full">
+          <label>Full Name *</label>
+          <input type="text" class="fi" id="edit-name" placeholder="e.g. Dr. Ahmad Al-Rashidi">
+        </div>
+        <div class="fl">
+          <label>Title</label>
+          <select class="fs" id="edit-title">
+            <option value="">—</option>
+            <option>Dr.</option><option>Mr.</option><option>Mrs.</option><option>Ms.</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>Department</label>
+          <select class="fs" id="edit-dept">
+            <option value="Computer Science">Computer Science</option>
+            <option value="Business">Business</option>
+          </select>
+        </div>
+        <div class="fl full">
+          <label>Email</label>
+          <input type="email" class="fi" id="edit-email" placeholder="firstname.lastname@cck.edu.kw">
+        </div>
+      </div>
+    </div>
+    <!-- Employment & Qualification -->
+    <div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #F1F5F9;">
+      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Employment</div>
+      <div class="modal-grid">
+        <div class="fl">
+          <label>Employment Type</label>
+          <select class="fs" id="edit-emp">
+            <option value="Full-Time">Full-Time</option>
+            <option value="Part-Time">Part-Time</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>Qualification</label>
+          <select class="fs" id="edit-qual">
+            <option>PhD</option><option>Master</option><option>Associate</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>Max Credits</label>
+          <input type="number" class="fi" id="edit-credits" min="3" max="40">
+        </div>
+        <div class="fl">
+          <label>Specialization</label>
+          <input type="text" class="fi" id="edit-spec" placeholder="e.g. Data Science, Marketing…">
+        </div>
+      </div>
+    </div>
+    <!-- Availability -->
+    <div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #F1F5F9;">
+      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Availability</div>
+      <div class="modal-grid">
+        <div class="fl">
+          <label>Available From</label>
+          <input type="time" class="fi" id="edit-from">
+        </div>
+        <div class="fl">
+          <label>Available To</label>
+          <input type="time" class="fi" id="edit-to">
+        </div>
+        <div class="fl full">
+          <label>Notes</label>
+          <input type="text" class="fi" id="edit-notes" placeholder="e.g. mornings only, online preferred…">
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmEdit()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="ts"></div>
+
+<script>
+let instructors=[], instData={}, filterF='all', courses=[], tutData={};
+const QUALS=['PhD','Master','Associate'];
+const MAX={'Full-Time':21,'Part-Time':12};
+const PAY_TYPES=['Per Hour','Per Session','Fixed'];
+const PAY_UNIT={'Per Hour':'KWD/hr','Per Session':'KWD/session','Fixed':'KWD fixed'};
+
+const ini=n=>n.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i,'').split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase();
+const fmtT=t=>{if(!t)return'—';const[h,m]=t.split(':').map(Number),ap=h>=12?'PM':'AM';return`${h%12||12}:${String(m).padStart(2,'0')} ${ap}`;};
+const isCS=ins=>ins.department==='Computer Science';
+function _normDept(v){
+  if(!v||typeof v!=='string') return null;
+  const t=v.trim();
+  if(/computer.science/i.test(t)) return 'Computer Science';
+  if(/business/i.test(t))         return 'Business';
+  if(/general.ed/i.test(t))       return 'General Education';
+  return null;
+}
+function _dedup(arr){
+  const s={},o=[];
+  (arr||[]).forEach(v=>{const n=_normDept(v);if(n&&!s[n]){s[n]=1;o.push(n);}});
+  return o;
+}
+const CS_PFX=['CST','CSIT','MAT8'];
+const GEN_PFX=['ENL','GED','GEN','GECU','GEPH','ICT','MAT0'];
+const codeIsCS=c=>CS_PFX.some(p=>c.toUpperCase().startsWith(p));
+const codeIsGen=c=>GEN_PFX.some(p=>c.toUpperCase().startsWith(p));
+
+function getTeachDepts(id){
+  // Only read from instData (in-memory, set by reg2 toggles and init load)
+  // NEVER fall back to cck_inst_shared — HOD writes there and causes duplicates
+  const d=instData[id]||{};
+  if(d.teachDepts&&Array.isArray(d.teachDepts)&&d.teachDepts.length){
+    // Deduplicate in place
+    const seen={}, clean=[];
+    d.teachDepts.forEach(v=>{if(v&&!seen[v]){seen[v]=1;clean.push(v);}});
+    d.teachDepts=clean;
+    return clean;
+  }
+  // Fallback: derive from assigned courses in instructors.json
+  const ins=instructors.find(i=>i.id===id);
+  const codes=ins?.courses||[];
+  const res=[];
+  if(codes.some(c=>codeIsCS(c)))                   res.push('Computer Science');
+  if(codes.some(c=>!codeIsCS(c)&&!codeIsGen(c)))   res.push('Business');
+  if(codes.some(c=>codeIsGen(c)))                   res.push('General Education');
+  if(!res.length) res.push(ins?.department==='Computer Science'?'Computer Science':'Business');
+  return res;
+}
+
+function toggleTeachDept(insId, labelRaw){
+  const label=_normDept(labelRaw.replace(/_/g,' '));
+  if(!label) return;
+  if(!instData[insId].teachDepts) instData[insId].teachDepts=[];
+  // Normalize entire array first
+  instData[insId].teachDepts=_dedup(instData[insId].teachDepts);
+  const arr=instData[insId].teachDepts;
+  const idx=arr.indexOf(label);
+  if(idx>=0) arr.splice(idx,1); else arr.push(label);
+  // Live update button: toggle class + update icon+checkmark content
+  const btnId='tdl_'+insId+'_'+label.replace(/ /g,'_');
+  const btn=document.getElementById(btnId);
+  if(btn){
+    const isOn=arr.includes(label);
+    btn.classList.toggle('on', isOn);
+    const short={'Computer Science':'CS','Business':'Biz','General Education':'Gen Ed'}[label]||label;
+    const ICONS={'CS':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>','Biz':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>','Gen Ed':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'};
+    const chk='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+    btn.innerHTML = (ICONS[short]||'') + (isOn ? chk : '') + short;
+  }
+  persistLocal();
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+async function init(){
+  const dbEl=document.getElementById('db-status');
+  async function tryConnect(){
+    try{
+      const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+      if(!client)return;
+      const{error}=await client.from('instructors').select('instructor_id').limit(1);
+      if(!error){dbEl.textContent='● Connected to DB';dbEl.className='portal-sidebar-bottom online';}
+      else console.warn('[CCK] DB check:',error.message);
+    }catch(e){console.warn('[CCK] DB connect:',e);}
+  }
+  tryConnect();
+  document.addEventListener('supabase-ready',tryConnect);
+  setTimeout(tryConnect,1500);
+
+  [instructors,courses]=await Promise.all([
+    fetch('instructors.json').then(r=>r.json()).catch(()=>[]),
+    fetch('courses.json').then(r=>r.json()).catch(()=>[])
+  ]);
+
+  // Sanitize cck_reg2_inst — strip any duplicate teachDepts entries from stale data
+  try{
+    const _raw=JSON.parse(localStorage.getItem('cck_reg2_inst')||'{}');
+    Object.keys(_raw).forEach(id=>{
+      if(_raw[id]) _raw[id].teachDepts=_dedup(_raw[id].teachDepts||[]);
+    });
+    localStorage.setItem('cck_reg2_inst',JSON.stringify(_raw));
+  }catch(e){}
+
+  const saved=JSON.parse(localStorage.getItem('cck_reg2_inst')||'{}');
+  instructors.forEach(ins=>{
+    const sv=saved[ins.id]||{};
+    let dq='Master';
+    if(/^Dr\./i.test(ins.name)) dq='PhD';
+    instData[ins.id]={
+      name:          ins.name         ||sv.name            ||ins.id,
+      employment:    sv.employment    ||ins.employment_type||'Full-Time',
+      qualification: sv.qualification ||ins.qualification  ||dq,
+      timeFrom:      sv.timeFrom      ||ins.time_from      ||'09:00',
+      timeTo:        sv.timeTo        ||ins.time_to        ||'17:00',
+      maxCredits:    sv.maxCredits    ||ins.max_credits     ||21,
+      notes:         sv.notes        ||'',
+      teachDepts:    sv.teachDepts    ||[]
+    };
+  });
+
+  tutData=JSON.parse(localStorage.getItem('cck_reg2_tutoring')||'{}');
+  updateStats(); renderCards();
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('s-total').textContent=instructors.length;
+  const d=Object.values(instData);
+  document.getElementById('s-ft').textContent =d.filter(x=>x.employment==='Full-Time').length;
+  document.getElementById('s-pt').textContent =d.filter(x=>x.employment==='Part-Time').length;
+  document.getElementById('s-phd').textContent=d.filter(x=>x.qualification==='PhD').length;
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────
+function switchTab(tab){ /* tutoring tab removed */ }
+
+// ── Filter ───────────────────────────────────────────────────────────────
+function setFilter(f,btn){
+  filterF=f;
+  document.querySelectorAll('.portal-nav-link').forEach(l=>l.classList.remove('active'));
+  btn.classList.add('active');
+  // Handle timetable view
+  const ttSec=document.getElementById('sec-timetable-r2');
+  if(f==='timetable'){
+    if(ttSec) ttSec.style.display='block';
+    renderApprovedTimetableR2();
+    return;
+  }
+  if(ttSec) ttSec.style.display='none';
+  switchTab('ins');
+  renderCards();
+}
+
+// ── Render Cards ─────────────────────────────────────────────────────────
+function renderCards(){
+  const q=(document.getElementById('q')?.value||'').toLowerCase();
+  const list=instructors.filter(ins=>{
+    const depts=getTeachDepts(ins.id);
+    if(filterF==='cs'  && !depts.includes('Computer Science'))  return false;
+    if(filterF==='bus' && !depts.includes('Business'))           return false;
+    if(filterF==='gen' && !depts.includes('General Education'))  return false;
+    if(filterF==='ft'  && instData[ins.id]?.employment!=='Full-Time')  return false;
+    if(filterF==='pt'  && instData[ins.id]?.employment!=='Part-Time')  return false;
+    if(q&&!ins.name.toLowerCase().includes(q))return false;
+    return true;
+  });
+
+  const g=document.getElementById('grid');
+  if(!list.length){g.innerHTML='<p style="color:#94A3B8;padding:20px">No instructors found.</p>';return;}
+
+  g.innerHTML=list.map(ins=>{
+    const d=instData[ins.id],cs=isCS(ins);
+    const coursesArr=ins.courses||[];
+    const max=d.maxCredits,assigned=coursesArr.length*3;
+    const pct=Math.min(100,Math.round(assigned/max*100));
+    const crClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+    const qCls={'PhD':'qual-phd','Master':'qual-master','Associate':'qual-assoc','Bachelor':'qual-bachelor'}[d.qualification]||'qual-bachelor';
+    return `<div class="ic">
+      <div class="ic-head">
+        <div class="av ${cs?'av-cs':'av-bus'}">${ini(ins.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ins.name}</div>
+          <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center">
+            <span class="qual-badge ${qCls}" id="qbadge_${ins.id}" style="font-size:10px">${d.qualification}</span>
+          </div>
+          <div class="dept-labels">
+            ${[
+              {l:'Computer Science', s:'CS',     k:'dlb-cs'},
+              {l:'Business',         s:'Biz',    k:'dlb-bus'},
+              {l:'General Education',s:'Gen Ed', k:'dlb-gen'}
+            ].map(({l,s,k})=>{
+              const on=getTeachDepts(ins.id).includes(l);
+              const icons={'CS':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>','Biz':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>','Gen Ed':'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'};
+              const chk=on?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':'';
+              return '<button id="tdl_'+ins.id+'_'+l.replace(/ /g,'_')+'" class="dept-lbl-btn '+k+(on?' on':'')+'" onclick="toggleTeachDept(\'' + ins.id + '\',\'' + l.replace(/ /g,'_') + '\')" title="'+l+'">'+icons[s]+(on?chk:'')+s+'</button>';
+            }).join('')}
+          </div>
+        </div>
+        <div class="emp-tog">
+          <button class="${d.employment==='Full-Time'?'ft-on':''}" onclick="setEmp('${ins.id}','Full-Time')">FT</button>
+          <button class="${d.employment==='Part-Time'?'pt-on':''}" onclick="setEmp('${ins.id}','Part-Time')">PT</button>
+        </div>
+      </div>
+      <div class="ic-body">
+        <div class="two">
+          <div class="fl"><label>Qualification</label>
+            <select class="fs" onchange="upd('${ins.id}','qualification',this.value)">
+              ${QUALS.map(q=>`<option ${d.qualification===q?'selected':''}>${q}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fl"><label>Max Credits</label>
+            <input type="number" class="fi" value="${max}" min="3" max="40" onchange="upd('${ins.id}','maxCredits',parseInt(this.value))">
+          </div>
+        </div>
+        <div class="two">
+          <div class="fl"><label>Available From</label>
+            <input type="time" class="fi" value="${d.timeFrom}" onchange="upd('${ins.id}','timeFrom',this.value)">
+          </div>
+          <div class="fl"><label>Available To</label>
+            <input type="time" class="fi" value="${d.timeTo}" onchange="upd('${ins.id}','timeTo',this.value)">
+          </div>
+        </div>
+        <div class="fl"><label>Notes (optional)</label>
+          <input type="text" class="fi" value="${d.notes}" placeholder="e.g. mornings only, online preferred…" onchange="upd('${ins.id}','notes',this.value)">
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:600;color:#94A3B8">COURSES ASSIGNED (${coursesArr.length})</span>
+            <span style="font-size:12px;font-weight:800;color:${crClr}">${assigned} / ${max} cr.</span>
+          </div>
+          <div class="cr-bar"><div class="cr-fill" style="width:${pct}%;background:${crClr}"></div></div>
+          <div class="chips">
+            ${coursesArr.slice(0,12).map(c=>`<span class="chip ${codeIsCS(c)?'chip-cs':codeIsGen(c)?'chip-gen':'chip-bus'}">${c}</span>`).join('')}
+            ${coursesArr.length>12?`<span style="font-size:10px;color:#94A3B8">+${coursesArr.length-12} more</span>`:''}
+            ${!coursesArr.length?'<span style="font-size:11px;color:#94A3B8">None assigned yet</span>':''}
+          </div>
+        </div>
+      </div>
+      <div class="ic-foot">
+        <span style="font-size:11px;color:#64748B">${fmtT(d.timeFrom)} – ${fmtT(d.timeTo)}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn-del-inst" onclick="deleteInstructor('${ins.id}')">Delete</button>
+          <button class="btn-edit-inst" onclick="openEditModal('${ins.id}')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="btn-save-portal" style="padding:5px 12px;font-size:12px" onclick="saveOne('${ins.id}')">Save</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setEmp(id,type){instData[id].employment=type;instData[id].maxCredits=MAX[type];renderCards();updateStats();}
+function upd(id,f,v){
+  instData[id][f]=v;
+  if(f==='qualification'){
+    const badge=document.getElementById('qbadge_'+id);
+    if(badge){
+      const cls={'PhD':'qual-phd','Master':'qual-master','Associate':'qual-assoc','Bachelor':'qual-bachelor'}[v]||'qual-bachelor';
+      badge.className='qual-badge '+cls;
+      badge.textContent=v;
+    }
+  }
+}
+
+// ── Add Instructor ────────────────────────────────────────────────────────
+function openAddModal(){
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('new-name').focus(),50);
+}
+// ── Edit Modal ───────────────────────────────────────────────────────────
+let _editId = null;
+
+function openEditModal(id){
+  const ins = instructors.find(i=>i.id===id);
+  const d   = instData[id]||{};
+  if(!ins) return;
+  _editId = id;
+
+  document.getElementById('edit-name').value    = ins.name||'';
+  document.getElementById('edit-title').value   = ins.title||'';
+  document.getElementById('edit-dept').value    = ins.department||'Business';
+  document.getElementById('edit-email').value   = ins.email||'';
+  document.getElementById('edit-emp').value     = d.employment||'Full-Time';
+  document.getElementById('edit-qual').value    = d.qualification||'Master';
+  document.getElementById('edit-credits').value = d.maxCredits||(d.employment==='Part-Time'?12:21);
+  document.getElementById('edit-spec').value    = ins.specialization||'';
+  document.getElementById('edit-from').value    = d.timeFrom||'09:00';
+  document.getElementById('edit-to').value      = d.timeTo||'17:00';
+  document.getElementById('edit-notes').value   = d.notes||'';
+
+  document.getElementById('edit-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('edit-name').focus(), 50);
+}
+
+function closeEditModal(){
+  document.getElementById('edit-modal').classList.remove('open');
+  _editId = null;
+}
+
+async function confirmEdit(){
+  if(!_editId) return;
+  const name    = document.getElementById('edit-name').value.trim();
+  if(!name){ toast('Name is required','err'); return; }
+
+  const ins = instructors.find(i=>i.id===_editId);
+  if(!ins) return;
+
+  // Update instructor object
+  ins.name           = name;
+  ins.title          = document.getElementById('edit-title').value;
+  ins.department     = document.getElementById('edit-dept').value;
+  ins.email          = document.getElementById('edit-email').value.trim();
+  ins.specialization = document.getElementById('edit-spec').value.trim();
+
+  // Update instData
+  const emp  = document.getElementById('edit-emp').value;
+  const cred = parseInt(document.getElementById('edit-credits').value)||MAX[emp];
+  instData[_editId].employment    = emp;
+  instData[_editId].qualification = document.getElementById('edit-qual').value;
+  instData[_editId].maxCredits    = cred;
+  instData[_editId].timeFrom      = document.getElementById('edit-from').value;
+  instData[_editId].timeTo        = document.getElementById('edit-to').value;
+  instData[_editId].notes         = document.getElementById('edit-notes').value.trim();
+
+  persistLocal();
+
+  // Save to DB
+  const client = typeof getSupabaseClient==='function' ? getSupabaseClient() : null;
+  if(client){
+    try{
+      const payload = {
+        name: ins.name, title: ins.title, department: ins.department,
+        email: ins.email, employment_type: emp,
+        qualification: instData[_editId].qualification,
+        max_credits: cred,
+        time_from: instData[_editId].timeFrom,
+        time_to:   instData[_editId].timeTo,
+        notes:     instData[_editId].notes
+      };
+      const {data:upd, error:ue} = await client.from('instructors').update(payload).eq('instructor_id',_editId).select('instructor_id');
+      if(ue) throw ue;
+      if(!upd||upd.length===0){ const{error:ie}=await client.from('instructors').insert({instructor_id:_editId,...payload}); if(ie) throw ie; }
+      toast(name.split(' ').slice(-1)[0]+' updated in DB','ok');
+    }catch(e){ toast('Saved locally','info'); }
+  } else { toast('Changes saved locally','info'); }
+
+  updateStats(); renderCards(); closeEditModal();
+}
+
+// ── Close edit modal on overlay click ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('edit-modal')?.addEventListener('click',function(e){ if(e.target===this) closeEditModal(); });
+});
+
+function closeAddModal(){
+  document.getElementById('add-modal').classList.remove('open');
+  document.getElementById('new-name').value='';
+  document.getElementById('new-email').value='';
+  document.getElementById('new-notes').value='';
+  document.getElementById('new-title').value='';
+  document.getElementById('new-dept').value='Computer Science';
+  document.getElementById('new-emp').value='Full-Time';
+  document.getElementById('new-qual').value='Master';
+  document.getElementById('new-from').value='09:00';
+  document.getElementById('new-to').value='17:00';
+}
+async function confirmAdd(){
+  const name=document.getElementById('new-name').value.trim();
+  if(!name){toast('Name is required','err');return;}
+  const dept =document.getElementById('new-dept').value;
+  const title=document.getElementById('new-title').value;
+  const email=document.getElementById('new-email').value.trim();
+  const emp  =document.getElementById('new-emp').value;
+  const qual =document.getElementById('new-qual').value;
+  const from =document.getElementById('new-from').value;
+  const to   =document.getElementById('new-to').value;
+  const notes=document.getElementById('new-notes').value.trim();
+
+  const maxId=instructors.reduce((m,i)=>{const n=parseInt(i.id.replace('INS',''))||0;return n>m?n:m;},0);
+  const newId='INS'+String(maxId+1).padStart(3,'0');
+
+  instructors.push({id:newId,name,title,department:dept,email:email||'',courses:[]});
+  instData[newId]={employment:emp,qualification:qual,timeFrom:from,timeTo:to,maxCredits:MAX[emp],notes};
+
+  const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  if(client){
+    try{
+      const{error}=await client.from('instructors').insert({
+        instructor_id:newId,name,title,department:dept,email:email||'',
+        employment_type:emp,qualification:qual,time_from:from,time_to:to,max_credits:MAX[emp],notes
+      });
+      if(error)throw error;
+      toast(name.split(' ').pop()+' added to DB','ok');
+    }catch(e){console.warn('[CCK] add error:',e?.message||e);toast(name.split(' ').pop()+' added locally','info');}
+  }else{toast(name.split(' ').pop()+' added locally','info');}
+
+  persistLocal();updateStats();renderCards();closeAddModal();
+}
+
+// ── Delete Instructor ────────────────────────────────────────────────────
+async function deleteInstructor(id){
+  const ins=instructors.find(i=>i.id===id);
+  if(!ins)return;
+  if(!confirm('Delete '+ins.name+'?\nThis cannot be undone.'))return;
+  instructors=instructors.filter(i=>i.id!==id);
+  delete instData[id];
+  const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  if(client){try{await client.from('instructors').delete().eq('instructor_id',id);}catch(e){console.warn('[CCK] delete:',e?.message);}}
+  persistLocal();updateStats();renderCards();
+  toast(ins.name.split(' ').pop()+' removed','info');
+  resetApprovalOnSave();
+}
+
+// ── Tutoring Tab ─────────────────────────────────────────────────────────
+function renderTutoring(){
+  const q=(document.getElementById('tut-q')?.value||'').toLowerCase();
+  const rows=[];
+  instructors.forEach(ins=>{
+    const d=instData[ins.id];if(!d)return;
+    const isPT=d.employment==='Part-Time';
+    (ins.courses||[]).forEach(code=>{
+      if(q&&!ins.name.toLowerCase().includes(q)&&!code.toLowerCase().includes(q))return;
+      const ci=courses.find(c=>c.code===code)||{code,name:'',credits:3};
+      const tk=ins.id+'__'+code;
+      if(!tutData[tk])tutData[tk]={credits:ci.credits||3,section:'',payType:'Per Hour',payAmount:''};
+      rows.push({ins,d,isPT,code,ci,tk});
+    });
+  });
+
+  const tbody=document.getElementById('tut-body');
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:30px;font-size:13px">No tutoring assignments yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML=rows.map(({ins,d,isPT,code,ci,tk})=>{
+    const cs=isCS(ins);
+    const t=tutData[tk];
+    const typeBadge=isPT
+      ?`<span class="pay-badge pay-pt">Part-Time</span>`
+      :`<span class="pay-badge pay-ft">Full-Time</span>`;
+
+    const payCell=isPT?`
+      <div class="pay-section">
+        <select class="tut-inp" style="width:110px;" onchange="updTut('${tk}','payType',this.value)">
+          ${PAY_TYPES.map(p=>`<option ${t.payType===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+        <input type="number" class="tut-inp" min="0" step="0.5" placeholder="Amount" style="width:80px;"
+          value="${t.payAmount}" onchange="updTut('${tk}','payAmount',this.value)">
+        <span style="font-size:10px;color:#64748B;white-space:nowrap">${PAY_UNIT[t.payType]||''}</span>
+      </div>`
+    :`<span style="font-size:11px;color:#94A3B8;font-style:italic">Included in salary</span>`;
+
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="av ${cs?'av-cs':'av-bus'}" style="width:30px;height:30px;font-size:11px;flex-shrink:0">${ini(ins.name)}</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#0F172A">${ins.name}</div>
+            <div style="font-size:10px;color:#94A3B8">${ins.email||ins.department}</div>
+          </div>
+        </div>
+      </td>
+      <td>${typeBadge}</td>
+      <td>
+        <div style="font-size:12px;font-weight:700;color:#1E293B">${code}</div>
+        <div style="font-size:10px;color:#64748B;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ci.name||''}</div>
+      </td>
+      <td>
+        <input type="number" class="tut-inp" min="1" max="12" style="width:56px;"
+          value="${t.credits}" onchange="updTut('${tk}','credits',parseInt(this.value)||3)">
+      </td>
+      <td>
+        <input type="text" class="tut-inp" placeholder="01" style="width:56px;"
+          value="${t.section}" onchange="updTut('${tk}','section',this.value)">
+      </td>
+      <td>${payCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updTut(tk,f,v){if(!tutData[tk])tutData[tk]={};tutData[tk][f]=v;}
+
+async function saveTutoring(){
+  setBtnLoading('btn-save-tut','tut-icon','tut-label',true,'Saving…');
+  localStorage.setItem('cck_reg2_tutoring',JSON.stringify(tutData));
+
+  // Sync credits to shared credits store
+  const creditsMap={};
+  Object.entries(tutData).forEach(([tk,t])=>{const code=tk.split('__')[1];if(code&&t.credits)creditsMap[code]=t.credits;});
+  const ex=JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
+  localStorage.setItem('cck_credits_shared',JSON.stringify({...ex,...creditsMap}));
+
+  let dbSaved=0;
+  const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  if(client){
+    for(const[tk,t]of Object.entries(tutData)){
+      const code=tk.split('__')[1];if(!code)continue;
+      try{const{error}=await client.from('courses').update({credits:t.credits}).eq('code',code);if(!error)dbSaved++;}
+      catch(e){console.warn('[CCK] tut save:',e?.message||e);}
+    }
+  }
+
+  setBtnLoading('btn-save-tut','tut-icon','tut-label',false,'Save Tutoring');
+  toast(dbSaved>0?'Tutoring saved to DB ('+dbSaved+' credits updated)':'Tutoring saved locally',dbSaved>0?'ok':'info');
+}
+
+// ── Save One ─────────────────────────────────────────────────────────────
+async function saveOne(id){
+  const ins=instructors.find(i=>i.id===id);
+  const d=instData[id];if(!ins||!d)return;
+  persistLocal();
+  resetApprovalOnSave();
+  const lastName=ins.name.split(' ').slice(-1)[0]||id;
+  const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  if(client){
+    try{
+      const payload={
+        instructor_id:ins.id,name:ins.name,department:ins.department,
+        employment_type:d.employment,qualification:d.qualification,
+        time_from:d.timeFrom,time_to:d.timeTo,max_credits:d.maxCredits,
+        notes:(d.notes||'') + (d.teachDepts?.length ? ' [depts:'+d.teachDepts.join(',')+']' : '')
+      };
+      const{data:updated,error:ue}=await client.from('instructors').update(payload).eq('instructor_id',ins.id).select('instructor_id');
+      if(ue)throw ue;
+      if(!updated||updated.length===0){const{error:ie}=await client.from('instructors').insert(payload);if(ie)throw ie;}
+      toast(lastName+' saved to DB','ok');
+    }catch(e){console.warn('[CCK] save:',e?.message||e);toast(lastName+' saved locally','info');}
+  }else{toast(lastName+' saved locally','ok');}
+  updateStats();
+}
+
+// ── Save All ─────────────────────────────────────────────────────────────
+async function saveAll(){
+  setBtnLoading('btn-save-all','save-all-icon','save-all-label',true,'Saving…');
+  persistLocal();
+  resetApprovalOnSave();
+
+  const client=typeof getSupabaseClient==='function'?getSupabaseClient():null;
+  let dbSaved=0,localSaved=0;
+
+  if(client){
+    for(const ins of instructors){
+      const d=instData[ins.id];if(!d)continue;
+      try{
+        const payload={
+          instructor_id:ins.id,name:ins.name,department:ins.department,
+          employment_type:d.employment,qualification:d.qualification,
+          time_from:d.timeFrom,time_to:d.timeTo,max_credits:d.maxCredits,notes:d.notes||''
+        };
+        const{data:updated,error:ue}=await client.from('instructors').update(payload).eq('instructor_id',ins.id).select('instructor_id');
+        if(ue)throw ue;
+        if(!updated||updated.length===0){const{error:ie}=await client.from('instructors').insert(payload);if(ie)throw ie;}
+        dbSaved++;
+      }catch(e){console.warn('[CCK] save:',ins.name,e?.message||e);localSaved++;}
+    }
+  }else{localSaved=instructors.length;}
+
+  setBtnLoading('btn-save-all','save-all-icon','save-all-label',false,'Save All');
+
+  if(dbSaved>0&&localSaved===0)toast(dbSaved+' instructor(s) saved to database','ok');
+  else if(dbSaved>0)toast(dbSaved+' to DB · '+localSaved+' local only','info');
+  else toast('All '+instructors.length+' saved locally','info');
+  updateStats();
+}
+
+// ── Loading helper ────────────────────────────────────────────────────────
+function setBtnLoading(btnId,iconId,labelId,loading,labelText){
+  const btn=document.getElementById(btnId);
+  const icon=document.getElementById(iconId);
+  const label=document.getElementById(labelId);
+  if(loading){
+    btn.classList.add('btn-saving');
+    icon.innerHTML='<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>';
+    icon.classList.add('spin-icon');
+  }else{
+    btn.classList.remove('btn-saving');
+    icon.innerHTML='<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/>';
+    icon.classList.remove('spin-icon');
+  }
+  label.textContent=labelText;
+}
+
+// ── Local persistence ─────────────────────────────────────────────────────
+function persistLocal(){
+  const all={};
+  instructors.forEach(ins=>{
+    if(!instData[ins.id]) return;
+    const entry={...instData[ins.id]};
+    // Deduplicate teachDepts before writing
+    entry.teachDepts=_dedup(entry.teachDepts||[]);
+    all[ins.id]=entry;
+  });
+  // reg2 owns cck_reg2_inst — only reg2 writes here
+  localStorage.setItem('cck_reg2_inst',JSON.stringify(all));
+  // Do NOT write to cck_inst_shared — that's HOD's key and causes cross-contamination
+  // Always check if approval needs to be reset when data changes
+  resetApprovalOnSave();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const c=document.getElementById('ts'),d=document.createElement('div');
+  d.className='toast '+type;d.textContent=msg;c.appendChild(d);
+  setTimeout(()=>d.remove(),3400);
+}
+
+// Close modal on overlay click
+document.getElementById('add-modal').addEventListener('click',function(e){if(e.target===this)closeAddModal();});
+
+// ── SEMESTER SELECTOR ────────────────────────────────────────────────────────
+(async function initSemesterSelector(){
+  if (typeof CCK === 'undefined') return;
+  await CCK.loadSemesters();
+updateSubmitState();
+})();
+
+function updateSubmitState(){
+  const btn = document.getElementById('btn-submit-admin');
+  const lbl = document.getElementById('submit-admin-lbl');
+  if (!btn || !lbl) return;
+  if (typeof CCK === 'undefined') return;
+  const semKey = CCK.getActiveSemKey();
+  const status = (JSON.parse(localStorage.getItem('cck_reg2_status')||'{}'))[semKey]||'draft';
+  let s, t;
+  if (CCK.isArchived(semKey))    { s='archived';  t='Archived – Read Only'; }
+  else if (status==='submitted') { s='submitted'; t='Pending Approval'; }
+  else if (status==='approved')  { s='approved';  t='✓ Approved by Admin'; }
+  else if (status==='resubmit')  { s='resubmit';  t='Resubmit to Admin'; }
+  else                           { s='draft';     t='Submit to Admin'; }
+  btn.dataset.status = s;
+  lbl.textContent = t;
+  btn.disabled = (s === 'submitted' || s === 'archived' || s === 'approved');
+}
+
+function resetApprovalOnSave(){
+  if (typeof CCK === 'undefined') return;
+  const semKey = CCK.getActiveSemKey();
+  const cur = (JSON.parse(localStorage.getItem('cck_reg2_status')||'{}'))[semKey]||'draft';
+  if (cur === 'approved' || cur === 'submitted') {
+    const all = JSON.parse(localStorage.getItem('cck_reg2_status')||'{}');
+    all[semKey] = 'resubmit';
+    localStorage.setItem('cck_reg2_status', JSON.stringify(all));
+    updateSubmitState();
+    toast('Changes saved — resubmit to Admin when ready', 'info');
+  }
+}
+
+async function submitToAdmin(){
+  if (typeof CCK === 'undefined') { toast('CCK shared library not loaded','err'); return; }
+  const semKey = CCK.getActiveSemKey();
+  if (CCK.isArchived(semKey)) { toast('Cannot submit archived semester','err'); return; }
+  // Mark submitted
+  const all = JSON.parse(localStorage.getItem('cck_reg2_status')||'{}');
+  all[semKey] = 'submitted';
+  localStorage.setItem('cck_reg2_status', JSON.stringify(all));
+  // Notify admin
+  const notifs = JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  notifs.unshift({
+    id: Date.now(), portal: 'Registration 2', semKey,
+    semLabel: CCK.getSemesterByKey(semKey)?.label || semKey,
+    message: `Registration 2 submitted instructor data for ${CCK.getSemesterByKey(semKey)?.label || semKey}`,
+    totalInstructors: instructors.length,
+    timestamp: new Date().toISOString(), read: false
+  });
+  localStorage.setItem('cck_admin_notifications', JSON.stringify(notifs));
+  updateSubmitState();
+  toast('Instructor data submitted to Admin ✓','ok');
+}
+
+function renderApprovedTimetableR2(){
+  const cont=document.getElementById('reg2-tt-content');
+  if(!cont) return;
+  let att=null;
+  try{att=JSON.parse(localStorage.getItem('cck_nehad_timetable_approved')||'null');}catch(e){}
+  const slots=att&&att.slots;
+  if(!slots||!Object.keys(slots).length){
+    cont.innerHTML='<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px;background:white;border-radius:10px;border:1px solid #F1F5F9">No approved timetable available yet. Waiting for Dr. Nehad to submit and Admin to approve.</div>';
+    return;
+  }
+  const approvedAt=att.approvedAt?new Date(att.approvedAt).toLocaleString():'—';
+  let html=`<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:#15803D;font-weight:500">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+    Approved on ${approvedAt}
+  </div>
+  <div style="background:white;border-radius:10px;border:1px solid #F1F5F9;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:#F8FAFC">
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Instructor</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Course</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Day</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Time</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Section</th>
+      <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Room</th>
+    </tr></thead><tbody>`;
+  Object.keys(slots).sort().forEach(key=>{
+    (slots[key]||[]).forEach(s=>{
+      html+=`<tr style="border-bottom:1px solid #F8FAFC">
+        <td style="padding:7px 12px;font-family:monospace;font-size:11px;color:#C8102E">${key}</td>
+        <td style="padding:7px 12px;font-weight:600">${s.course||'—'}</td>
+        <td style="padding:7px 12px;color:#475569">${s.day||'—'}</td>
+        <td style="padding:7px 12px;font-family:monospace;font-size:11px">${(s.start||'')+'–'+(s.end||'')}</td>
+        <td style="padding:7px 12px;color:#64748B">${s.section||'—'}</td>
+        <td style="padding:7px 12px;color:#64748B">${s.room||'—'}</td>
+      </tr>`;
+    });
+  });
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
+
+// Init badge
+(function(){
+  try{
+    const att=JSON.parse(localStorage.getItem('cck_nehad_timetable_approved')||'null');
+    const b=document.getElementById('tt-approved-badge-r2');
+    if(att&&att.slots&&b) b.style.display='inline';
+  }catch(e){}
+})();
+
+init();
+</script>
+</body>
+</html>

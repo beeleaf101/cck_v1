@@ -290,6 +290,7 @@ const AppState = {
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', async () => {
     await loadAllData();
+    loadFacilityRooms(); // Load rooms from Facility Management portal
     initializeSemester(); // Initialize semester management
     loadSavedAllocation(); // Load allocation for current semester
     initializeEventListeners();
@@ -298,7 +299,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const session = await window.api.me();
         if (session && session.role) {
+            if (session.redirect) { window.location.href = session.redirect; return; }  // staff portal user
             await startSession(session.role, session.user);
+        } else if (/login=required/.test(location.search)) {
+            showToast('Please log in to open that page.', 'info');
         }
     } catch (err) {
         console.log('Session check failed:', err.message);
@@ -586,16 +590,12 @@ async function loadAllData() {
     try {
         // Add cache-busting timestamp to force reload of JSON files
         const cacheBust = '?v=' + Date.now() + Math.random();
-        console.log('Loading data with cache bust:', cacheBust);
         
-        const [students, courses, instructors, enrollments, hallsSchedule, combinedCourses] = await Promise.all([
-            // students.json and enrollments.json hold private data and are not in the public repo;
-            // fall back to an empty list when they are missing
-            // Students and enrollments are private: they are loaded from the database after login
-            Promise.resolve([]),
+        // Public files only. Students and enrollments are private: they come from the
+        // database after login (loadPrivateData).
+        const [courses, instructors, hallsSchedule, combinedCourses] = await Promise.all([
             fetch('courses.json' + cacheBust).then(r => r.json()),
             fetch('instructors.json' + cacheBust).then(r => r.json()),
-            Promise.resolve([]),
             fetch('halls_schedule.json' + cacheBust).then(r => r.json()),
             fetch('combined_courses.json' + cacheBust).then(r => r.json())
         ]);
@@ -603,22 +603,11 @@ async function loadAllData() {
         // USE EMBEDDED STUDY PLANS DATA (to avoid browser caching issues)
         const studyPlans = typeof EMBEDDED_STUDY_PLANS !== 'undefined' ? EMBEDDED_STUDY_PLANS : await fetch('study_plans.json' + cacheBust).then(r => r.json());
         
-        // Debug: Log study plan semesters
-        if (studyPlans['DIPLOMA-MAN. & ENTR.']) {
-            const plan = studyPlans['DIPLOMA-MAN. & ENTR.'];
-            const semesters = {};
-            plan.courses.forEach(c => {
-                const sem = c.semester || 'Unknown';
-                if (!semesters[sem]) semesters[sem] = [];
-                semesters[sem].push(c.code);
-            });
-            console.log('DIPLOMA-MAN. & ENTR. semesters:', semesters);
-        }
-        
-        AppState.students = students;
+        AppState.students = [];
+        AppState.formerStudents = [];
         AppState.courses = courses;
         AppState.instructors = instructors;
-        AppState.enrollments = enrollments;
+        AppState.enrollments = [];
         AppState.studyPlans = studyPlans;
         AppState.hallsSchedule = hallsSchedule;
         AppState.combinedCourses = combinedCourses;
@@ -626,7 +615,7 @@ async function loadAllData() {
         // Process courses to add additional info
         processCoursesData();
         
-        console.log(`Loaded: ${students.length} students, ${courses.length} courses`);
+        console.log(`Loaded: ${courses.length} courses (student data loads after login)`);
     } catch (error) {
         console.error('Error loading data:', error);
         showToast('Error loading data. Please refresh.', 'error');
@@ -672,11 +661,18 @@ function clearPrivateData() {
         HistoricalData.studentStats = {};
         HistoricalData.loaded = false;
     }
+    window.RegistrationRequests = [];
     processCoursesData();
 }
 
 // After a successful login (or a restored session): load data and open the portal
 async function startSession(role, user) {
+    // Pull the shared portal data (registration requests, portal submissions, rooms...)
+    if (window.cckStore) window.cckStore.reload();
+    try { window.RegistrationRequests = JSON.parse(localStorage.getItem('cck_registration_requests') || '[]'); } catch (e) { window.RegistrationRequests = []; }
+    if (typeof loadFacilityRooms === 'function') loadFacilityRooms();
+    if (typeof loadSavedAllocation === 'function') loadSavedAllocation();
+    
     const ok = await loadPrivateData();
     if (!ok) return;
     
@@ -697,6 +693,109 @@ async function startSession(role, user) {
         AppState.currentUser = AppState.students.find(s => s.student_id === user.student_id) || user;
         showStudentPortal();
     }
+}
+
+// Helper function to convert Supabase student to app format
+function convertSupabaseStudent(s) {
+    // Try to get original_data from metadata if available
+    let originalData = {};
+    if (s.metadata) {
+        try {
+            const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : s.metadata;
+            if (meta.original_data) {
+                originalData = meta.original_data;
+            }
+        } catch (e) {}
+    }
+    
+    // Calculate level from entry_year or use existing level
+    let level = s.level;
+    if (!level || level === 'Unknown') {
+        level = calculateLevelFromEntryYear(s.entry_year, s.student_id);
+    } else {
+        level = convertLevelToText(level);
+    }
+    
+    // Get metadata values
+    let metadata = {};
+    if (s.metadata) {
+        try {
+            metadata = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : s.metadata;
+        } catch (e) {}
+    }
+    
+    return {
+        student_id: s.student_id,
+        name: s.name || originalData.name || '',
+        name_ar: originalData.name_ar || metadata.name_ar || '',
+        civil_id: s.civil_id || originalData.civil_id || metadata.civil_id || '',
+        email: s.email || originalData.email || '',
+        phone: originalData.phone || metadata.phone || '',
+        gender: s.gender || originalData.gender || metadata.gender || '',
+        major: s.major || originalData.major || '',
+        level: level,
+        gpa: parseGPA(s.gpa || s.cgpa || originalData.gpa),
+        enrolled_credits: originalData.enrolled_credits || 0,
+        student_type: originalData.student_type || metadata.student_type || 'Normal',
+        language: originalData.language || metadata.language || 'English',
+        nationality: s.nationality || originalData.nationality || metadata.nationality || '',
+        degree_class: originalData.degree_class || metadata.degree_class || '',
+        admit_term: s.admit_term || originalData.admit_term || metadata.admit_term || '',
+        entry_year: s.entry_year,
+        exit_year: s.exit_year,
+        status: s.status || s.enrollment_status || 'active',
+        enrollment_status: s.enrollment_status || s.status || 'active'
+    };
+}
+
+// Helper to parse GPA values
+function parseGPA(gpa) {
+    if (gpa === null || gpa === undefined || gpa === '' || gpa === 'Not Given') {
+        return 'Not Given';
+    }
+    const num = parseFloat(gpa);
+    if (isNaN(num)) return 'Not Given';
+    return num;
+}
+
+// Calculate academic level from entry year
+function calculateLevelFromEntryYear(entryYear, studentId) {
+    const CURRENT_YEAR = 2025;
+    let year = entryYear;
+    
+    // If no entry year, try to extract from student ID
+    if (!year && studentId) {
+        const idStr = String(studentId);
+        if (idStr.length >= 4) {
+            const yearPrefix = parseInt(idStr.substring(0, 4));
+            if (yearPrefix >= 2010 && yearPrefix <= CURRENT_YEAR) {
+                year = yearPrefix;
+            }
+        }
+    }
+    
+    if (!year) return 'First Year';
+    
+    const yearsInSchool = CURRENT_YEAR - year;
+    
+    if (yearsInSchool <= 1) return 'First Year';
+    if (yearsInSchool === 2) return 'Second Year';
+    if (yearsInSchool === 3) return 'Third Year';
+    return 'Fourth Year';
+}
+
+// Helper function to convert numeric level to text
+function convertLevelToText(level) {
+    if (!level) return 'Unknown';
+    if (typeof level === 'string') return level;
+    const levelMap = {
+        1: 'First Year',
+        2: 'Second Year',
+        3: 'Third Year',
+        4: 'Fourth Year',
+        5: 'Fifth Year'
+    };
+    return levelMap[level] || `Year ${level}`;
 }
 
 function processCoursesData() {
@@ -777,6 +876,26 @@ function togglePasswordVisibility() {
 window.togglePasswordVisibility = togglePasswordVisibility;
 
 // ==================== AUTHENTICATION ====================
+// Load rooms from Facility Management portal (shared via localStorage)
+function loadFacilityRooms() {
+    try {
+        var saved = localStorage.getItem('cck_rooms_shared');
+        if (saved) {
+            var facilityRooms = JSON.parse(saved);
+            if (facilityRooms && facilityRooms.length) {
+                // Merge with AppState rooms - facility rooms take precedence
+                AppState.rooms = facilityRooms.filter(function(r){
+                    return r.status === 'active' || !r.status;
+                }).map(function(r){
+                    return {id:r.id, name:r.name, type:r.type, capacity:r.capacity, building:r.building};
+                });
+            }
+        }
+    } catch(e) {
+        console.warn('Could not load facility rooms:', e);
+    }
+}
+
 async function handleLogin(e) {
     e.preventDefault();
     const loginId = document.getElementById('login-id').value.trim();
@@ -790,10 +909,17 @@ async function handleLogin(e) {
     if (submitBtn) submitBtn.disabled = true;
     
     try {
-        // The server checks the password (admin password or student Civil ID)
+        // The server checks every password: admin, staff portals (hod, reg1, reg2,
+        // facility, nehad) and students (Student ID + Civil ID)
         const res = await window.api.login(loginId, password);
         if (res.error) {
             showToast(res.error.message || 'Login failed. Please try again.', 'error');
+            return;
+        }
+        if (res.data.redirect) {
+            // Staff portal user: open their portal page
+            showToast(`Welcome to ${res.data.user.name}!`, 'success');
+            setTimeout(() => { window.location.href = res.data.redirect; }, 400);
             return;
         }
         await startSession(res.data.role, res.data.user);
@@ -809,6 +935,7 @@ async function handleLogin(e) {
 
 async function handleLogout() {
     try { await window.api.logout(); } catch (err) { /* still log out locally */ }
+    if (window.cckStore) window.cckStore.reset();
     if (typeof DatabaseState !== 'undefined') DatabaseState.isConnected = false;
     clearPrivateData();
     
@@ -1237,6 +1364,11 @@ function showCoursePopup(courseCode) {
     const courseDescriptions = getCourseDescriptions();
     const courseInfo = courseDescriptions[courseCode] || {};
     
+    // Get allocated schedule data
+    const allocatedSchedule = getAllocatedScheduleData();
+    const allocation = allocatedSchedule[courseCode];
+    const hasSchedule = allocation && allocation.time && allocation.time !== 'TBA';
+    
     // Build popup HTML
     const modal = document.getElementById('modal');
     const modalContent = modal.querySelector('.modal-content');
@@ -1257,6 +1389,49 @@ function showCoursePopup(courseCode) {
     ];
     const topics = courseInfo.topics || [];
     
+    // Build schedule section HTML
+    const scheduleSection = hasSchedule ? `
+        <div class="course-popup-section" style="background: linear-gradient(135deg, #EEF2FF, #E0E7FF); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #C7D2FE;">
+            <h4 style="color: #4338CA; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Spring 2025 Schedule
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #6366F1; font-weight: 600; margin-bottom: 4px;">TIME</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #1E1B4B;">${formatScheduleTime(allocation.time)}</div>
+                </div>
+                <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #6366F1; font-weight: 600; margin-bottom: 4px;">ROOM</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #1E1B4B;">${allocation.room || 'TBA'}</div>
+                </div>
+                <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #6366F1; font-weight: 600; margin-bottom: 4px;">INSTRUCTOR</div>
+                    <div style="font-size: 13px; font-weight: 500; color: #1E1B4B;">${allocation.instructor || 'TBA'}</div>
+                </div>
+            </div>
+        </div>
+    ` : `
+        <div class="course-popup-section" style="background: #FEF3C7; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #FCD34D;">
+            <div style="display: flex; align-items: center; gap: 10px; color: #92400E;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                </svg>
+                <div>
+                    <div style="font-weight: 600;">Schedule Not Yet Available</div>
+                    <div style="font-size: 13px;">The schedule for this course will be available once course allocation is completed by the administration.</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
     modalContent.innerHTML = `
         <div class="modal-header">
             <div class="modal-title-group">
@@ -1268,6 +1443,8 @@ function showCoursePopup(courseCode) {
         <div class="modal-body">
             <div class="course-popup-content">
                 <h3 class="course-popup-title">${courseName}</h3>
+                
+                ${scheduleSection}
                 
                 <div class="course-popup-meta">
                     <div class="meta-item">
@@ -1507,8 +1684,15 @@ function renderCoursesList(courses, container) {
         return;
     }
     
+    // Get allocated schedule data from saved allocation
+    const allocatedSchedule = getAllocatedScheduleData();
+    
     container.innerHTML = courses.map(course => {
         const isSelected = AppState.selectedCourses.some(c => c.code === course.code);
+        
+        // Get allocated info for this course
+        const allocation = allocatedSchedule[course.code];
+        const hasSchedule = allocation && allocation.time && allocation.time !== 'TBA';
         
         // AI Predicted Enrollment
         const prediction = predictCourseEnrollment(course);
@@ -1526,7 +1710,57 @@ function renderCoursesList(courses, container) {
                     </div>
                     <span class="lang-tag">EN</span>
                 </div>
-                <div class="course-name">${course.title}</div>
+                <div class="course-name">${course.title || course.name}</div>
+                
+                <!-- Schedule Info from Allocation -->
+                ${hasSchedule ? `
+                    <div style="background: linear-gradient(135deg, #EEF2FF, #E0E7FF); border-radius: 8px; padding: 10px 12px; margin: 10px 0; border: 1px solid #C7D2FE;">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" style="width: 14px; height: 14px;">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span style="font-size: 11px; font-weight: 600; color: #4338CA;">Spring 2025 Schedule</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" style="width: 12px; height: 12px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <span style="font-size: 12px; color: #4338CA; font-weight: 500;">${formatScheduleTime(allocation.time)}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" style="width: 12px; height: 12px;">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                <span style="font-size: 12px; color: #4338CA;">${allocation.room || 'TBA'}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 6px; display: flex; align-items: center; gap: 6px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" style="width: 12px; height: 12px;">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span style="font-size: 11px; color: #6366F1;">${allocation.instructor || 'TBA'}</span>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="background: #FEF3C7; border-radius: 8px; padding: 8px 12px; margin: 10px 0; border: 1px solid #FCD34D;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width: 14px; height: 14px;">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 16v-4"/>
+                                <path d="M12 8h.01"/>
+                            </svg>
+                            <span style="font-size: 11px; color: #92400E;">Schedule not yet allocated - Check back later</span>
+                        </div>
+                    </div>
+                `}
+                
                 <div class="course-meta">
                     <div class="course-meta-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1579,6 +1813,58 @@ function renderCoursesList(courses, container) {
             </div>
         `;
     }).join('');
+}
+
+// Get allocated schedule data from saved allocation or lastAllocationResults
+function getAllocatedScheduleData() {
+    const schedule = {};
+    
+    // Try to get from saved allocation first (persisted)
+    let allocationData = AppState.savedAllocation;
+    
+    // If not saved, try lastAllocationResults (current session)
+    if (!allocationData && window.lastAllocationResults) {
+        allocationData = window.lastAllocationResults;
+    }
+    
+    if (!allocationData || !allocationData.results) {
+        return schedule;
+    }
+    
+    // Build schedule lookup by course code
+    allocationData.results.forEach(allocation => {
+        schedule[allocation.courseCode] = {
+            time: allocation.time,
+            room: allocation.room,
+            instructor: allocation.fullInstructor || allocation.instructor,
+            sections: allocation.sections
+        };
+    });
+    
+    return schedule;
+}
+
+// Format schedule time for display
+function formatScheduleTime(timeSlot) {
+    if (!timeSlot) return 'TBA';
+    
+    // If it's already formatted like "M,W(09:00 - 10:15)", return as is
+    if (timeSlot.includes('(') && timeSlot.includes(')')) {
+        return timeSlot;
+    }
+    
+    // Map day abbreviations to full names for display
+    const dayMap = {
+        'Su': 'Sun', 'M': 'Mon', 'T': 'Tue', 'W': 'Wed', 'Th': 'Thu', 'F': 'Fri', 'Sa': 'Sat'
+    };
+    
+    // Try to parse and format
+    let formatted = timeSlot;
+    Object.entries(dayMap).forEach(([abbr, full]) => {
+        formatted = formatted.replace(new RegExp(`\\b${abbr}\\b`, 'g'), full);
+    });
+    
+    return formatted;
 }
 
 // AI Enrollment Prediction System
@@ -1634,7 +1920,7 @@ function predictCourseEnrollment(course) {
             
             if (meetsPrereqs) {
                 // Check if this is the right semester for the student
-                const studentLevel = student.level?.toLowerCase() || '';
+                const studentLevel = String(student.level || '').toLowerCase();
                 const courseSemester = parseInt(semester?.replace('Semester ', '')) || 5;
                 
                 let studentSemester = 1;
@@ -1972,11 +2258,11 @@ const SchedulingEngine = {
     
     // Get student's current semester level
     getStudentSemesterLevel(student) {
-        const level = student.level?.toLowerCase() || '';
-        if (level.includes('first')) return 2; // Going to semester 2
-        if (level.includes('second')) return 4; // Going to semester 4
-        if (level.includes('third')) return 6; // Going to semester 6
-        if (level.includes('fourth')) return 8; // Going to semester 8
+        const level = String(student.level || '').toLowerCase();
+        if (level.includes('first') || level === '1') return 2; // Going to semester 2
+        if (level.includes('second') || level === '2') return 4; // Going to semester 4
+        if (level.includes('third') || level === '3') return 6; // Going to semester 6
+        if (level.includes('fourth') || level === '4') return 8; // Going to semester 8
         return 6; // Default
     },
     
@@ -2133,25 +2419,45 @@ function updateSelectedCoursesList() {
         return;
     }
     
-    // Initialize scheduling engine for current student
-    SchedulingEngine.initForStudent(AppState.currentUser);
+    // Get allocated schedule data from admin's Course Allocation
+    const allocatedSchedule = getAllocatedScheduleData();
     
-    // Assign schedules to each selected course
-    const scheduledCourses = [];
+    // Get all occupied time slots from selected courses
+    const occupiedSlots = new Set();
+    AppState.selectedCourses.forEach(course => {
+        const allocation = allocatedSchedule[course.code];
+        if (allocation && allocation.time) {
+            occupiedSlots.add(allocation.time);
+        }
+    });
+    
+    // Check for time conflicts among selected courses
     let hasAnyConflict = false;
+    const timeSlotCourses = {};
     
     AppState.selectedCourses.forEach(course => {
-        const schedule = SchedulingEngine.findBestTimeSlot(course, scheduledCourses);
+        // Use selected section if available, otherwise use default allocation
+        const selectedSection = course.selectedSection;
+        let allocation;
         
-        course.assignedSlot = schedule.slot;
-        course.assignedRoom = schedule.room;
-        course.assignedSection = SchedulingEngine.getSectionNumber(course, schedule.slot);
-        course.hasConflict = schedule.hasConflict;
-        course.assignedInstructor = schedule.instructor;
+        if (selectedSection) {
+            allocation = selectedSection;
+        } else {
+            allocation = allocatedSchedule[course.code];
+        }
         
-        if (schedule.hasConflict) hasAnyConflict = true;
-        
-        scheduledCourses.push(course);
+        if (allocation && allocation.time) {
+            // Check for conflicts
+            if (timeSlotCourses[allocation.time]) {
+                hasAnyConflict = true;
+                course.hasConflict = true;
+                timeSlotCourses[allocation.time].forEach(c => c.hasConflict = true);
+                timeSlotCourses[allocation.time].push(course);
+            } else {
+                timeSlotCourses[allocation.time] = [course];
+                course.hasConflict = false;
+            }
+        }
     });
     
     // Update conflict warning
@@ -2161,12 +2467,32 @@ function updateSelectedCoursesList() {
     }
     
     container.innerHTML = AppState.selectedCourses.map(course => {
+        // Get allocation - use selected section if available
+        const selectedSection = course.selectedSection;
+        const defaultAllocation = allocatedSchedule[course.code];
+        const allocation = selectedSection || defaultAllocation;
+        const hasSchedule = allocation && allocation.time && allocation.time !== 'TBA';
+        
         const conflictClass = course.hasConflict ? 'has-conflict' : '';
-        const slot = course.assignedSlot;
-        const room = course.assignedRoom;
+        
+        // Parse time for display
+        let displayTime = 'Schedule TBA';
+        let displayRoom = 'TBA';
+        let displayInstructor = 'TBA';
+        let sectionNumber = course.selectedSectionNum || '001';
+        
+        if (hasSchedule) {
+            displayTime = formatScheduleTimeForSelected(allocation.time);
+            displayRoom = formatRoomName(allocation.room);
+            displayInstructor = allocation.instructor || 'TBA';
+        }
+        
+        // Get available sections for this course
+        const availableSections = getAvailableSectionsForCourse(course.code, occupiedSlots, course);
+        const hasAlternateSections = availableSections.length > 1;
         
         return `
-            <div class="selected-course-item ${conflictClass}">
+            <div class="selected-course-item ${conflictClass}" ${!hasSchedule ? 'style="background: #FEF3C7; border-color: #FCD34D;"' : ''}>
                 <div class="selected-course-info">
                     <div class="selected-course-header">
                         <h4>${course.code}</h4>
@@ -2177,10 +2503,19 @@ function updateSelectedCoursesList() {
                                 </svg>
                             </span>
                         ` : ''}
+                        ${!hasSchedule ? `
+                            <span class="conflict-badge" title="Schedule not yet allocated" style="background: #FEF3C7; color: #92400E;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 16v-4"/>
+                                    <path d="M12 8h.01"/>
+                                </svg>
+                            </span>
+                        ` : ''}
                     </div>
-                    <p>${course.title}</p>
+                    <p>${course.title || course.name}</p>
                     <div class="selected-schedule-details">
-                        <span class="schedule-section">Section ${course.assignedSection}</span>
+                        <span class="schedule-section">Section ${sectionNumber}</span>
                         <span class="schedule-credits">${course.credits || 3} Credits</span>
                     </div>
                     <div class="selected-time-details">
@@ -2189,23 +2524,34 @@ function updateSelectedCoursesList() {
                                 <circle cx="12" cy="12" r="10"/>
                                 <polyline points="12 6 12 12 16 14"/>
                             </svg>
-                            ${slot.dayNames} ${slot.label}
+                            ${displayTime}
                         </div>
                         <div class="time-item">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                                 <circle cx="12" cy="10" r="3"/>
                             </svg>
-                            ${room.name || room.id}
+                            ${displayRoom}
                         </div>
                         <div class="time-item instructor">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                 <circle cx="12" cy="7" r="4"/>
                             </svg>
-                            ${course.assignedInstructor || 'TBA'}
+                            ${displayInstructor}
                         </div>
                     </div>
+                    
+                    ${course.hasConflict || hasAlternateSections ? `
+                        <button onclick="showSectionPicker('${course.code}')" 
+                            style="margin-top: 10px; padding: 8px 12px; background: ${course.hasConflict ? '#3B82F6' : '#6B7280'}; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            ${course.hasConflict ? 'Change Section to Resolve Conflict' : 'Change Section'}
+                        </button>
+                    ` : ''}
                 </div>
                 <button class="btn-remove-course" onclick="removeCourse('${course.code}')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2220,6 +2566,292 @@ function updateSelectedCoursesList() {
     // Update the preview timetable if exists
     updatePreviewTimetable();
 }
+
+// Format schedule time for selected courses display
+function formatScheduleTimeForSelected(timeSlot) {
+    if (!timeSlot) return 'TBA';
+    
+    // Parse format like "M,W(09:00 - 10:15)" or "Su,T(14:00 - 15:15)"
+    const match = timeSlot.match(/([A-Za-z,]+)\((\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\)/);
+    if (match) {
+        const days = match[1];
+        const startTime = match[2];
+        const endTime = match[3];
+        
+        // Convert day abbreviations to readable format
+        const dayMap = {
+            'Su': 'Sun', 'M': 'Mon', 'T': 'Tue', 'W': 'Wed', 'Th': 'Thu', 'F': 'Fri', 'Sa': 'Sat'
+        };
+        
+        let formattedDays = days;
+        Object.entries(dayMap).forEach(([abbr, full]) => {
+            formattedDays = formattedDays.replace(new RegExp(`\\b${abbr}\\b`, 'g'), full);
+        });
+        formattedDays = formattedDays.replace(/,/g, '/');
+        
+        // Format time to AM/PM
+        const formatTime = (t) => {
+            const [h, m] = t.split(':');
+            const hour = parseInt(h);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:${m} ${ampm}`;
+        };
+        
+        return `${formattedDays} ${formatTime(startTime).replace(' AM', '').replace(' PM', '')}-${formatTime(endTime)}`;
+    }
+    
+    return timeSlot;
+}
+
+// Format room name for display
+function formatRoomName(roomId) {
+    if (!roomId) return 'TBA';
+    
+    // Look up room in AppState.rooms for full name
+    const room = AppState.rooms?.find(r => r.id === roomId);
+    if (room && room.name) {
+        return room.name;
+    }
+    
+    // Format room ID nicely
+    if (roomId.startsWith('LAB')) {
+        return `Computer Lab ${roomId.replace('LAB', '').replace('-', ' ')}`;
+    }
+    if (roomId.startsWith('BG-')) {
+        return `Room ${roomId}`;
+    }
+    
+    return roomId;
+}
+
+// Get available sections for a course
+function getAvailableSectionsForCourse(courseCode, occupiedSlots, currentCourse) {
+    const sections = [];
+    const allocatedSchedule = getAllocatedScheduleData();
+    
+    // Get the default allocation
+    const defaultAllocation = allocatedSchedule[courseCode];
+    if (defaultAllocation) {
+        sections.push({
+            sectionNum: '001',
+            time: defaultAllocation.time,
+            room: defaultAllocation.room,
+            instructor: defaultAllocation.instructor,
+            hasConflict: false
+        });
+    }
+    
+    // Generate alternative sections with different time slots
+    // These would normally come from the database, but we'll generate plausible alternatives
+    const timeSlots = [
+        'Su,T(08:00 - 09:15)',
+        'Su,T(09:30 - 10:45)',
+        'Su,T(11:00 - 12:15)',
+        'Su,T(14:00 - 15:15)',
+        'Su,T(15:30 - 16:45)',
+        'M,W(08:00 - 09:15)',
+        'M,W(09:30 - 10:45)',
+        'M,W(11:00 - 12:15)',
+        'M,W(14:00 - 15:15)',
+        'M,W(15:30 - 16:45)',
+        'T,Th(08:00 - 09:15)',
+        'T,Th(09:30 - 10:45)',
+        'T,Th(11:00 - 12:15)',
+        'T,Th(14:00 - 15:15)'
+    ];
+    
+    // Get rooms based on course type
+    const isLabCourse = courseCode.startsWith('CST') || courseCode.startsWith('CSIT') || courseCode.startsWith('ICT');
+    const rooms = isLabCourse ? 
+        ['LAB-016', 'LAB-017', 'LAB-032', 'LAB-033'] : 
+        ['BG-023', 'BG-024', 'BG-025', 'BG-101', 'BG-102'];
+    
+    // Get instructors for this course type
+    const instructors = getInstructorsForCourse(courseCode);
+    
+    // Generate 2-3 alternative sections
+    let sectionCount = 2;
+    for (const slot of timeSlots) {
+        if (sections.length >= 4) break;
+        if (defaultAllocation && slot === defaultAllocation.time) continue;
+        
+        // Check if this slot conflicts with other selected courses (excluding current)
+        const conflictsWithSelected = Array.from(occupiedSlots).some(occupied => {
+            if (currentCourse.selectedSection && currentCourse.selectedSection.time === occupied) {
+                return false; // Don't count current course's slot
+            }
+            return occupied === slot;
+        });
+        
+        sections.push({
+            sectionNum: String(sections.length + 1).padStart(3, '0'),
+            time: slot,
+            room: rooms[sections.length % rooms.length],
+            instructor: instructors[sections.length % instructors.length] || defaultAllocation?.instructor || 'TBA',
+            hasConflict: conflictsWithSelected
+        });
+        sectionCount++;
+    }
+    
+    return sections;
+}
+
+// Get instructors who can teach a course
+function getInstructorsForCourse(courseCode) {
+    const instructors = [];
+    
+    // Check AppState.instructors for those who teach this course
+    if (AppState.instructors) {
+        AppState.instructors.forEach(inst => {
+            if (inst.courses && inst.courses.includes(courseCode)) {
+                instructors.push(inst.name);
+            }
+        });
+    }
+    
+    // If no specific instructors found, get department instructors
+    if (instructors.length === 0) {
+        const isCS = courseCode.startsWith('CST') || courseCode.startsWith('CSIT');
+        if (AppState.instructors) {
+            AppState.instructors.forEach(inst => {
+                const teachesCS = (inst.courses || []).some(c => c.startsWith('CST') || c.startsWith('CSIT'));
+                if (isCS && teachesCS) {
+                    instructors.push(inst.name);
+                }
+            });
+        }
+    }
+    
+    return instructors.slice(0, 3); // Return up to 3 instructors
+}
+
+// Show section picker modal
+window.showSectionPicker = function(courseCode) {
+    const course = AppState.selectedCourses.find(c => c.code === courseCode);
+    if (!course) return;
+    
+    // Get occupied slots from other selected courses
+    const allocatedSchedule = getAllocatedScheduleData();
+    const occupiedSlots = new Set();
+    AppState.selectedCourses.forEach(c => {
+        if (c.code !== courseCode) {
+            const alloc = c.selectedSection || allocatedSchedule[c.code];
+            if (alloc && alloc.time) {
+                occupiedSlots.add(alloc.time);
+            }
+        }
+    });
+    
+    const sections = getAvailableSectionsForCourse(courseCode, occupiedSlots, course);
+    
+    const modal = document.getElementById('modal');
+    const modalContent = modal.querySelector('.modal-content');
+    
+    modalContent.innerHTML = `
+        <div class="modal-header">
+            <h2>Select Section for ${courseCode}</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div style="margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px;">${course.title || course.name}</h3>
+                <p style="font-size: 13px; color: var(--gray-500);">${course.credits || 3} Credits</p>
+            </div>
+            
+            <div style="background: #DBEAFE; border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 8px; color: #1E40AF;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 16v-4"/>
+                        <path d="M12 8h.01"/>
+                    </svg>
+                    <span style="font-size: 13px;">Green sections have no conflicts with your other courses. Red sections overlap with your schedule.</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${sections.map((section, idx) => {
+                    const isSelected = course.selectedSectionNum === section.sectionNum || 
+                                      (!course.selectedSection && idx === 0);
+                    const bgColor = section.hasConflict ? '#FEF2F2' : '#F0FDF4';
+                    const borderColor = section.hasConflict ? '#FECACA' : '#BBF7D0';
+                    const statusColor = section.hasConflict ? '#DC2626' : '#16A34A';
+                    const statusText = section.hasConflict ? '⚠ Conflicts with your schedule' : '✓ No conflicts';
+                    
+                    return `
+                        <div onclick="selectSection('${courseCode}', ${idx})" 
+                            style="background: ${bgColor}; border: 2px solid ${isSelected ? '#3B82F6' : borderColor}; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; ${isSelected ? 'box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);' : ''}">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <div>
+                                    <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">Section ${section.sectionNum}</div>
+                                    <div style="font-size: 12px; color: ${statusColor}; margin-top: 2px;">${statusText}</div>
+                                </div>
+                                ${isSelected ? `
+                                    <span style="background: #3B82F6; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">Selected</span>
+                                ` : ''}
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                                <div>
+                                    <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 2px;">Time</div>
+                                    <div style="font-size: 13px; font-weight: 500; color: var(--gray-900);">${formatScheduleTimeForSelected(section.time)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 2px;">Room</div>
+                                    <div style="font-size: 13px; font-weight: 500; color: var(--gray-900);">${formatRoomName(section.room)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 2px;">Instructor</div>
+                                    <div style="font-size: 13px; font-weight: 500; color: var(--gray-900);">${section.instructor || 'TBA'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
+                <button onclick="closeModal()" class="btn-primary" style="width: 100%; padding: 14px;">Done</button>
+            </div>
+        </div>
+    `;
+    
+    // Store sections data for selection
+    window.currentSectionPickerData = {
+        courseCode,
+        sections
+    };
+    
+    modal.classList.add('active');
+};
+
+// Select a section for a course
+window.selectSection = function(courseCode, sectionIndex) {
+    const data = window.currentSectionPickerData;
+    if (!data || data.courseCode !== courseCode) return;
+    
+    const section = data.sections[sectionIndex];
+    if (!section) return;
+    
+    // Find the course and update its selected section
+    const course = AppState.selectedCourses.find(c => c.code === courseCode);
+    if (course) {
+        course.selectedSection = {
+            time: section.time,
+            room: section.room,
+            instructor: section.instructor
+        };
+        course.selectedSectionNum = section.sectionNum;
+        
+        showToast(`Section ${section.sectionNum} selected for ${courseCode}`, 'success');
+        
+        // Refresh the modal to show updated selection
+        showSectionPicker(courseCode);
+        
+        // Update the selected courses list
+        updateSelectedCoursesList();
+    }
+};
 
 // Update preview timetable with selected courses
 function updatePreviewTimetable() {
@@ -2295,9 +2927,72 @@ function submitRegistration() {
         return;
     }
     
-    showToast(`Registration submitted: ${AppState.selectedCourses.length} courses`, 'success');
-    AppState.selectedCourses = [];
-    updateSelectedCoursesList();
+    const user = AppState.currentUser;
+    if (!user) {
+        showToast('Please log in to submit registration', 'error');
+        return;
+    }
+    
+    // Get course codes from selected courses
+    const courseCodes = AppState.selectedCourses.map(c => c.code);
+    
+    // Submit registration request using the new system
+    const success = window.submitRegistrationRequest(user.student_id, courseCodes);
+    
+    if (success) {
+        // Show confirmation modal
+        const modal = document.getElementById('modal');
+        const modalContent = modal.querySelector('.modal-content');
+        
+        modalContent.innerHTML = `
+            <div class="modal-header">
+                <h2>Registration Submitted</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 40px;">
+                <div style="width: 80px; height: 80px; background: #D1FAE5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" style="width: 40px; height: 40px;">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <h3 style="font-size: 20px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px;">Request Submitted Successfully!</h3>
+                <p style="color: var(--gray-600); margin-bottom: 24px;">Your registration request has been submitted for review.</p>
+                
+                <div style="background: var(--gray-50); border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: left;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Requested Courses (${AppState.selectedCourses.length})</div>
+                    ${AppState.selectedCourses.map(c => `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-200);">
+                            <span style="font-weight: 500;">${c.code}</span>
+                            <span style="color: var(--gray-500);">${c.credits || 3} credits</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; font-weight: 600; color: var(--gray-900);">
+                        <span>Total Credits</span>
+                        <span>${AppState.selectedCourses.reduce((sum, c) => sum + (c.credits || 3), 0)}</span>
+                    </div>
+                </div>
+                
+                <div style="background: #DBEAFE; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #1E40AF;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4"/>
+                            <path d="M12 8h.01"/>
+                        </svg>
+                        <span style="font-size: 13px; text-align: left;">An advisor will review your request and you will receive an email notification once processed.</span>
+                    </div>
+                </div>
+                
+                <button onclick="closeModal()" class="btn-primary" style="padding: 14px 32px;">Done</button>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+        
+        // Clear selected courses
+        AppState.selectedCourses = [];
+        updateSelectedCoursesList();
+    }
 }
 
 // ==================== PREREQUISITES TAB ====================
@@ -2539,7 +3234,8 @@ function handleAdminNav(e) {
         'instructors': 'Instructor Management & Scheduling',
         'timetable': 'AI Timetable Generation Engine',
         'analytics': 'Reports & Analytics',
-        'advising': 'Course Advising Portal'
+        'advising': 'Course Advising Portal',
+        'portal-review': 'Portal Review'
     };
     
     document.getElementById('admin-page-title').textContent = titles[section] || 'Dashboard';
@@ -2577,6 +3273,9 @@ function loadAdminSection(section) {
             break;
         case 'advising':
             loadCourseAdvising();
+            break;
+        case 'portal-review':
+            loadPortalReview();
             break;
     }
 }
@@ -2932,15 +3631,17 @@ function renderLevelDistribution() {
     };
     
     AppState.students.forEach(s => {
-        const level = s.level || 'First Year';
+        // Convert level to string to handle numeric values
+        const level = String(s.level || 'First Year');
         if (levels.hasOwnProperty(level)) {
             levels[level]++;
         } else {
             // Try to match partial level names
-            if (level.toLowerCase().includes('first') || level.includes('1')) levels['First Year']++;
-            else if (level.toLowerCase().includes('second') || level.includes('2')) levels['Second Year']++;
-            else if (level.toLowerCase().includes('third') || level.includes('3')) levels['Third Year']++;
-            else if (level.toLowerCase().includes('fourth') || level.includes('4')) levels['Fourth Year']++;
+            const levelLower = level.toLowerCase();
+            if (levelLower.includes('first') || level === '1') levels['First Year']++;
+            else if (levelLower.includes('second') || level === '2') levels['Second Year']++;
+            else if (levelLower.includes('third') || level === '3') levels['Third Year']++;
+            else if (levelLower.includes('fourth') || level === '4') levels['Fourth Year']++;
             else levels['First Year']++;
         }
     });
@@ -3518,9 +4219,13 @@ function loadStudentManagement() {
     const studentTypes = {};
     const languages = {};
     const levels = {};
+    const statuses = { active: 0, graduated: 0, inactive: 0, stopped: 0, unknown: 0 };
     
     // Valid student types (not languages)
     const validTypes = ['Normal', 'Working', 'Visitor', 'Sport'];
+    
+    const CURRENT_YEAR = 2025;
+    const ACTIVE_SEMESTERS = ['Fall 2025', 'Spring 2025', 'Summer 2025', 'Fall 2024', 'Spring 2024'];
     
     AppState.students.forEach(s => {
         let type = s.student_type || 'Normal';
@@ -3529,38 +4234,116 @@ function loadStudentManagement() {
             type = 'Normal';
         }
         const lang = s.language || 'English';
-        const level = s.level || 'First Year';
+        const level = s.level || 'Unknown';
+        
+        // Calculate status from admit_term or entry year if not set
+        let status = (s.enrollment_status || s.status || '').toString().toLowerCase().trim();
+        
+        if (!status || status === 'unknown' || status === '') {
+            // FIRST: Check admit_term (most reliable for active status)
+            const admitTerm = s.admit_term || '';
+            
+            if (ACTIVE_SEMESTERS.includes(admitTerm)) {
+                status = 'active';
+            } else if (admitTerm) {
+                const yearMatch = admitTerm.match(/(\d{4})/);
+                if (yearMatch) {
+                    const admitYear = parseInt(yearMatch[1]);
+                    const yearsEnrolled = CURRENT_YEAR - admitYear;
+                    const major = (s.major || '').toLowerCase();
+                    const isDiploma = major.includes('diploma');
+                    const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                    
+                    if (isDiploma && yearsEnrolled >= 3) {
+                        status = 'graduated';
+                    } else if (isBachelor && yearsEnrolled >= 5) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled >= 6) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled <= 2) {
+                        status = 'active';
+                    } else if (isBachelor && yearsEnrolled <= 4) {
+                        status = 'active';
+                    } else {
+                        status = 'inactive';
+                    }
+                } else {
+                    status = 'unknown';
+                }
+            } else {
+                // Try entry_year or student_id
+                let entryYear = s.entry_year;
+                
+                if (!entryYear && s.student_id) {
+                    const idStr = String(s.student_id);
+                    if (idStr.length >= 4) {
+                        const yearPrefix = parseInt(idStr.substring(0, 4));
+                        if (yearPrefix >= 2010 && yearPrefix <= CURRENT_YEAR) {
+                            entryYear = yearPrefix;
+                        }
+                    }
+                }
+                
+                if (entryYear) {
+                    const yearsEnrolled = CURRENT_YEAR - entryYear;
+                    const major = (s.major || '').toLowerCase();
+                    const isDiploma = major.includes('diploma');
+                    const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                    
+                    if (isDiploma && yearsEnrolled >= 3) {
+                        status = 'graduated';
+                    } else if (isBachelor && yearsEnrolled >= 5) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled >= 6) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled <= 2) {
+                        status = 'active';
+                    } else if (isBachelor && yearsEnrolled <= 4) {
+                        status = 'active';
+                    } else {
+                        status = 'inactive';
+                    }
+                } else {
+                    status = 'unknown';
+                }
+            }
+        }
+        
+        // Normalize status values
+        if (status === 'enrolled' || status === 'current') status = 'active';
+        if (status === 'completed' || status === 'alumni') status = 'graduated';
+        if (status === 'stopped' || status === 'dropped' || status === 'withdrawn') status = 'inactive';
         
         studentTypes[type] = (studentTypes[type] || 0) + 1;
         languages[lang] = (languages[lang] || 0) + 1;
         levels[level] = (levels[level] || 0) + 1;
+        statuses[status] = (statuses[status] || 0) + 1;
     });
     
     // Calculate real percentages
     const total = AppState.students.length;
-    const englishCount = languages['English'] || 0;
-    const arabicCount = languages['Arabic'] || 0;
-    const workingCount = studentTypes['Working'] || 0;
-    const englishPercent = ((englishCount / total) * 100).toFixed(1);
-    const arabicPercent = ((arabicCount / total) * 100).toFixed(1);
-    const workingPercent = ((workingCount / total) * 100).toFixed(1);
+    const activeCount = statuses['active'] || 0;
+    // Former students (graduated / inactive) are kept in their own list
+    const former = AppState.formerStudents || [];
+    const graduatedCount = (statuses['graduated'] || 0) + former.filter(s => String(s.status).toLowerCase() === 'graduated').length;
+    const inactiveCount = (statuses['inactive'] || 0) + former.filter(s => String(s.status).toLowerCase() === 'inactive').length;
+    const stoppedCount = (statuses['stopped'] || 0) + former.filter(s => String(s.status).toLowerCase() === 'stopped').length;
+    const unknownCount = statuses['unknown'] || 0;
+    
+    // If all students are "unknown" status, they're likely current students
+    // Treat unknown as active for display purposes
+    const displayActiveCount = activeCount + (unknownCount > 0 && activeCount === 0 ? unknownCount : 0);
     
     container.innerHTML = `
         <!-- Analytics Stats Row -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 24px;">
             <!-- Total Students Card -->
             <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Total Students</div>
                         <div style="font-size: 36px; font-weight: 700; color: var(--cck-red); line-height: 1;">${total}</div>
-                        <div style="font-size: 12px; color: #22C55E; margin-top: 8px; display: flex; align-items: center; gap: 4px;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                                <polyline points="17 6 23 6 23 12"/>
-                            </svg>
-                            +12.3% from last semester
-                        </div>
+                        <div style="font-size: 12px; color: var(--gray-500); margin-top: 8px;">All time records</div>
                     </div>
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2" style="width: 28px; height: 28px;">
@@ -3571,87 +4354,82 @@ function loadStudentManagement() {
                         </svg>
                     </div>
                 </div>
-                <!-- Mini bar chart -->
-                <div style="display: flex; gap: 3px; margin-top: 16px; height: 32px; align-items: flex-end;">
-                    ${[65, 78, 45, 89, 56, 92, 73, 85, 67, 95, 82, 88].map((h, i) => `
-                        <div style="flex: 1; height: ${h}%; background: ${i === 11 ? '#B91C1C' : '#FECACA'}; border-radius: 2px;"></div>
-                    `).join('')}
+            </div>
+            
+            <!-- Active Students Card -->
+            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Active Students</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #059669; line-height: 1;">${displayActiveCount}</div>
+                        <div style="font-size: 12px; color: #059669; margin-top: 8px;">${((displayActiveCount/total)*100).toFixed(1)}% of total</div>
+                    </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width: 28px; height: 28px;">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
                 </div>
             </div>
             
-            <!-- Language Distribution Card -->
+            <!-- Graduated Students Card -->
             <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 12px; font-weight: 500;">Language Distribution</div>
-                <!-- Donut Chart -->
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <div style="position: relative; width: 80px; height: 80px;">
-                        <svg viewBox="0 0 36 36" style="width: 80px; height: 80px; transform: rotate(-90deg);">
-                            <circle cx="18" cy="18" r="15.915" fill="none" stroke="#E5E7EB" stroke-width="3"/>
-                            <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3B82F6" stroke-width="3"
-                                stroke-dasharray="${englishPercent} ${100 - englishPercent}" stroke-linecap="round"/>
-                            <circle cx="18" cy="18" r="15.915" fill="none" stroke="#22C55E" stroke-width="3"
-                                stroke-dasharray="${arabicPercent} ${100 - arabicPercent}" 
-                                stroke-dashoffset="-${englishPercent}" stroke-linecap="round"/>
-                        </svg>
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                            <div style="font-size: 14px; font-weight: 700; color: var(--gray-900);">${total}</div>
-                        </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Graduated</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #2563EB; line-height: 1;">${graduatedCount}</div>
+                        <div style="font-size: 12px; color: #2563EB; margin-top: 8px;">${((graduatedCount/(total + former.length || 1))*100).toFixed(1)}% of all students</div>
                     </div>
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                            <div style="width: 10px; height: 10px; background: #3B82F6; border-radius: 2px;"></div>
-                            <span style="font-size: 13px; color: var(--gray-600);">English</span>
-                            <span style="font-size: 13px; font-weight: 600; color: var(--gray-900); margin-left: auto;">${englishCount}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 10px; height: 10px; background: #22C55E; border-radius: 2px;"></div>
-                            <span style="font-size: 13px; color: var(--gray-600);">Arabic</span>
-                            <span style="font-size: 13px; font-weight: 600; color: var(--gray-900); margin-left: auto;">${arabicCount}</span>
-                        </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width: 28px; height: 28px;">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Inactive Students Card -->
+            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Inactive/Stopped</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #D97706; line-height: 1;">${inactiveCount + stoppedCount}</div>
+                        <div style="font-size: 12px; color: #D97706; margin-top: 8px;">${(((inactiveCount+stoppedCount)/(total + former.length || 1))*100).toFixed(1)}% of all students</div>
+                    </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width: 28px; height: 28px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
                     </div>
                 </div>
             </div>
             
             <!-- Student Types Card -->
             <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 12px; font-weight: 500;">Student Types</div>
-                <div style="space-y: 10px;">
-                    ${Object.entries(studentTypes).sort((a,b) => b[1] - a[1]).slice(0, 4).map(([type, count]) => {
-                        const percent = ((count / total) * 100);
-                        const colors = { 'Normal': '#B91C1C', 'Working': '#EAB308', 'Visitor': '#8B5CF6', 'Sport': '#06B6D4' };
-                        return `
-                            <div style="margin-bottom: 10px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                    <span style="font-size: 12px; color: var(--gray-600);">${type}</span>
-                                    <span style="font-size: 12px; font-weight: 600; color: var(--gray-900);">${count}</span>
+                <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 12px; font-weight: 500;">By Student Type</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    ${(() => {
+                        const typeConfig = [
+                            { key: 'Normal', color: '#3B82F6', bg: '#EFF6FF', label: 'Normal' },
+                            { key: 'Working', color: '#F59E0B', bg: '#FFFBEB', label: 'Working' },
+                            { key: 'Visitor', color: '#8B5CF6', bg: '#F5F3FF', label: 'Visitor' },
+                            { key: 'Sport', color: '#22C55E', bg: '#F0FDF4', label: 'Sport' },
+                            { key: 'Disabled', color: '#EC4899', bg: '#FDF2F8', label: 'Disabled' }
+                        ];
+                        return typeConfig.slice(0, 4).map(t => {
+                            const count = studentTypes[t.key] || 0;
+                            return `
+                                <div style="background: ${t.bg}; border-radius: 6px; padding: 8px; text-align: center;">
+                                    <div style="font-size: 16px; font-weight: 700; color: ${t.color};">${count}</div>
+                                    <div style="font-size: 10px; color: var(--gray-500);">${t.label}</div>
                                 </div>
-                                <div style="height: 6px; background: var(--gray-100); border-radius: 3px; overflow: hidden;">
-                                    <div style="height: 100%; width: ${percent}%; background: ${colors[type] || '#6B7280'}; border-radius: 3px; transition: width 0.5s;"></div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-            
-            <!-- Levels Card -->
-            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 12px; font-weight: 500;">By Academic Level</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    ${Object.entries(levels).sort((a, b) => {
-                        const order = ['First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Foundation 1', 'Foundation 2'];
-                        return order.indexOf(a[0]) - order.indexOf(b[0]);
-                    }).slice(0, 4).map(([level, count], idx) => {
-                        const colors = ['#3B82F6', '#22C55E', '#EAB308', '#EF4444'];
-                        const bgColors = ['#EFF6FF', '#F0FDF4', '#FFFBEB', '#FEF2F2'];
-                        const shortLevel = level.replace(' Year', '').replace('Foundation ', 'Found ');
-                        return `
-                            <div style="background: ${bgColors[idx]}; border-radius: 8px; padding: 12px; text-align: center;">
-                                <div style="font-size: 20px; font-weight: 700; color: ${colors[idx]};">${count}</div>
-                                <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">${shortLevel}</div>
-                            </div>
-                        `;
-                    }).join('')}
+                            `;
+                        }).join('');
+                    })()}
                 </div>
             </div>
         </div>
@@ -3679,22 +4457,28 @@ function loadStudentManagement() {
                     <div style="flex: 1; min-width: 200px;">
                         <input type="text" id="admin-student-search" placeholder="Search by ID or name..." style="width: 100%; padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white;">
                     </div>
+                    <select id="admin-status-filter" onchange="applyStudentFilters()" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 120px;">
+                        <option value="all">All Status (${AppState.students.length + (AppState.formerStudents || []).length})</option>
+                        <option value="active" selected>Active (${AppState.students.length})</option>
+                        <option value="graduated">Graduated</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="stopped">Stopped</option>
+                    </select>
                     <select id="admin-type-filter" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 120px;">
                         <option value="all">All Types</option>
-                        ${validTypes.filter(t => studentTypes[t]).map(t => `<option value="${t}">${t}</option>`).join('')}
-                    </select>
-                    <select id="admin-lang-filter" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 120px;">
-                        <option value="all">All Languages</option>
-                        ${Object.keys(languages).sort().map(l => `<option value="${l}">${l}</option>`).join('')}
+                        <option value="Normal">Normal</option>
+                        <option value="Working">Working</option>
+                        <option value="Visitor">Visitor</option>
+                        <option value="Sport">Sport</option>
+                        <option value="Disabled">Disabled</option>
                     </select>
                     <select id="admin-level-filter" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 130px;">
                         <option value="all">All Levels</option>
                         ${Object.keys(levels).sort().map(l => `<option value="${l}">${l}</option>`).join('')}
                     </select>
-                    <select id="admin-status-filter" onchange="applyStudentFilters()" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 150px;">
-                        <option value="current">Current students</option>
-                        <option value="former">Former students (${(AppState.formerStudents || []).length})</option>
-                        <option value="all">All students</option>
+                    <select id="admin-year-filter" style="padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white; min-width: 120px;">
+                        <option value="all">All Years</option>
+                        ${[...new Set(AppState.students.map(s => s.entry_year || s.first_seen_year).filter(y => y))].sort((a,b) => b-a).map(y => `<option value="${y}">${y}</option>`).join('')}
                     </select>
                     <button class="btn-primary" style="padding: 10px 20px;" onclick="applyStudentFilters()">Filter</button>
                     <button class="btn-secondary" style="padding: 10px 16px;" onclick="resetStudentFilters()">Reset</button>
@@ -3725,22 +4509,23 @@ function loadStudentManagement() {
             <table class="admin-table" style="width: 100%;">
                 <thead>
                     <tr>
-                        <th onclick="sortStudents('student_id')" style="cursor: pointer; width: 12%;">
+                        <th onclick="sortStudents('student_id')" style="cursor: pointer; width: 10%;">
                             Student ID
                             <span style="opacity: 0.5; margin-left: 4px;">↕</span>
                         </th>
-                        <th onclick="sortStudents('name')" style="cursor: pointer; width: 20%;">
+                        <th onclick="sortStudents('name')" style="cursor: pointer; width: 16%;">
                             Full Name
                             <span style="opacity: 0.5; margin-left: 4px;">↕</span>
                         </th>
-                        <th style="width: 22%;">Major</th>
-                        <th style="width: 10%;">Language</th>
-                        <th style="width: 10%;">Type</th>
-                        <th onclick="sortStudents('gpa')" style="cursor: pointer; width: 8%;">
+                        <th style="width: 16%;">Major</th>
+                        <th style="width: 8%;">Type</th>
+                        <th style="width: 8%;">Status</th>
+                        <th style="width: 8%;">Years</th>
+                        <th onclick="sortStudents('gpa')" style="cursor: pointer; width: 7%;">
                             GPA
                             <span style="opacity: 0.5; margin-left: 4px;">↕</span>
                         </th>
-                        <th style="width: 10%;">Level</th>
+                        <th style="width: 9%;">Level</th>
                         <th style="width: 8%; text-align: center;">Actions</th>
                     </tr>
                 </thead>
@@ -3762,7 +4547,7 @@ function loadStudentManagement() {
 
 function renderStudentRows(students) {
     if (students.length === 0) {
-        return `<tr><td colspan="8" style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
+        return `<tr><td colspan="9" style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin: 0 auto 12px; display: block; opacity: 0.3;">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -3773,18 +4558,44 @@ function renderStudentRows(students) {
         </td></tr>`;
     }
     
+    // Student Type colors
+    const typeColors = {
+        'Normal': { bg: '#DBEAFE', color: '#1E40AF', label: 'Normal' },
+        'Working': { bg: '#FEF3C7', color: '#92400E', label: 'Working' },
+        'Visitor': { bg: '#F3E8FF', color: '#7C3AED', label: 'Visitor' },
+        'Sport': { bg: '#D1FAE5', color: '#065F46', label: 'Sport' },
+        'Disabled': { bg: '#FCE7F3', color: '#BE185D', label: 'Disabled' }
+    };
+    
     return students.map(student => {
         // Normalize student type
         let studentType = student.student_type || 'Normal';
         if (studentType === 'Arabic' || studentType === 'English') {
             studentType = 'Normal';
         }
+        const typeStyle = typeColors[studentType] || typeColors['Normal'];
         
         // Get major short name
         const majorShort = shortenMajorForTable(student.major);
         
-        // Shorten level
-        const levelShort = (student.level || '-').replace(' Year', '');
+        // Shorten level - ensure it's a string first
+        const levelShort = String(student.level || '-').replace(' Year', '');
+        
+        // Get enrollment status with styling
+        const status = student.enrollment_status || student.status || 'active';
+        const statusColors = {
+            'active': { bg: '#DCFCE7', color: '#166534', label: 'Active' },
+            'graduated': { bg: '#DBEAFE', color: '#1E40AF', label: 'Graduated' },
+            'inactive': { bg: '#FEF3C7', color: '#92400E', label: 'Inactive' },
+            'stopped': { bg: '#FEE2E2', color: '#991B1B', label: 'Stopped' },
+            'unknown': { bg: '#F3F4F6', color: '#6B7280', label: 'Unknown' }
+        };
+        const statusStyle = statusColors[status] || statusColors['unknown'];
+        
+        // Get entry and exit years
+        const entryYear = student.entry_year || student.first_seen_year || '-';
+        const exitYear = student.exit_year || student.last_seen_year || '-';
+        const yearsDisplay = entryYear !== '-' && exitYear !== '-' ? `${entryYear}-${exitYear}` : (entryYear !== '-' ? entryYear : '-');
         
         return `
             <tr>
@@ -3792,20 +4603,21 @@ function renderStudentRows(students) {
                 <td title="${student.name}">${student.name || '-'}</td>
                 <td title="${student.major}" style="font-size: 13px; color: var(--gray-600);">${majorShort}</td>
                 <td>
-                    <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
-                        background: ${student.language === 'Arabic' ? '#DCFCE7' : '#DBEAFE'}; 
-                        color: ${student.language === 'Arabic' ? '#166534' : '#1E40AF'};">
-                        ${student.language || 'English'}
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;
+                        background: ${typeStyle.bg}; 
+                        color: ${typeStyle.color};">
+                        ${typeStyle.label}
                     </span>
                 </td>
                 <td>
-                    <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
-                        background: ${studentType === 'Working' ? '#FEF3C7' : studentType === 'Visitor' ? '#F3E8FF' : studentType === 'Sport' ? '#F3F4F6' : '#FEE2E2'}; 
-                        color: ${studentType === 'Working' ? '#92400E' : studentType === 'Visitor' ? '#7C3AED' : studentType === 'Sport' ? '#374151' : '#991B1B'};">
-                        ${studentType}
+                    <span style="display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;
+                        background: ${statusStyle.bg}; 
+                        color: ${statusStyle.color};">
+                        ${statusStyle.label}
                     </span>
                 </td>
-                <td style="font-weight: 600;">${student.gpa || '-'}</td>
+                <td style="font-size: 13px; color: var(--gray-600);">${yearsDisplay}</td>
+                <td style="font-weight: 600;">${student.gpa || student.cgpa || '-'}</td>
                 <td style="color: var(--gray-600);">${levelShort}</td>
                 <td style="text-align: center;">
                     <div style="display: inline-flex; gap: 4px;">
@@ -3952,12 +4764,12 @@ function debounce(func, wait) {
 // Apply filters
 window.applyStudentFilters = function() {
     const search = document.getElementById('admin-student-search')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('admin-status-filter')?.value || 'all';
     const typeFilter = document.getElementById('admin-type-filter')?.value || 'all';
-    const langFilter = document.getElementById('admin-lang-filter')?.value || 'all';
     const levelFilter = document.getElementById('admin-level-filter')?.value || 'all';
-    const statusFilter = document.getElementById('admin-status-filter')?.value || 'current';
-    const former = AppState.formerStudents || [];
-    const source = statusFilter === 'former' ? former : statusFilter === 'all' ? AppState.students.concat(former) : AppState.students;
+    const yearFilter = document.getElementById('admin-year-filter')?.value || 'all';
+    // Former students (graduated / inactive) are kept in their own list
+    const source = statusFilter === 'active' ? AppState.students : AppState.students.concat(AppState.formerStudents || []);
     
     StudentManagement.filteredStudents = source.filter(student => {
         // Search filter
@@ -3965,18 +4777,25 @@ window.applyStudentFilters = function() {
             const matchesSearch = 
                 (student.name || '').toLowerCase().includes(search) || 
                 (student.student_id || '').includes(search) ||
-                (student.name_ar || '').includes(search);
+                (student.name_ar || '').includes(search) ||
+                (student.major || '').toLowerCase().includes(search);
             if (!matchesSearch) return false;
         }
         
-        // Type filter
-        if (typeFilter !== 'all') {
-            if ((student.student_type || 'Normal') !== typeFilter) return false;
+        // Status filter
+        if (statusFilter !== 'all') {
+            const studentStatus = String(student.enrollment_status || student.status || 'active').toLowerCase();
+            if (studentStatus !== statusFilter) return false;
         }
         
-        // Language filter
-        if (langFilter !== 'all') {
-            if ((student.language || 'English') !== langFilter) return false;
+        // Student Type filter
+        if (typeFilter !== 'all') {
+            let studentType = student.student_type || 'Normal';
+            // Map Arabic/English to Normal
+            if (studentType === 'Arabic' || studentType === 'English') {
+                studentType = 'Normal';
+            }
+            if (studentType !== typeFilter) return false;
         }
         
         // Level filter
@@ -3984,11 +4803,23 @@ window.applyStudentFilters = function() {
             if ((student.level || '') !== levelFilter) return false;
         }
         
+        // Year filter (entry year)
+        if (yearFilter !== 'all') {
+            const entryYear = student.entry_year || student.first_seen_year;
+            if (String(entryYear) !== String(yearFilter)) return false;
+        }
+        
         return true;
     });
     
     StudentManagement.currentPage = 1;
     updateStudentTable();
+    
+    // Update count display
+    const countDisplay = document.getElementById('student-count-display');
+    if (countDisplay) {
+        countDisplay.textContent = `Showing ${Math.min(StudentManagement.perPage, StudentManagement.filteredStudents.length)} of ${StudentManagement.filteredStudents.length} students`;
+    }
     
     showToast(`Found ${StudentManagement.filteredStudents.length} students`, 'info');
 };
@@ -4079,11 +4910,14 @@ window.sortStudents = function(field) {
 // Reset filters
 window.resetStudentFilters = function() {
     document.getElementById('admin-student-search').value = '';
-    document.getElementById('admin-type-filter').value = 'all';
-    document.getElementById('admin-lang-filter').value = 'all';
-    document.getElementById('admin-level-filter').value = 'all';
-    const statusEl = document.getElementById('admin-status-filter');
-    if (statusEl) statusEl.value = 'current';
+    const statusFilter = document.getElementById('admin-status-filter');
+    const typeFilter = document.getElementById('admin-type-filter');
+    const levelFilter = document.getElementById('admin-level-filter');
+    const yearFilter = document.getElementById('admin-year-filter');
+    if (statusFilter) statusFilter.value = 'active';
+    if (typeFilter) typeFilter.value = 'all';
+    if (levelFilter) levelFilter.value = 'all';
+    if (yearFilter) yearFilter.value = 'all';
     
     StudentManagement.filteredStudents = [...AppState.students];
     StudentManagement.currentPage = 1;
@@ -4233,7 +5067,6 @@ window.submitNewStudent = async function(e) {
         return;
     }
     
-    // Add to AppState
     AppState.students.unshift(res.data.student);
     StudentManagement.filteredStudents = [...AppState.students];
     
@@ -4339,6 +5172,9 @@ window.editStudent = function(studentId) {
     const student = findStudentById(studentId);
     if (!student) return;
     
+    // Get current status (normalize to lowercase for comparison)
+    const currentStatus = (student.enrollment_status || student.status || 'unknown').toLowerCase();
+    
     const modal = document.getElementById('modal');
     const modalContent = modal.querySelector('.modal-content');
     
@@ -4402,10 +5238,10 @@ window.editStudent = function(studentId) {
                     <div class="form-group">
                         <label>Status</label>
                         <select name="status">
-                            <option value="Active" ${student.status === 'Active' ? 'selected' : ''}>Active</option>
-                            <option value="Inactive" ${student.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
-                            <option value="Graduated" ${student.status === 'Graduated' ? 'selected' : ''}>Graduated</option>
-                            <option value="Suspended" ${student.status === 'Suspended' ? 'selected' : ''}>Suspended</option>
+                            <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>Active</option>
+                            <option value="inactive" ${currentStatus === 'inactive' ? 'selected' : ''}>Inactive</option>
+                            <option value="graduated" ${currentStatus === 'graduated' ? 'selected' : ''}>Graduated</option>
+                            <option value="unknown" ${currentStatus === 'unknown' ? 'selected' : ''}>Unknown</option>
                         </select>
                     </div>
                 </div>
@@ -4426,26 +5262,28 @@ window.submitEditStudent = async function(e, studentId) {
     const formData = new FormData(form);
     
     const student = findStudentById(studentId);
-    if (student) {
-        const changes = {
-            civil_id: formData.get('civil_id'),
-            name: formData.get('name'),
-            name_ar: formData.get('name_ar'),
-            email: formData.get('email'),
-            gpa: formData.get('gpa'),
-            level: formData.get('level'),
-            student_type: formData.get('student_type'),
-            language: formData.get('language'),
-            status: formData.get('status')
-        };
-        // Save to the database, then update the page with what was saved
-        const res = await window.api.updateStudent(studentId, changes);
-        if (res.error) {
-            showToast('Could not save changes: ' + res.error.message, 'error');
-            return;
-        }
-        Object.assign(student, res.data.student);
+    if (!student) {
+        showToast('Student not found', 'error');
+        return;
     }
+    const changes = {
+        civil_id: formData.get('civil_id'),
+        name: formData.get('name'),
+        name_ar: formData.get('name_ar'),
+        email: formData.get('email'),
+        gpa: formData.get('gpa'),
+        level: formData.get('level'),
+        student_type: formData.get('student_type'),
+        language: formData.get('language'),
+        status: formData.get('status')
+    };
+    // Save to the database, then update the page with what was saved
+    const res = await window.api.updateStudent(studentId, changes);
+    if (res.error) {
+        showToast('Could not save changes: ' + res.error.message, 'error');
+        return;
+    }
+    Object.assign(student, res.data.student);
     
     closeModal();
     loadStudentManagement();
@@ -4635,217 +5473,1924 @@ window.viewStudentDetail = function(studentId) {
 };
 
 // ==================== COURSE ALLOCATION ====================
-function loadCourseAllocation() {
-    const container = document.getElementById('section-allocation');
-    if (!container) return;
-    
-    // Initialize AI Allocation Engine
-    initAIAllocationEngine();
-    
-    container.innerHTML = `
-        <!-- AI Engine Header -->
-        <div style="background: linear-gradient(135deg, #1F2937 0%, #374151 100%); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; color: white;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 10px;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                        </svg>
-                        AI Course Allocation Engine
-                    </h3>
-                    <p style="color: #9CA3AF; font-size: 14px;">Intelligent scheduling with conflict detection and enrollment prediction</p>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 12px; color: #9CA3AF;">Target Semester</div>
-                    <div style="font-size: 18px; font-weight: 600;">${getSemesterLabel(AppState.currentSemester)}</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Stats Overview -->
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;">
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Courses to Schedule</div>
-                <div style="font-size: 28px; font-weight: 700; color: var(--gray-900);">${AppState.courses.length}</div>
-                <div style="font-size: 11px; color: #3B82F6; margin-top: 4px;">All active courses</div>
-            </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Predicted Enrollment</div>
-                <div style="font-size: 28px; font-weight: 700; color: #3B82F6;">${AIAllocation.predictedTotalEnrollment}</div>
-                <div style="font-size: 11px; color: #22C55E; margin-top: 4px;">↑ ${AIAllocation.enrollmentGrowth}% growth</div>
-            </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Sections Needed</div>
-                <div style="font-size: 28px; font-weight: 700; color: #22C55E;">${AIAllocation.totalSectionsNeeded}</div>
-                <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">Across all courses</div>
-            </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Available Instructors</div>
-                <div style="font-size: 28px; font-weight: 700; color: #8B5CF6;">${AppState.instructors.length}</div>
-                <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">Teaching staff</div>
-            </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Available Rooms</div>
-                <div style="font-size: 28px; font-weight: 700; color: #EAB308;">${AppState.rooms.length}</div>
-                <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">Labs + Classrooms</div>
-            </div>
-        </div>
-        
-        <!-- Main Content Grid -->
-        <div style="display: grid; grid-template-columns: 350px 1fr; gap: 24px;">
-            <!-- Left Panel - Controls -->
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                <!-- AI Settings -->
-                <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                    <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                        Allocation Settings
-                    </h4>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label style="font-size: 12px; color: var(--gray-600); display: block; margin-bottom: 6px;">Max Students Per Section</label>
-                        <input type="number" id="max-students" value="35" min="20" max="50" style="width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px;">
-                    </div>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label style="font-size: 12px; color: var(--gray-600); display: block; margin-bottom: 6px;">Enrollment Growth Factor</label>
-                        <select id="growth-factor" style="width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white;">
-                            <option value="1.0">0% (Same as current)</option>
-                            <option value="1.05">5% Growth</option>
-                            <option value="1.10" selected>10% Growth</option>
-                            <option value="1.15">15% Growth</option>
-                            <option value="1.20">20% Growth</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label style="font-size: 12px; color: var(--gray-600); display: block; margin-bottom: 6px;">Time Slot Preference</label>
-                        <select id="time-preference" style="width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; background: white;">
-                            <option value="morning">Morning (8:00 - 12:00)</option>
-                            <option value="balanced" selected>Balanced Distribution</option>
-                            <option value="afternoon">Afternoon (12:00 - 17:00)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Run Allocation Button -->
-                <button class="btn-primary" style="width: 100%; padding: 14px 20px; font-size: 15px;" onclick="runSmartAIAllocation()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; display: inline; vertical-align: middle; margin-right: 8px;">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                    Run AI Allocation
-                </button>
-                
-                <!-- Allocation Status -->
-                <div id="allocation-status" style="background: white; border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm);">
-                    ${AppState.savedAllocation ? `
-                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px;">Status</div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 8px; height: 8px; background: #22C55E; border-radius: 50%;"></div>
-                            <span style="font-size: 14px; font-weight: 500; color: #22C55E;">Saved Allocation Found</span>
-                        </div>
-                        <div style="margin-top: 8px; padding: 8px; background: #DBEAFE; border-radius: 6px;">
-                            <span style="font-size: 11px; color: #1E40AF;">${AppState.savedAllocation.results?.length || 0} courses • ${AppState.savedAllocation.totalSections || 0} sections</span>
-                        </div>
-                        <button onclick="loadSavedAllocationToTable()" class="btn-secondary" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 12px;">
-                            Load Saved Allocation
-                        </button>
-                        <button onclick="clearSavedAllocation()" style="width: 100%; margin-top: 6px; padding: 8px; font-size: 12px; background: #FEE2E2; color: #DC2626; border: none; border-radius: 6px; cursor: pointer;">
-                            Clear Saved Allocation
-                        </button>
-                    ` : `
-                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px;">Status</div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 8px; height: 8px; background: #9CA3AF; border-radius: 50%;"></div>
-                            <span style="font-size: 14px; font-weight: 500;">Ready to Run</span>
-                        </div>
-                    `}
-                </div>
-                
-                <!-- Quick Stats after running -->
-                <div id="allocation-summary" style="display: ${AppState.savedAllocation ? 'block' : 'none'}; background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                    <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #22C55E;">✓ Allocation Complete</h4>
-                    <div id="allocation-summary-content">${AppState.savedAllocation ? `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div style="text-align: center; padding: 12px; background: var(--gray-50); border-radius: 8px;">
-                                <div style="font-size: 20px; font-weight: 700; color: var(--gray-900);">${AppState.savedAllocation.totalSections || 0}</div>
-                                <div style="font-size: 11px; color: var(--gray-500);">Sections</div>
-                            </div>
-                            <div style="text-align: center; padding: 12px; background: var(--gray-50); border-radius: 8px;">
-                                <div style="font-size: 20px; font-weight: 700; color: #3B82F6;">${AppState.savedAllocation.instructorsUsed || 0}</div>
-                                <div style="font-size: 11px; color: var(--gray-500);">Instructors</div>
-                            </div>
-                        </div>
-                    ` : ''}</div>
-                </div>
-            </div>
-            
-            <!-- Right Panel - Results -->
-            <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
-                <div style="padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="font-size: 15px; font-weight: 600;">Course Allocation Results</h4>
-                    <div style="display: flex; gap: 8px;">
-                        <select id="filter-department" style="padding: 8px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; background: white;">
-                            <option value="all">All Departments</option>
-                            <option value="CS">Computer Science</option>
-                            <option value="BUS">Business</option>
-                            <option value="FOUND">Foundation</option>
-                        </select>
-                        <button class="btn-icon" onclick="exportAllocationResults()" style="padding: 8px 12px;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; margin-right: 4px;">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="7 10 12 15 17 10"/>
-                                <line x1="12" y1="15" x2="12" y2="3"/>
-                            </svg>
-                            Export
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="allocation-results-table" style="max-height: 600px; overflow-y: auto;">
-                    <table class="admin-table" style="width: 100%;">
-                        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
-                            <tr>
-                                <th style="width: 12%;">Course</th>
-                                <th style="width: 18%;">Name</th>
-                                <th style="width: 8%;">Predicted</th>
-                                <th style="width: 8%;">Sections</th>
-                                <th style="width: 18%;">Instructor</th>
-                                <th style="width: 12%;">Room</th>
-                                <th style="width: 14%;">Time</th>
-                                <th style="width: 10%;">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="allocation-results-tbody">
-                            ${renderInitialAllocationTable()}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Conflict Detection Panel -->
-        <div id="conflict-panel" style="display: none; margin-top: 24px; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
-            <div style="padding: 16px 20px; border-bottom: 1px solid var(--gray-100); background: #FEF2F2;">
-                <h4 style="font-size: 15px; font-weight: 600; color: #991B1B; display: flex; align-items: center; gap: 8px;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                    Detected Conflicts
-                </h4>
-            </div>
-            <div id="conflict-list" style="padding: 20px;"></div>
-        </div>
-    `;
-    
-    // Add event listener for department filter
-    document.getElementById('filter-department')?.addEventListener('change', filterAllocationByDepartment);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  COURSE ALLOCATION SYSTEM — Embedded (v7)
+//  Full data flow: HOD → Reg1 → Reg2 → Facility → Enrollment Prediction
+//  No external dependency. Zero emojis. Conflict-free scheduling.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+(function () { 'use strict';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  STATIC DATA TABLES
+//  Historical enrollment, pass rates, course metadata
+// ─────────────────────────────────────────────────────────────────────────────
+const ALLOC_COURSES = {"ACC0012":{"code":"ACC0012","name":"Business Project","credits":4,"contact_hours":4,"session_type":"lab","lecture_hrs_per_week":0,"lab_hrs_per_week":4,"past_enrollment":10},"ACC0014":{"code":"ACC0014","name":"Accounting for Small Businesses","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":12},"ACC2201":{"code":"ACC2201","name":"Financial Accounting I","credits":5,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":5,"lab_hrs_per_week":0,"past_enrollment":79},"ACC2202":{"code":"ACC2202","name":"Financial Accounting II","credits":5,"contact_hours":5,"session_type":"lecture","lecture_hrs_per_week":5,"lab_hrs_per_week":0,"past_enrollment":9},"ACC2209":{"code":"ACC2209","name":"Financial Accounting III","credits":5,"contact_hours":5,"session_type":"lecture","lecture_hrs_per_week":5,"lab_hrs_per_week":0,"past_enrollment":20},"ACC2211":{"code":"ACC2211","name":"Payroll and Compliance","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":2},"ACC2214":{"code":"ACC2214","name":"Financial Information for Marketing","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6},"ACC2233":{"code":"ACC2233","name":"Management Accounting I","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":8},"ACC2234":{"code":"ACC2234","name":"Management Accounting II","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":7},"ACC2262":{"code":"ACC2262","name":"Introduction to Personal Taxation","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":17},"ACC2265":{"code":"ACC2265","name":"Audit Principles & Bus Issues","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":5},"ACC2343":{"code":"ACC2343","name":"Spreadsheet Applications","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":28},"ACC2385":{"code":"ACC2385","name":"Accounting Software Applications","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":34},"BUAC3005":{"code":"BUAC3005","name":"Intermediate Accounting","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":14},"BUAC3050":{"code":"BUAC3050","name":"Accounting for Government and Not for Profit Org","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":10},"BUAC3100":{"code":"BUAC3100","name":"Principles of Financial Accounting","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"BUAC3120":{"code":"BUAC3120","name":"Managerial Accounting","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":9},"BUAC3380":{"code":"BUAC3380","name":"Managerial Finance","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":1},"BUAC4120":{"code":"BUAC4120","name":"Financial Statement Presentation and Analysis","credits":2,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":2,"lab_hrs_per_week":1,"past_enrollment":0},"BUAC4380":{"code":"BUAC4380","name":"Intermediate Corporate Finance","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"BUAC4455":{"code":"BUAC4455","name":"Advanced Financial Accounting","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":4},"BUAC4720":{"code":"BUAC4720","name":"Cost Accounting","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":2},"BUAC4780":{"code":"BUAC4780","name":"Advanced Corporate Finance","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":2},"BUAD3090":{"code":"BUAD3090","name":"Business Law","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":16},"BUAD3091":{"code":"BUAD3091","name":"Employment Law","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":15},"BUCO3005":{"code":"BUCO3005","name":"Management Information Systems","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":10},"BUCO3160":{"code":"BUCO3160","name":"Information Technology for Business","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":0},"BUEN3025":{"code":"BUEN3025","name":"Enterprise Development and Business Planning","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6},"BUEN3100":{"code":"BUEN3100","name":"Business Analysis and Decision Making","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":7},"BUEN3230":{"code":"BUEN3230","name":"Supply Chain & Logistics Management","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"BUEN4150":{"code":"BUEN4150","name":"Management of Innovation","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6},"BUEN4200":{"code":"BUEN4200","name":"Business Strategy","credits":3,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":0},"BUEN4250":{"code":"BUEN4250","name":"Entrepreneurial Leadership Practicum I","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":13},"BUEN4251":{"code":"BUEN4251","name":"Entrepreneurial Leadership Practicum II","credits":2,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":2,"lab_hrs_per_week":1,"past_enrollment":4},"BUHR4120":{"code":"BUHR4120","name":"HR Management for Entrepreneurs","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":12},"BUMG3015":{"code":"BUMG3015","name":"Organizational Behaviour","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"BUMG3105":{"code":"BUMG3105","name":"Operations Management","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":14},"BUMG3110":{"code":"BUMG3110","name":"Advanced Organizational Behaviour","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":12},"BUMK3099":{"code":"BUMK3099","name":"Introduction to Marketing","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":13},"BUMT3030":{"code":"BUMT3030","name":"Business Statistics","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":15},"BUS2301":{"code":"BUS2301","name":"Business Comp Apps","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":138},"CSIT3014":{"code":"CSIT3014","name":"Discrete Mathematics for Information Technology","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":24},"CSIT3111":{"code":"CSIT3111","name":"Advanced Networking Technologies","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":20},"CSIT3115":{"code":"CSIT3115","name":"Data Structure","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":20},"CSIT3211":{"code":"CSIT3211","name":"Foundations of Computer Security","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":0},"CSIT3216":{"code":"CSIT3216","name":"Server Operating Systems","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":0},"CSIT3225":{"code":"CSIT3225","name":"Introduction to Programming with Python","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":0},"CSIT3235":{"code":"CSIT3235","name":"Software Quality Assurance","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":0},"CSIT3271":{"code":"CSIT3271","name":"System Security","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":8},"CSIT3280":{"code":"CSIT3280","name":"Information Technology Project Management","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":22},"CSIT3345":{"code":"CSIT3345","name":"Advanced Web Application Development","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":20},"CSIT4105":{"code":"CSIT4105","name":"Search Engine Principles","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":6},"CSIT4125":{"code":"CSIT4125","name":"Website & Cloud Security","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":0},"CSIT4190":{"code":"CSIT4190","name":"Integration Project I","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":8},"CSIT4235":{"code":"CSIT4235","name":"Special Topics in Web & Mobile App Dev","credits":2,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":2,"lab_hrs_per_week":1,"past_enrollment":0},"CSIT4290":{"code":"CSIT4290","name":"Integration Project II","credits":3,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":0},"CSIT4330":{"code":"CSIT4330","name":"Data Warehousing and Data Mining","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":24},"CST2234":{"code":"CST2234","name":"Systems Analysis and Design","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":14},"CST2335":{"code":"CST2335","name":"Mobile Graphical Interface Programming","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":16},"CST2355":{"code":"CST2355","name":"Database Systems","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":20},"CST8101":{"code":"CST8101","name":"Computer Essentials","credits":3,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":78},"CST8102":{"code":"CST8102","name":"Oper System Fundamentals (GNU/Linux)","credits":4,"contact_hours":5,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":18},"CST8109":{"code":"CST8109","name":"Network Programming","credits":4,"contact_hours":5,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":20},"CST8116":{"code":"CST8116","name":"Introduction to Comp. Programming","credits":4,"contact_hours":5,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":80},"CST8117":{"code":"CST8117","name":"Cross-Platform Design","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":31},"CST8215":{"code":"CST8215","name":"Intro to Database","credits":5,"contact_hours":5,"session_type":"lecture+lab","lecture_hrs_per_week":5,"lab_hrs_per_week":1,"past_enrollment":72},"CST8276":{"code":"CST8276","name":"Advanced Database Topics","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":24},"CST8277":{"code":"CST8277","name":"Enterprise Application Programming","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":8},"CST8283":{"code":"CST8283","name":"Business Programming","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":28},"CST8284":{"code":"CST8284","name":"Object-Oriented Programming (Java)","credits":4,"contact_hours":5,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":18},"CST8285":{"code":"CST8285","name":"Web Programming","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":24},"CST8288":{"code":"CST8288","name":"Obj-Orient Pgm with Design Patterns","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":16},"CST8300":{"code":"CST8300","name":"Achieving Success in Changing Environment","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":36},"CST8333":{"code":"CST8333","name":"Programming Language Research Project","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":20},"CST8334":{"code":"CST8334","name":"Software Development Project","credits":4,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":18},"ECO2200":{"code":"ECO2200","name":"Economic Issues","credits":4,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":23},"ENL001":{"code":"ENL001","name":"English for Foundation 1","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":5},"ENL002":{"code":"ENL002","name":"English for Foundation 2","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":155},"ENL1813":{"code":"ENL1813","name":"Communications I","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":109},"ENL1823":{"code":"ENL1823","name":"Communications II","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":30},"FIN2230":{"code":"FIN2230","name":"Business Finance","credits":4,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":18},"GECU4100":{"code":"GECU4100","name":"Technologies, Cultures & Societies","credits":1,"contact_hours":2,"session_type":"lecture+lab","lecture_hrs_per_week":1,"lab_hrs_per_week":1,"past_enrollment":4},"GED0022":{"code":"GED0022","name":"Positive Psychology","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":14},"GED2234":{"code":"GED2234","name":"Contemporary Ethical Issues","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":8},"GEEC3150":{"code":"GEEC3150","name":"Principles of Microeconomics","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":18},"GEEC3250":{"code":"GEEC3250","name":"Principles of Macroeconomics","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"GEN2003":{"code":"GEN2003","name":"Healthy Lifestyle","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":49},"GEPH3033":{"code":"GEPH3033","name":"Professional Integrity & Ethics","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":12},"ICT001":{"code":"ICT001","name":"Computer Skills for Foundation 1","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":5},"ICT002":{"code":"ICT002","name":"Computer Skills for Foundation 2","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":155},"LAW1702":{"code":"LAW1702","name":"Business Law","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":7},"MAT001":{"code":"MAT001","name":"Core Math for Foundation 1","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":5},"MAT002":{"code":"MAT002","name":"Core Math for Foundation 2","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":155},"MAT8001":{"code":"MAT8001","name":"Technical Maths for Computer Science","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":50},"MGT2008":{"code":"MGT2008","name":"Business Plan Applied","credits":3,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":5},"MGT2201":{"code":"MGT2201","name":"Business Fundamentals","credits":4,"contact_hours":3,"session_type":"lecture+lab","lecture_hrs_per_week":4,"lab_hrs_per_week":1,"past_enrollment":88},"MGT2202":{"code":"MGT2202","name":"Emerging Technology for Business","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6},"MGT2203":{"code":"MGT2203","name":"Financial Mgmt for Small Businesses","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":5},"MGT2204":{"code":"MGT2204","name":"Social Innovation","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":10},"MGT2223":{"code":"MGT2223","name":"Career Preparation for Entrepreneurs","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"MGT2224":{"code":"MGT2224","name":"Managing for Business Success","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":5},"MGT2225":{"code":"MGT2225","name":"Project Mgmt for Business Start-ups","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":9},"MGT2228":{"code":"MGT2228","name":"Global Entrepreneurship","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"MGT2232":{"code":"MGT2232","name":"Entrepreneurship & Innovation","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":22},"MKT0018":{"code":"MKT0018","name":"Marketing for Mgmt & Entrep","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":18},"MKT0019":{"code":"MKT0019","name":"Marketing Research","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6},"MKT2205":{"code":"MKT2205","name":"Marketing Foundations","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":3},"MKT2207":{"code":"MKT2207","name":"Marketing Channels","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":3},"MKT2208":{"code":"MKT2208","name":"Digital Marketing","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":2},"MKT2213":{"code":"MKT2213","name":"Skills for the Workplace","credits":2,"contact_hours":2,"session_type":"lecture","lecture_hrs_per_week":2,"lab_hrs_per_week":0,"past_enrollment":7},"MKT2216":{"code":"MKT2216","name":"Skills Transferable to Bus","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":16},"MKT2218":{"code":"MKT2218","name":"Digital Marketing","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6},"MKT2260":{"code":"MKT2260","name":"Industry Marketing Plan","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":2},"MKT2261":{"code":"MKT2261","name":"Mktg Plan Project Field Work","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":2},"MKT2283":{"code":"MKT2283","name":"Sales Management","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":5},"MKT2285":{"code":"MKT2285","name":"Marketing Research","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":3},"MKT2291":{"code":"MKT2291","name":"Integrated Marketing Communications I","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":6},"MKT2292":{"code":"MKT2292","name":"Integrated Marketing Communications II","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":2},"MKT2206":{"code":"MKT2206","name":"Marketing Principles","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":4},"MKT2217":{"code":"MKT2217","name":"Consumer Behaviour","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":3},"MKT2282":{"code":"MKT2282","name":"Business Communications","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":4},"QUA0002":{"code":"QUA0002","name":"Basic Mathematics","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":9},"QUA0008":{"code":"QUA0008","name":"Statistics","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":3},"QUA2210":{"code":"QUA2210","name":"Business Mathematics","credits":4,"contact_hours":4,"session_type":"lecture","lecture_hrs_per_week":4,"lab_hrs_per_week":0,"past_enrollment":66},"RET2213":{"code":"RET2213","name":"eCommerce","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":7},"RET2214":{"code":"RET2214","name":"Retail Management","credits":3,"contact_hours":4,"session_type":"lecture+lab","lecture_hrs_per_week":3,"lab_hrs_per_week":1,"past_enrollment":9},"RET2223":{"code":"RET2223","name":"Professional Selling","credits":3,"contact_hours":3,"session_type":"lecture","lecture_hrs_per_week":3,"lab_hrs_per_week":0,"past_enrollment":6}};
+
+// Historical pass rates per course (from historical_grades.json analysis)
+const ALLOC_HIST = {"ACC0012":{"pass_rate":0.70,"past_sections":2},"ACC0014":{"pass_rate":0.63,"past_sections":1},"ACC2201":{"pass_rate":0.72,"past_sections":2},"ACC2202":{"pass_rate":0.75,"past_sections":1},"ACC2209":{"pass_rate":0.75,"past_sections":1},"ACC2211":{"pass_rate":0.80,"past_sections":1},"ACC2214":{"pass_rate":0.80,"past_sections":1},"ACC2233":{"pass_rate":0.78,"past_sections":1},"ACC2234":{"pass_rate":0.78,"past_sections":1},"ACC2262":{"pass_rate":0.63,"past_sections":1},"ACC2265":{"pass_rate":0.75,"past_sections":1},"ACC2343":{"pass_rate":0.59,"past_sections":1},"ACC2385":{"pass_rate":0.79,"past_sections":2},"BUAC3005":{"pass_rate":0.88,"past_sections":1},"BUAC3050":{"pass_rate":0.82,"past_sections":1},"BUAC3100":{"pass_rate":0.80,"past_sections":1},"BUAC3120":{"pass_rate":0.77,"past_sections":1},"BUAC3380":{"pass_rate":0.75,"past_sections":1},"BUAC4120":{"pass_rate":0.75,"past_sections":1},"BUAC4380":{"pass_rate":0.74,"past_sections":1},"BUAC4455":{"pass_rate":0.73,"past_sections":1},"BUAC4720":{"pass_rate":0.74,"past_sections":1},"BUAC4780":{"pass_rate":0.72,"past_sections":1},"BUAD3090":{"pass_rate":0.82,"past_sections":1},"BUAD3091":{"pass_rate":0.82,"past_sections":1},"BUCO3005":{"pass_rate":0.80,"past_sections":1},"BUCO3160":{"pass_rate":0.80,"past_sections":1},"BUEN3025":{"pass_rate":0.83,"past_sections":1},"BUEN3100":{"pass_rate":0.80,"past_sections":1},"BUEN3230":{"pass_rate":0.80,"past_sections":1},"BUEN4150":{"pass_rate":0.82,"past_sections":1},"BUEN4200":{"pass_rate":0.80,"past_sections":1},"BUEN4250":{"pass_rate":0.84,"past_sections":1},"BUEN4251":{"pass_rate":0.82,"past_sections":1},"BUHR4120":{"pass_rate":0.83,"past_sections":1},"BUMG3015":{"pass_rate":0.80,"past_sections":1},"BUMG3105":{"pass_rate":0.81,"past_sections":1},"BUMG3110":{"pass_rate":0.81,"past_sections":1},"BUMK3099":{"pass_rate":0.82,"past_sections":1},"BUMT3030":{"pass_rate":0.76,"past_sections":1},"BUS2301":{"pass_rate":0.78,"past_sections":4},"CSIT3014":{"pass_rate":0.70,"past_sections":1},"CSIT3111":{"pass_rate":0.74,"past_sections":1},"CSIT3115":{"pass_rate":0.68,"past_sections":1},"CSIT3211":{"pass_rate":0.75,"past_sections":1},"CSIT3216":{"pass_rate":0.75,"past_sections":1},"CSIT3225":{"pass_rate":0.76,"past_sections":1},"CSIT3235":{"pass_rate":0.75,"past_sections":1},"CSIT3271":{"pass_rate":0.72,"past_sections":1},"CSIT3280":{"pass_rate":0.76,"past_sections":1},"CSIT3345":{"pass_rate":0.73,"past_sections":1},"CSIT4105":{"pass_rate":0.75,"past_sections":1},"CSIT4125":{"pass_rate":0.76,"past_sections":1},"CSIT4190":{"pass_rate":0.78,"past_sections":1},"CSIT4235":{"pass_rate":0.75,"past_sections":1},"CSIT4290":{"pass_rate":0.75,"past_sections":1},"CSIT4330":{"pass_rate":0.74,"past_sections":1},"CST2234":{"pass_rate":0.74,"past_sections":2},"CST2335":{"pass_rate":0.72,"past_sections":1},"CST2355":{"pass_rate":0.73,"past_sections":1},"CST8101":{"pass_rate":0.72,"past_sections":1},"CST8102":{"pass_rate":0.72,"past_sections":2},"CST8109":{"pass_rate":0.74,"past_sections":1},"CST8116":{"pass_rate":0.68,"past_sections":2},"CST8215":{"pass_rate":0.61,"past_sections":2},"CST8276":{"pass_rate":0.72,"past_sections":1},"CST8277":{"pass_rate":0.73,"past_sections":1},"CST8283":{"pass_rate":0.74,"past_sections":1},"CST8284":{"pass_rate":0.70,"past_sections":1},"CST8285":{"pass_rate":0.74,"past_sections":1},"CST8288":{"pass_rate":0.72,"past_sections":1},"CST8300":{"pass_rate":0.82,"past_sections":2},"CST8333":{"pass_rate":0.74,"past_sections":1},"CST8334":{"pass_rate":0.75,"past_sections":1},"ECO2200":{"pass_rate":0.76,"past_sections":1},"ENL001":{"pass_rate":0.78,"past_sections":1},"ENL002":{"pass_rate":0.75,"past_sections":5},"ENL1813":{"pass_rate":0.79,"past_sections":3},"ENL1823":{"pass_rate":0.80,"past_sections":2},"FIN2230":{"pass_rate":0.52,"past_sections":2},"GECU4100":{"pass_rate":0.84,"past_sections":1},"GED0022":{"pass_rate":0.84,"past_sections":1},"GED2234":{"pass_rate":0.82,"past_sections":1},"GEEC3150":{"pass_rate":0.76,"past_sections":2},"GEEC3250":{"pass_rate":0.76,"past_sections":1},"GEN2003":{"pass_rate":0.85,"past_sections":2},"GEPH3033":{"pass_rate":0.84,"past_sections":2},"ICT001":{"pass_rate":0.82,"past_sections":1},"ICT002":{"pass_rate":0.80,"past_sections":5},"LAW1702":{"pass_rate":0.44,"past_sections":1},"MAT001":{"pass_rate":0.72,"past_sections":1},"MAT002":{"pass_rate":0.68,"past_sections":5},"MAT8001":{"pass_rate":0.41,"past_sections":2},"MGT2008":{"pass_rate":0.82,"past_sections":1},"MGT2201":{"pass_rate":0.59,"past_sections":2},"MGT2202":{"pass_rate":0.82,"past_sections":1},"MGT2203":{"pass_rate":0.78,"past_sections":1},"MGT2204":{"pass_rate":0.84,"past_sections":1},"MGT2223":{"pass_rate":0.82,"past_sections":1},"MGT2224":{"pass_rate":0.80,"past_sections":1},"MGT2225":{"pass_rate":0.80,"past_sections":1},"MGT2228":{"pass_rate":0.80,"past_sections":1},"MGT2232":{"pass_rate":0.82,"past_sections":2},"MKT0018":{"pass_rate":0.64,"past_sections":1},"MKT0019":{"pass_rate":0.80,"past_sections":1},"MKT2205":{"pass_rate":0.80,"past_sections":1},"MKT2207":{"pass_rate":0.80,"past_sections":1},"MKT2208":{"pass_rate":0.80,"past_sections":1},"MKT2213":{"pass_rate":0.84,"past_sections":1},"MKT2216":{"pass_rate":0.82,"past_sections":1},"MKT2218":{"pass_rate":0.80,"past_sections":1},"MKT2260":{"pass_rate":0.80,"past_sections":1},"MKT2261":{"pass_rate":0.80,"past_sections":1},"MKT2283":{"pass_rate":0.80,"past_sections":1},"MKT2285":{"pass_rate":0.80,"past_sections":1},"MKT2291":{"pass_rate":0.80,"past_sections":1},"MKT2292":{"pass_rate":0.80,"past_sections":1},"QUA0002":{"pass_rate":0.72,"past_sections":1},"QUA0008":{"pass_rate":0.73,"past_sections":1},"QUA2210":{"pass_rate":0.59,"past_sections":2},"RET2213":{"pass_rate":0.82,"past_sections":1},"RET2214":{"pass_rate":0.80,"past_sections":1},"RET2223":{"pass_rate":0.82,"past_sections":1}};
+
+// Program → Semester → Course codes (from study_plans.json)
+const ALLOC_PROG_SEM = {"DIPLOMA-MAN. & ENTR.": {"Semester 1": ["BUS2301", "ENL1813", "MGT2232", "MKT0018", "MKT2216", "QUA0002"], "Semester 2": ["ACC0014", "ENL1823", "LAW1702", "GED2234", "MGT2202", "MKT0019", "RET2213"], "Semester 3": ["MGT2203", "MGT2204", "MGT2225", "MKT2218", "RET2214", "GED0022"], "Semester 4": ["GEN2003", "MGT2008", "MGT2223", "MGT2224", "MGT2228", "RET2223"]}, "DIPLOMA-MARKETING": {"Semester 1": ["ACC2214", "BUS2301", "ENL1813", "MKT2205", "MKT2216", "QUA0002"], "Semester 2": ["ENL1823", "GED2234", "MKT2206", "MKT2217", "MKT2282", "QUA0008"], "Semester 3": ["MKT2207", "MKT2283", "MKT2285", "MKT2291", "GED0022"], "Semester 4": ["GEN2003", "MKT2208", "MKT2213", "MKT2260", "MKT2261", "MKT2292"]}, "DIPLOMA-ACCOUNTING": {"Semester 1": ["ACC2201", "BUS2301", "ENL1813", "MGT2201", "QUA2210"], "Semester 2": ["ACC2202", "ACC2343", "ECO2200", "ENL1823", "FIN2230"], "Semester 3": ["ACC2209", "ACC2233", "ACC2262", "ACC2385", "GEN2003"], "Semester 4": ["ACC2211", "ACC2234", "ACC2265", "ACC0012", "GED0022"]}, "DIPLOMA-COMPUTER PROGRAMMING": {"Semester 1": ["CST8101", "CST8116", "CST8215", "CST8300", "ENL1813", "MAT8001"], "Semester 2": ["CST2355", "CST8102", "CST8284", "CST8285", "ENL1823", "GED0022"], "Semester 3": ["CST2234", "CST2335", "CST8109", "CST8283", "CST8288"], "Semester 4": ["CST8276", "CST8277", "CST8333", "CST8334", "GEN2003"]}, "BACHELOR-COMPUTER PROGRAMMING": {"Semester 5": ["CSIT3014", "CSIT3111", "CSIT3115", "CSIT3280", "CSIT4330"], "Semester 6": ["CSIT3211", "CSIT3216", "CSIT3225", "CSIT3235"], "Semester 7": ["CSIT3271", "CSIT4125", "CSIT3345"], "Semester 8": ["CSIT4235", "CSIT4105", "GECU4100", "CSIT4190", "CSIT4290"]}, "BACHELOR-BUSINESS MAN. & ENTR.": {"Semester 5": ["BUAC3120", "BUCO3160", "BUCO3005", "BUEN3100"], "Semester 6": ["BUHR4120", "BUMG3110", "BUMT3030", "GEEC3250", "GEEC3150"], "Semester 7": ["BUAD3091", "BUEN4200", "BUEN4150", "BUEN3230"], "Semester 8": ["BUEN4250", "GECU4100", "BUMG3105", "BUEN4251"]}, "BACHELOR-ACCOUNTING": {"Semester 5": ["BUAC3005", "BUAC4380", "BUAD3090", "BUEN3100"], "Semester 6": ["BUMK3099", "BUMG3015", "BUMT3030", "GEEC3150", "GEPH3033"], "Semester 7": ["BUAC3050", "BUAC4120", "BUAC4455", "BUAC4780"], "Semester 8": ["BUAC4720", "GECU4100", "BUMG3105", "BUEN4200"]}, "BACHELOR-BME (MARKETING STREAM)": {"Semester 5": ["BUAC3100", "BUAC3380", "BUAD3090", "BUEN3100"], "Semester 6": ["BUCO3005", "BUMG3110", "BUEN3025", "GEEC3150", "BUHR4120"], "Semester 7": ["BUCO3160", "BUEN3230", "BUEN4250", "BUEN4200"], "Semester 8": ["BUMG3105", "GECU4100", "GEEC3250", "BUEN4251"]}};
+
+// Program definitions for the forecast UI
+const ALLOC_PROGRAMS = [
+  { key:'dp-cp',   label:'Diploma – Computer Programming',     dept:'cs',  programs:['DIPLOMA-COMPUTER PROGRAMMING'] },
+  { key:'dp-bme',  label:'Diploma – Business Management',       dept:'biz', programs:['DIPLOMA-MAN. & ENTR.'] },
+  { key:'dp-mktg', label:'Diploma – Marketing',                 dept:'biz', programs:['DIPLOMA-MARKETING'] },
+  { key:'dp-acct', label:'Diploma – Accounting',                dept:'biz', programs:['DIPLOMA-ACCOUNTING'] },
+  { key:'ba-cp',   label:'Bachelor – Computer Programming',     dept:'cs',  programs:['BACHELOR-COMPUTER PROGRAMMING'] },
+  { key:'ba-bme',  label:'Bachelor – Business Management',      dept:'biz', programs:['BACHELOR-BUSINESS MAN. & ENTR.'] },
+  { key:'ba-mktg', label:'Bachelor – Marketing (BME Stream)',   dept:'biz', programs:['BACHELOR-BME (MARKETING STREAM)'] },
+  { key:'ba-acct', label:'Bachelor – Accounting',               dept:'biz', programs:['BACHELOR-ACCOUNTING'] },
+];
+
+const ALLOC_CAP = { lecture: 40, lab: 30 };
+const ALLOC_DAYS = ['Su','M','T','W','Th'];
+const ALLOC_DAYF = {Su:'Sunday',M:'Monday',T:'Tuesday',W:'Wednesday',Th:'Thursday'};
+
+const ALLOC_LEC_SLOTS = [
+  {days:['Su','T'],start:'08:00',end:'09:15',mins:75},{days:['M','W'],start:'08:00',end:'09:15',mins:75},
+  {days:['Su','T'],start:'09:30',end:'10:45',mins:75},{days:['M','W'],start:'09:30',end:'10:45',mins:75},
+  {days:['Su','T'],start:'11:00',end:'12:15',mins:75},{days:['M','W'],start:'11:00',end:'12:15',mins:75},
+  {days:['Su','T'],start:'12:30',end:'13:45',mins:75},{days:['M','W'],start:'12:30',end:'13:45',mins:75},
+  {days:['Su','T'],start:'14:00',end:'15:15',mins:75},{days:['M','W'],start:'14:00',end:'15:15',mins:75},
+  {days:['Su','T'],start:'15:30',end:'16:45',mins:75},{days:['M','W'],start:'15:30',end:'16:45',mins:75},
+  {days:['T','Th'],start:'09:00',end:'10:15',mins:75},{days:['T','Th'],start:'10:30',end:'11:45',mins:75},
+  {days:['T','Th'],start:'12:00',end:'13:15',mins:75},{days:['T','Th'],start:'14:00',end:'15:15',mins:75},
+  {days:['T','Th'],start:'15:30',end:'16:45',mins:75},{days:['Su','T','Th'],start:'17:00',end:'17:50',mins:50},
+];
+const ALLOC_LAB_SLOTS = [
+  {days:['M'],start:'10:00',end:'11:50',mins:110},{days:['T'],start:'10:00',end:'11:50',mins:110},
+  {days:['W'],start:'10:00',end:'11:50',mins:110},{days:['Th'],start:'10:00',end:'11:50',mins:110},
+  {days:['Su'],start:'10:00',end:'11:50',mins:110},
+  {days:['M'],start:'12:00',end:'13:50',mins:110},{days:['T'],start:'12:00',end:'13:50',mins:110},
+  {days:['W'],start:'12:00',end:'13:50',mins:110},{days:['Th'],start:'12:00',end:'13:50',mins:110},
+  {days:['Su'],start:'12:00',end:'13:50',mins:110},
+  {days:['M'],start:'14:00',end:'15:50',mins:110},{days:['T'],start:'14:00',end:'15:50',mins:110},
+  {days:['W'],start:'14:00',end:'15:50',mins:110},{days:['Th'],start:'14:00',end:'15:50',mins:110},
+  {days:['Su'],start:'14:00',end:'15:50',mins:110},
+  {days:['M'],start:'16:00',end:'17:50',mins:110},{days:['W'],start:'16:00',end:'17:50',mins:110},
+  {days:['Th'],start:'16:00',end:'17:50',mins:110},{days:['T'],start:'16:30',end:'18:20',mins:110},
+  {days:['Th'],start:'18:00',end:'19:50',mins:110},
+];
+
+const LS_FC  = 'cck_alloc_forecast_v2';
+const LS_OVR = 'cck_alloc_overrides_v1';
+const LS_TT  = 'cck_alloc_timetable_v1';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let AS = {
+  semKey: 'spring2026',
+  assignments: {},  // hodInstId → [courseCodes]
+  courseToInst: {}, // courseCode → instId (first HOD assignment)
+  instData:     {},  // instId → {name, employment, qualification, timeFrom, timeTo, maxCredits}
+  rooms: [],
+  credits: {},
+  forecast: {}, overrides: {},
+  plan: null, timetable: null,
+  filter: 'all', search: '',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  APPROVAL STATUS HELPERS — read the exact keys each portal writes
+// ─────────────────────────────────────────────────────────────────────────────
+function allocGetSemKey() {
+  if (typeof CCK !== 'undefined' && CCK.getActiveSemKey) try { return CCK.getActiveSemKey(); } catch(e) {}
+  return localStorage.getItem('cck_active_sem_key') || AS.semKey || 'spring2026';
 }
+
+function allocGetStatus(portal) {
+  const sk = allocGetSemKey();
+  try {
+    if (portal === 'hod') {
+      if (typeof CCK !== 'undefined' && CCK.getHodStatus) return CCK.getHodStatus(sk) || 'draft';
+      return (JSON.parse(localStorage.getItem('cck_hod_status_v3') || '{}'))[sk] || 'draft';
+    }
+    if (portal === 'reg1')     return (JSON.parse(localStorage.getItem('cck_reg1_status')  || '{}'))[sk] || 'draft';
+    if (portal === 'reg2')     return (JSON.parse(localStorage.getItem('cck_reg2_status')  || '{}'))[sk] || 'draft';
+    if (portal === 'facility') return (JSON.parse(localStorage.getItem('cck_fac_status')   || '{}'))[sk] || 'draft';
+  } catch(e) {}
+  return 'draft';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CANONICAL APPROVED DATA ACCESSOR
+//  The single source of truth for all approved portal data.
+//  Used by: allocLoadPortal, readPortalData, timetable generation.
+//
+//  Rules:
+//    HOD (assignments)  → only if status === 'approved'
+//    Reg1 (credits)     → only if status === 'approved', else {} (defaults apply)
+//    Reg2 (inst data)   → only if status === 'approved', else fall back to instructors.json
+//    Facility (rooms)   → only if status === 'approved', else fall back to AppState.rooms
+// ─────────────────────────────────────────────────────────────────────────────
+function getApprovedPortalData() {
+  const hodSt  = allocGetStatus('hod');
+  const reg1St = allocGetStatus('reg1');
+  const reg2St = allocGetStatus('reg2');
+  const facSt  = allocGetStatus('facility');
+
+  // ── HOD: approved assignments ──────────────────────────────────────
+  let hodAssignments = {};
+  if (hodSt === 'approved') {
+    // Strategy: read from ALL sources and pick the one with the most data.
+    // DataBridge may overwrite cck_hod_assignments with a partial DB record.
+    // CCK.getAssignments (cck_assignments_v3) is written by HOD portal directly
+    // and is more reliable as the authoritative source.
+    const sk = allocGetSemKey();
+    let bestAssignments = {};
+
+    // Source 1: CCK v3 per-semKey assignments (HOD portal writes this directly)
+    if (typeof CCK !== 'undefined' && CCK.getAssignments) {
+      try {
+        const cckA = CCK.getAssignments(sk);
+        if (cckA && Object.keys(cckA).length > Object.keys(bestAssignments).length) {
+          bestAssignments = cckA;
+        }
+      } catch(e) {}
+    }
+
+    // Source 2: cck_hod_assignments (may be stale/partial from DataBridge)
+    try {
+      const raw = localStorage.getItem('cck_hod_assignments');
+      if (raw) {
+        const parsed = JSON.parse(raw) || {};
+        if (Object.keys(parsed).length > Object.keys(bestAssignments).length) {
+          bestAssignments = parsed;
+        }
+      }
+    } catch(e) {}
+
+    // Source 3: DataBridge in-memory (if available and has more data)
+    if (typeof DataBridge !== 'undefined' && DataBridge.assignmentsByInstructor) {
+      // Convert DataBridge name-keyed format to id-keyed using AppState
+      const baseList = (typeof AppState !== 'undefined' && AppState.instructors) ? AppState.instructors : [];
+      const nameToId = {};
+      baseList.forEach(ins => { if (ins.name) nameToId[ins.name] = ins.id; });
+      const dbFormat = {};
+      Object.entries(DataBridge.assignmentsByInstructor).forEach(([name, codes]) => {
+        const id = nameToId[name] || name;
+        dbFormat[id] = codes;
+      });
+      if (Object.keys(dbFormat).length > Object.keys(bestAssignments).length) {
+        bestAssignments = dbFormat;
+      }
+    }
+
+    hodAssignments = bestAssignments;
+  }
+
+  // ── Reg1: approved credit overrides ───────────────────────────────
+  let credits = {};
+  if (reg1St === 'approved') {
+    // reg1 writes to cck_reg1_changes = { code: { original, newVal } }
+    // and to cck_credits_shared = { code: newVal }
+    try {
+      const changes = JSON.parse(localStorage.getItem('cck_reg1_changes') || '{}');
+      Object.entries(changes).forEach(([code, val]) => {
+        credits[code] = typeof val === 'object' ? (val.newVal ?? val.credits ?? 3) : val;
+      });
+    } catch(e) {}
+    // Also read cck_credits_shared as authoritative override map
+    try {
+      const shared = JSON.parse(localStorage.getItem('cck_credits_shared') || '{}');
+      Object.entries(shared).forEach(([code, val]) => {
+        if (typeof val === 'number') credits[code] = val;
+      });
+    } catch(e) {}
+  }
+
+  // ── Reg2: approved instructor data ────────────────────────────────
+  // Keys: cck_reg2_inst = { instId: { name, employment, qualification, timeFrom, timeTo, maxCredits } }
+  //       cck_inst_shared = { instId: { name, employment, maxCredits, teachDepts } }  (written by HOD)
+  let instShared = {};
+  let reg2Inst   = {};
+  // Always read instShared (HOD writes it, not gated on approval since it's metadata not assignments)
+  try { instShared = JSON.parse(localStorage.getItem('cck_inst_shared') || '{}'); } catch(e) {}
+  if (reg2St === 'approved') {
+    try { reg2Inst = JSON.parse(localStorage.getItem('cck_reg2_inst') || '{}'); } catch(e) {}
+  }
+
+  // Build merged instructor map
+  // Base instructors always come from instructors.json (AppState.instructors)
+  const baseList = (typeof AppState !== 'undefined' && AppState.instructors) ? AppState.instructors : [];
+  const instMap  = {};
+
+  // Start with base instructors
+  baseList.forEach(ins => {
+    const id = ins.id || ins.instructor_id;
+    if (!id) return;
+    instMap[id] = {
+      id,
+      name:          ins.name || id,
+      employment:    ins.employment_type || ins.employment || 'Full-Time',
+      qualification: ins.qualification || 'Master',
+      maxCredits:    ins.max_credits || ins.maxCredits || 21,
+      timeFrom:      ins.time_from   || ins.timeFrom   || '08:00',
+      timeTo:        ins.time_to     || ins.timeTo     || '17:00',
+      teachDepts:    ins.teachDepts  || [],
+      assignedCourses: hodAssignments[id] || [],
+      _source: 'base',
+    };
+  });
+
+  // Overlay instShared (HOD metadata — always available)
+  Object.entries(instShared).forEach(([id, d]) => {
+    if (!d) return;
+    instMap[id] = {
+      ...(instMap[id] || { id, _source: 'hod' }),
+      ...(d.name        ? { name:        d.name }        : {}),
+      ...(d.employment  ? { employment:  d.employment }  : {}),
+      ...(d.maxCredits  ? { maxCredits:  d.maxCredits }  : {}),
+      ...(d.teachDepts  ? { teachDepts:  d.teachDepts }  : {}),
+      assignedCourses: hodAssignments[id] || instMap[id]?.assignedCourses || [],
+      _source: 'hod',
+    };
+  });
+
+  // Overlay Reg2 data (approved only) — most authoritative for availability
+  Object.entries(reg2Inst).forEach(([id, d]) => {
+    if (!d) return;
+    instMap[id] = {
+      ...(instMap[id] || { id, _source: 'reg2' }),
+      ...(d.name          ? { name:          d.name }          : {}),
+      ...(d.employment    ? { employment:    d.employment }    : {}),
+      ...(d.qualification ? { qualification: d.qualification } : {}),
+      ...(d.timeFrom      ? { timeFrom:      d.timeFrom }      : {}),
+      ...(d.timeTo        ? { timeTo:        d.timeTo }        : {}),
+      ...(d.maxCredits    ? { maxCredits:    d.maxCredits }    : {}),
+      assignedCourses: hodAssignments[id] || instMap[id]?.assignedCourses || [],
+      _source: reg2St === 'approved' ? 'reg2' : instMap[id]?._source || 'base',
+    };
+  });
+
+  // Ensure every instructor in hodAssignments is in instMap
+  Object.keys(hodAssignments).forEach(id => {
+    if (!instMap[id]) {
+      instMap[id] = {
+        id, name: id, employment: 'Full-Time', qualification: 'Master',
+        maxCredits: 21, timeFrom: '08:00', timeTo: '17:00', teachDepts: [],
+        assignedCourses: hodAssignments[id] || [], _source: 'hod',
+      };
+    }
+  });
+
+  // Build courseToInstructor reverse map
+  const courseToInstructor = {};
+  Object.entries(hodAssignments).forEach(([instId, codes]) => {
+    (Array.isArray(codes) ? codes : []).forEach(code => {
+      if (!courseToInstructor[code.trim()]) courseToInstructor[code.trim()] = instId;
+    });
+  });
+
+  // ── Facility: approved rooms ───────────────────────────────────────
+  let rooms = [];
+  if (facSt === 'approved') {
+    try {
+      const raw = localStorage.getItem('cck_app_rooms');
+      if (raw) rooms = JSON.parse(raw) || [];
+    } catch(e) {}
+    if (!rooms.length) {
+      try { rooms = JSON.parse(localStorage.getItem('cck_rooms_shared') || '[]'); } catch(e) {}
+    }
+  }
+  // Fall back to AppState.rooms if facility not approved or empty
+  if (!rooms.length && typeof AppState !== 'undefined' && AppState.rooms?.length) {
+    rooms = AppState.rooms;
+  }
+
+  return {
+    // Data
+    hodAssignments, credits, instMap, instShared, reg2Inst, rooms, courseToInstructor,
+    // Statuses (for UI display)
+    status: { hod: hodSt, reg1: reg1St, reg2: reg2St, facility: facSt },
+    // Convenience: counts
+    counts: {
+      instructors: Object.keys(hodAssignments).length,
+      courses:     Object.values(hodAssignments).reduce((s, a) => s + (a||[]).length, 0),
+      instRecords: Object.keys(instMap).length,
+      credits:     Object.keys(credits).length,
+      rooms:       rooms.length,
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DATA LOADERS — read all four portals from localStorage (approval-gated)
+// ─────────────────────────────────────────────────────────────────────────────
+function allocLoadPortal() {
+  try {
+    const pd = getApprovedPortalData();
+
+    // HOD assignments (approved only)
+    AS.assignments  = pd.hodAssignments;
+    AS.courseToInst = pd.courseToInstructor;
+
+    // Reg2 + instShared merged instructor data (reg2 approved, instShared always)
+    AS.instData = pd.instMap;
+
+    // Reg1 credits (approved only, else {})
+    AS.credits = pd.credits;
+
+    // Facility rooms (approved only, else AppState.rooms)
+    AS.rooms = pd.rooms;
+
+    // Forecast & overrides (always read — not portal-submitted)
+    AS.forecast  = JSON.parse(localStorage.getItem(LS_FC)  || '{}');
+    AS.overrides = JSON.parse(localStorage.getItem(LS_OVR) || '{}');
+  } catch(e) { console.warn('[CCK Alloc] portal load error:', e); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ENROLLMENT PREDICTION ENGINE
+//  For each course:
+//    base      = past_enrollment from ALLOC_COURSES
+//    retakers  = base * (1 - pass_rate)   — students who failed and retake
+//    newShare  = new_students_for_program * (base / program_total_baseline)
+//    projected = base + retakers + newShare
+//
+//  If program-level intake was configured via the forecast modal, we use
+//  the semester-aware cohort model (how many students are in this course's
+//  semester given the intake and pass-rate progression).
+// ─────────────────────────────────────────────────────────────────────────────
+function allocPredict(courseCode) {
+  const crs   = ALLOC_COURSES[courseCode];
+  const hist  = ALLOC_HIST[courseCode] || { pass_rate: 0.75, past_sections: 1 };
+  if (!crs) return { proj: 0, base: 0, retakers: 0, newShare: 0, passRate: 0.75 };
+
+  const base      = crs.past_enrollment || 0;
+  const passRate  = hist.pass_rate;
+  const retakers  = Math.round(base * (1 - passRate));
+
+  // Check forecast config: program-level intake
+  const sk = AS.semKey;
+  const fc = AS.forecast[sk] || {};
+  let newShare = 0;
+
+  // Find which program(s) contain this course
+  let programTotal = 0;
+  ALLOC_PROGRAMS.forEach(prog => {
+    const val = parseInt(fc[prog.key]) || 0;
+    if (val <= 0) return;
+    // Check if this course is in any semester of this program
+    prog.programs.forEach(pKey => {
+      const semMap = ALLOC_PROG_SEM[pKey] || {};
+      let semNum = -1;
+      Object.entries(semMap).forEach(([semLabel, codes]) => {
+        if (codes.includes(courseCode)) {
+          semNum = parseInt(semLabel.replace(/\D/g,'')) || 1;
+        }
+      });
+      if (semNum < 0) return;
+      // Apply cohort progression: intake → sem1, intake*pass → sem2, etc.
+      const passR = hist.pass_rate;
+      let cohort = val;
+      for (let s = 1; s < semNum; s++) cohort = Math.round(cohort * passR);
+      newShare += cohort;
+      programTotal += cohort;
+    });
+  });
+
+  // If no specific program intake is set, use a proportional fallback
+  if (newShare === 0 && base > 0) {
+    const totalNew = Object.values(fc).reduce((a,v) => a + (typeof v === 'number' ? v : 0), 0);
+    if (totalNew > 0) newShare = Math.round(totalNew * (base / 662));
+  }
+
+  const proj = Math.max(base + retakers, base + retakers + newShare);
+  return { proj, base, retakers, newShare, passRate };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PLAN BUILDER — creates a sorted list of all courses with predicted enrollment
+// ─────────────────────────────────────────────────────────────────────────────
+function allocBuildPlan() {
+  // Apply any manual pass-rate overrides from forecast
+  const passOverrides = AS.forecast._pass_rates || {};
+  Object.entries(passOverrides).forEach(([code, v]) => {
+    if (ALLOC_HIST[code]) ALLOC_HIST[code].pass_rate = parseFloat(v) || ALLOC_HIST[code].pass_rate;
+  });
+
+  const plan = [];
+  const seen = new Set();
+  Object.values(ALLOC_COURSES).forEach(crs => {
+    const code = crs.code;
+    if (seen.has(code)) return;
+    seen.add(code);
+    const { proj, base, retakers, newShare, passRate } = allocPredict(code);
+    const isLab = crs.session_type !== 'lecture';
+    const cap   = isLab ? ALLOC_CAP.lab : ALLOC_CAP.lecture;
+    const credits = AS.credits[code] || crs.credits;
+    const secs  = proj > 0 ? Math.max(1, Math.ceil(proj / cap)) : (ALLOC_HIST[code]?.past_sections || 1);
+
+    // Resolve instructor(s) — HOD assignments have priority; then overrides
+    let iids = [];
+    const hodIid = AS.courseToInst[code];
+    if (AS.overrides[code]) iids = [AS.overrides[code]];
+    else if (hodIid) iids = [hodIid];
+
+    const inames = iids.map(id => {
+      const d = AS.instData[id];
+      return (d && d.name) ? d.name : id;
+    });
+
+    plan.push({
+      code, name: crs.name, credits, session: crs.session_type,
+      lhrs: crs.lecture_hrs_per_week, lahrs: crs.lab_hrs_per_week,
+      base, retakers, newShare, passRate, proj, secs,
+      iids, inames, assigned: iids.length > 0,
+    });
+  });
+  plan.sort((a, b) => b.proj - a.proj);
+  AS.plan = plan;
+  return plan;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CONFLICT-FREE SCHEDULER
+//  Respects: instructor availability windows (Reg2 timeFrom/timeTo)
+//            room type matching (lab → lab room, lecture → classroom or hall)
+//            no double-booking of rooms or instructors
+//            HOD-assigned instructor used first, falls back to 'TBA'
+// ─────────────────────────────────────────────────────────────────────────────
+function allocRunScheduler() {
+  const plan = AS.plan || allocBuildPlan();
+  const toM  = t => { const [h, m] = (t||'00:00').split(':').map(Number); return h * 60 + m; };
+
+  // Build room lists from facility portal
+  const labRooms = AS.rooms
+    .filter(r => (r.type||r.room_type) === 'lab')
+    .map(r => String(r.id || r.name || '').trim()).filter(Boolean);
+  const lecRooms = AS.rooms
+    .filter(r => (r.type||r.room_type) !== 'lab')
+    .map(r => String(r.id || r.name || '').trim()).filter(Boolean);
+  const fallbackLab = ['LAB-015','LAB-016','LAB-031','LAB-032'];
+  const fallbackLec = ['BG-023','BG-024','BG-025','B1-023','B1-024','B2-023','B2-024','B2-025'];
+  const useLab = labRooms.length ? labRooms : fallbackLab;
+  const useLec = lecRooms.length ? lecRooms : fallbackLec;
+
+  const roomBook = {}, instBook = {};
+  const rKey = (d, s, e, rm) => `${d}|${s}|${e}|${rm}`;
+  const iKey = (d, s, e, id) => `${d}|${s}|${e}|I:${id}`;
+  const roomFree = (rm, sl) => sl.days.every(d => !roomBook[rKey(d, sl.start, sl.end, rm)]);
+  const instFree = (id, sl) => !id || sl.days.every(d => !instBook[iKey(d, sl.start, sl.end, id)]);
+  const bookR    = (rm, sl, lbl) => sl.days.forEach(d => { roomBook[rKey(d, sl.start, sl.end, rm)] = lbl; });
+  const bookI    = (id, sl, lbl) => { if (id) sl.days.forEach(d => { instBook[iKey(d, sl.start, sl.end, id)] = lbl; }); };
+
+  // Check if slot falls within instructor's declared availability window (from Reg2)
+  function instAvailableForSlot(iid, sl) {
+    if (!iid) return true;
+    const d = AS.instData[iid];
+    if (!d || !d.timeFrom || !d.timeTo) return true; // no restriction → allow all
+    const iFrom = toM(d.timeFrom), iTo = toM(d.timeTo);
+    const sFrom = toM(sl.start),   sTo = toM(sl.end);
+    return sFrom >= iFrom && sTo <= iTo;
+  }
+
+  // Find best slot for given instructor, preferred slots first
+  function findSlot(iid, slots, rooms) {
+    // Sort: availability-matching slots first
+    const avail = slots.filter(sl => instAvailableForSlot(iid, sl));
+    const pool  = avail.length ? avail : slots; // fallback to all if window too narrow
+    for (const sl of pool) {
+      for (const rm of rooms) {
+        if (roomFree(rm, sl) && instFree(iid, sl)) return { sl, rm };
+      }
+    }
+    return null;
+  }
+
+  const entries = {}, conflicts = [];
+  plan.forEach(row => {
+    entries[row.code] = [];
+    for (let si = 0; si < row.secs; si++) {
+      const iid = row.iids[0] || null;
+      const isLab = row.session !== 'lecture';
+      const needLec = row.lhrs > 0 || row.session === 'lecture';
+      const needLab = row.lahrs > 0 || row.session === 'lab';
+      let lecSlot = null, labSlot = null, lecRoom = '', labRoom = '';
+
+      if (needLec) {
+        const res = findSlot(iid, ALLOC_LEC_SLOTS, useLec);
+        if (res) {
+          lecSlot = res.sl; lecRoom = res.rm;
+          bookR(lecRoom, lecSlot, row.code); bookI(iid, lecSlot, row.code);
+        } else {
+          conflicts.push({ code: row.code, sec: si, type: 'lec', reason: 'No free slot' });
+        }
+      }
+      if (needLab) {
+        const res = findSlot(iid, ALLOC_LAB_SLOTS, useLab);
+        if (res) {
+          labSlot = res.sl; labRoom = res.rm;
+          bookR(labRoom, labSlot, row.code); bookI(iid, labSlot, row.code);
+        } else {
+          conflicts.push({ code: row.code, sec: si, type: 'lab', reason: 'No free lab slot' });
+        }
+      }
+
+      const iname = iid ? (AS.instData[iid]?.name || iid) : 'TBA';
+      entries[row.code].push({ iid, iname, lecSlot, lecRoom, labSlot, labRoom });
+    }
+  });
+
+  const tt = { entries, conflicts: conflicts.length, conflictList: conflicts };
+  AS.timetable = tt;
+  localStorage.setItem(LS_TT, JSON.stringify(tt));
+  return tt;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INIT — called by loadCourseAllocation()
+// ─────────────────────────────────────────────────────────────────────────────
+function initAlloc() {
+  const sec = document.getElementById('section-allocation');
+  if (!sec) return;
+
+  if (typeof CCK !== 'undefined' && CCK.getActiveSemKey)
+    try { AS.semKey = CCK.getActiveSemKey(); } catch(e) {}
+
+  allocLoadPortal();
+  AS.timetable = JSON.parse(localStorage.getItem(LS_TT) || 'null');
+
+  const ttl = document.getElementById('admin-page-title');
+  const sub = document.getElementById('admin-page-subtitle');
+  if (ttl) ttl.textContent = 'Course Allocation';
+  if (sub) sub.textContent = 'Enrollment predictions · Instructor scheduling · Room assignment';
+
+  sec.innerHTML = allocShell();
+  allocBuildPlan();
+  allocRender();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SHELL HTML — the entire page markup
+// ─────────────────────────────────────────────────────────────────────────────
+function allocShell() { return `
+<style>
+#ca-root *{box-sizing:border-box;}
+.ca-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+.ca-kpi{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px;display:flex;flex-direction:column;gap:4px;}
+.ca-kpi-icon{width:32px;height:32px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;}
+.ca-kpi-icon svg{width:15px;height:15px;}
+.ca-kpi-icon.red{background:#FEE2E2;color:#DC2626;}
+.ca-kpi-icon.green{background:#DCFCE7;color:#16A34A;}
+.ca-kpi-icon.blue{background:#DBEAFE;color:#2563EB;}
+.ca-kpi-icon.orange{background:#FFEDD5;color:#EA580C;}
+.ca-kpi-icon.purple{background:#F3E8FF;color:#9333EA;}
+.ca-kpi-val{font-size:22px;font-weight:800;color:var(--gray-900);margin-top:2px;}
+.ca-kpi-lbl{font-size:12px;font-weight:600;color:var(--gray-700);}
+.ca-kpi-sub{font-size:11px;color:var(--gray-400);}
+.ca-bar{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px;}
+.ca-bar-row{display:flex;align-items:center;gap:8px;padding:10px 14px;}
+.ca-bar-row+.ca-bar-row{border-top:1px solid var(--gray-100);}
+.ca-bar-sep{width:1px;height:20px;background:var(--gray-200);margin:0 2px;flex-shrink:0;}
+.ca-fb{padding:5px 11px;border:1px solid var(--gray-200);border-radius:var(--radius-full);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:white;color:var(--gray-600);transition:var(--transition-fast);white-space:nowrap;}
+.ca-fb:hover,.ca-fb.active{background:var(--gray-900);border-color:var(--gray-900);color:white;}
+.ca-sw{display:flex;align-items:center;gap:6px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-full);padding:5px 12px;}
+.ca-sw svg{width:13px;height:13px;color:var(--gray-400);flex-shrink:0;}
+.ca-sw input{border:none;background:transparent;font-size:12px;font-family:inherit;outline:none;width:180px;color:var(--gray-700);}
+.ca-seg{display:inline-flex;border:1px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;}
+.ca-vbtn{padding:6px 14px;border:none;border-right:1px solid var(--gray-200);background:white;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--gray-600);white-space:nowrap;}
+.ca-vbtn:last-child{border-right:none;}
+.ca-vbtn.active{background:var(--gray-900);color:white;}
+.ca-abtn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--radius);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:var(--transition-fast);white-space:nowrap;}
+.ca-abtn svg{width:12px;height:12px;}
+.ca-abtn.sec{background:white;border:1px solid var(--gray-200);color:var(--gray-700);}
+.ca-abtn.sec:hover{border-color:var(--gray-400);}
+.ca-abtn.pr{background:var(--cck-red);color:white;}
+.ca-abtn.pr:hover{background:var(--cck-red-dark);}
+.ca-ml{margin-left:auto;}
+.ca-notice{padding:9px 13px;border-radius:var(--radius);font-size:12px;margin-bottom:13px;display:flex;align-items:center;gap:8px;}
+.ca-notice svg{width:13px;height:13px;flex-shrink:0;}
+.ca-notice.warn{background:#FFFBEB;color:#713F12;border:1px solid #FDE68A;}
+.ca-notice.info{background:#EFF6FF;color:#1E3A8A;border:1px solid #BFDBFE;}
+.ca-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+.ca-card-head{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid var(--gray-100);}
+.ca-card-head h3{font-size:14px;font-weight:700;color:var(--gray-900);margin:0;}
+.c-tag{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.c-lec{background:var(--green-100);color:#166534;}
+.c-lab{background:var(--cck-red-bg);color:var(--cck-red-dark);}
+.c-both{background:var(--blue-100);color:#1E40AF;}
+.ca-ov{display:none;position:fixed;inset:0;z-index:699;background:rgba(17,24,39,.3);}
+.ca-ov.open{display:block;}
+.ca-pn{position:fixed;right:0;top:0;bottom:0;width:480px;background:white;border-left:1px solid var(--gray-200);box-shadow:var(--shadow-xl);z-index:700;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease;}
+.ca-pn.open{transform:translateX(0);}
+/* Forecast modal */
+.ca-fcm{display:none;position:fixed;inset:0;z-index:900;background:rgba(15,23,42,.55);align-items:flex-start;justify-content:center;padding-top:48px;}
+.ca-fcm.open{display:flex;}
+.ca-mbox{background:white;border-radius:var(--radius-xl);width:700px;max-width:96vw;max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.2);}
+.ca-mhd{padding:20px 26px 0;flex-shrink:0;}
+.ca-mbody{overflow-y:auto;flex:1;}
+.ca-mft{padding:14px 26px;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:white;}
+/* Forecast tabs */
+.fc-tabs{display:flex;gap:0;border-bottom:2px solid var(--gray-100);margin:16px 0 0;}
+.fc-tab{padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;color:var(--gray-500);cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--transition-fast);}
+.fc-tab.active{color:var(--cck-red);border-bottom-color:var(--cck-red);}
+.fc-panel{display:none;padding:22px 26px;}
+.fc-panel.active{display:block;}
+/* Program grid */
+.fc-prog-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fc-prog-item{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px;}
+.fc-prog-head{font-size:12px;font-weight:700;color:var(--gray-800);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.fc-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.fc-dot.cs{background:#4F46E5;} .fc-dot.biz{background:#D97706;}
+.fc-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.fc-row label{font-size:12px;color:var(--gray-600);flex:1;min-width:0;}
+.fc-num{width:80px;flex-shrink:0;padding:6px 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-weight:700;text-align:center;font-family:inherit;outline:none;color:var(--gray-900);}
+.fc-num:focus{border-color:var(--cck-red);}
+.fc-total-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:14px;}
+/* Pass rate tab */
+.fc-pr-header{display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;padding:6px 12px;background:var(--gray-50);border-radius:var(--radius);margin-bottom:8px;font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;}
+.fc-pr-row{display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--gray-100);}
+.fc-pr-row:last-child{border-bottom:none;}
+.fc-pr-code{font-size:11px;font-weight:700;font-family:monospace;color:var(--gray-900);}
+.fc-pr-name{font-size:11px;color:var(--gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fc-pr-inp{width:100%;padding:5px 6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-weight:700;text-align:center;font-family:inherit;outline:none;}
+.fc-pr-inp:focus{border-color:var(--cck-red);}
+.fc-pr-pct{font-size:10px;color:var(--gray-400);text-align:right;}
+/* Preview tab */
+.fc-pv-row{display:grid;grid-template-columns:88px 1fr 60px 60px 60px 60px 50px;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--gray-100);font-size:11px;}
+.fc-pv-row:last-child{border-bottom:none;}
+.fc-pv-header{background:var(--gray-50);font-weight:700;color:var(--gray-500);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border-radius:var(--radius);}
+/* Portal status bar */
+.alloc-src{margin-bottom:18px;}
+.alloc-src-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.alloc-src-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.alloc-src-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.alloc-src-dot.ok{background:#22C55E;}.alloc-src-dot.warn{background:#F59E0B;}
+.alloc-src-name{font-size:12px;font-weight:600;color:var(--gray-800);}
+.alloc-src-stat{font-size:11px;color:var(--gray-500);margin-top:2px;}
+/* TT */
+.tt-cell{border-left:3px solid transparent;border-radius:4px;padding:5px 7px;margin-bottom:3px;cursor:pointer;transition:opacity .15s;}
+.tt-cell:hover{opacity:.8;}
+.tt-cell-code{font-size:10px;font-weight:800;font-family:monospace;}
+.tt-cell-info{font-size:9px;color:var(--gray-600);margin-top:1px;line-height:1.3;}
+.tt-inst-row{display:flex;align-items:stretch;border-bottom:1px solid var(--gray-100);min-height:52px;}
+.tt-inst-row:last-child{border-bottom:none;}
+.tt-inst-name{width:190px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--gray-800);border-right:1px solid var(--gray-100);flex-shrink:0;display:flex;align-items:center;}
+.tt-inst-slots{flex:1;display:flex;flex-wrap:wrap;gap:4px;padding:8px;}
+</style>
+<div id="ca-root">
+  <!-- Portal status -->
+  <div class="alloc-src" id="alloc-src"></div>
+  <!-- KPIs -->
+  <div class="ca-kpis">
+    <div class="ca-kpi" id="cak-total">
+      <div class="ca-kpi-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+      <div class="ca-kpi-val">—</div><div class="ca-kpi-lbl">Courses</div><div class="ca-kpi-sub"></div>
+    </div>
+    <div class="ca-kpi" id="cak-assigned">
+      <div class="ca-kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="ca-kpi-val">—</div><div class="ca-kpi-lbl">Assigned</div><div class="ca-kpi-sub"></div>
+    </div>
+    <div class="ca-kpi" id="cak-sections">
+      <div class="ca-kpi-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="ca-kpi-val">—</div><div class="ca-kpi-lbl">Sections Needed</div><div class="ca-kpi-sub"></div>
+    </div>
+    <div class="ca-kpi" id="cak-students">
+      <div class="ca-kpi-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="ca-kpi-val">—</div><div class="ca-kpi-lbl">Projected Students</div><div class="ca-kpi-sub"></div>
+    </div>
+    <div class="ca-kpi" id="cak-conflicts">
+      <div class="ca-kpi-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <div class="ca-kpi-val">—</div><div class="ca-kpi-lbl">Schedule Conflicts</div><div class="ca-kpi-sub"></div>
+    </div>
+  </div>
+  <!-- Notices -->
+  <div id="ca-ns" class="ca-notice warn" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    No HOD assignments found. Complete instructor assignments in the HOD portal first.
+  </div>
+  <div id="ca-ni" class="ca-notice info" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+    <span id="ca-ni-txt"></span>
+  </div>
+  <!-- Controls -->
+  <div class="ca-bar">
+    <div class="ca-bar-row">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400)">Filter</span>
+      <div class="ca-bar-sep"></div>
+      <button class="ca-fb active" onclick="caF('all',this)">All</button>
+      <button class="ca-fb" onclick="caF('assigned',this)">Assigned</button>
+      <button class="ca-fb" onclick="caF('unassigned',this)">Unassigned</button>
+      <button class="ca-fb" onclick="caF('lab',this)">Has Lab</button>
+      <button class="ca-fb" onclick="caF('lecture',this)">Lecture Only</button>
+      <div class="ca-bar-sep"></div>
+      <div class="ca-sw">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search course or instructor..." oninput="caSearch(this.value)">
+      </div>
+      <div class="ca-ml" style="font-size:12px;color:var(--gray-400)" id="ca-cnt"></div>
+    </div>
+    <div class="ca-bar-row">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400)">View</span>
+      <div class="ca-bar-sep"></div>
+      <div class="ca-seg">
+        <button class="ca-vbtn active" onclick="caView('plan',this)">Course Plan</button>
+        <button class="ca-vbtn" onclick="caView('tt',this)">Timetable</button>
+      </div>
+      <div class="ca-ml" style="display:flex;gap:8px">
+        <button class="ca-abtn sec" onclick="caOpenForecast()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          Enrollment Forecast
+        </button>
+        <button class="ca-abtn pr" onclick="caGenTT()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Generate Timetable
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Plan table -->
+  <div class="ca-card" id="ca-plan-card">
+    <div class="ca-card-head"><h3>Course Allocation Plan</h3></div>
+    <div style="overflow-x:auto">
+      <table class="admin-table" style="min-width:900px">
+        <thead><tr>
+          <th>Code</th><th>Course Name</th>
+          <th style="text-align:center">Credits</th>
+          <th style="text-align:center">Session</th>
+          <th style="text-align:center">Historical</th>
+          <th style="text-align:center">Re-takers</th>
+          <th style="text-align:center">New</th>
+          <th style="text-align:center">Projected</th>
+          <th style="text-align:center">Sections</th>
+          <th>Instructor (HOD)</th>
+          <th style="text-align:center">Room Type</th>
+        </tr></thead>
+        <tbody id="ca-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Timetable card -->
+  <div class="ca-card" id="ca-tt-card" style="display:none">
+    <div class="ca-card-head">
+      <h3>Timetable View</h3>
+      <div style="display:flex;gap:6px">
+        <div class="ca-seg" style="margin-right:8px">
+          <button class="ca-vbtn active" onclick="ttV('grid',this)">Grid</button>
+          <button class="ca-vbtn" onclick="ttV('inst',this)">By Instructor</button>
+          <button class="ca-vbtn" onclick="ttV('room',this)">By Room</button>
+        </div>
+        ${ALLOC_DAYS.map(d => `<button class="ca-fb" id="ttd-${d}" onclick="ttD('${d}',this)">${ALLOC_DAYF[d].slice(0,3)}</button>`).join('')}
+        <button class="ca-fb active" id="ttd-all" onclick="ttD('all',this)">All</button>
+        <button class="ca-abtn sec" onclick="ttExportCSV()" style="margin-left:8px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+    <div id="ca-tt-inner"></div>
+  </div>
+  <!-- Side panel overlay -->
+  <div class="ca-ov" id="ca-ov" onclick="caPnClose()"></div>
+  <div class="ca-pn" id="ca-pn"></div>
+</div>
+
+<!-- ── Forecast Modal ──────────────────────────────────────────────────────── -->
+<div class="ca-fcm" id="ca-fcm">
+  <div class="ca-mbox">
+    <div class="ca-mhd">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <h3 style="font-size:17px;font-weight:800;color:var(--gray-900);margin:0 0 3px">Enrollment Forecast</h3>
+          <p style="font-size:12px;color:var(--gray-500);margin:0">Enter expected new intake per program. Pass/fail progression determines class sizes automatically.</p>
+        </div>
+        <button onclick="caCloseForecast()" style="width:30px;height:30px;border:1px solid var(--gray-200);background:white;border-radius:var(--radius);cursor:pointer;color:var(--gray-500);font-size:16px;flex-shrink:0;margin-left:12px">&#x2715;</button>
+      </div>
+      <div class="fc-tabs">
+        <button class="fc-tab active" onclick="fcTab('intake',this)">Program Intake</button>
+        <button class="fc-tab" onclick="fcTab('passrate',this)">Pass Rates</button>
+        <button class="fc-tab" onclick="fcTab('preview',this)">Preview Results</button>
+      </div>
+    </div>
+    <div class="ca-mbody">
+
+      <!-- TAB 1: Program Intake -->
+      <div class="fc-panel active" id="fc-panel-intake">
+        <p style="font-size:12px;color:var(--gray-600);margin:0 0 16px;line-height:1.6">
+          Enter how many <strong>new students</strong> are joining each program in Semester 1.
+          The engine will then model how many of those students advance to each subsequent semester using the per-course pass rates, and add them to the course projections alongside historical re-takers.
+        </p>
+        <div class="fc-prog-grid" id="fc-prog-grid"></div>
+        <div class="fc-total-box">
+          <div>
+            <div style="font-size:11px;color:var(--gray-500);margin-bottom:2px">Total new students entering</div>
+            <div id="fc-total-sum" style="font-size:26px;font-weight:800;color:var(--gray-900)">0</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--gray-500);margin-bottom:2px">Current enrolled (baseline)</div>
+            <div style="font-size:20px;font-weight:700;color:var(--gray-600)">662</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Pass Rates -->
+      <div class="fc-panel" id="fc-panel-passrate">
+        <p style="font-size:12px;color:var(--gray-600);margin:0 0 12px;line-height:1.6">
+          These pass rates come from <strong>historical grade data</strong>. Students who fail are counted as re-enrollment demand. Adjust only if you expect the next semester to differ significantly.
+        </p>
+        <input type="text" placeholder="Search by course code or name..." oninput="fcPRSearch(this.value)"
+          style="width:100%;padding:8px 12px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;margin-bottom:10px;">
+        <div class="fc-pr-header">
+          <div>Code</div><div>Course Name</div><div style="text-align:center">Pass Rate</div><div></div>
+        </div>
+        <div id="fc-pr-list" style="max-height:360px;overflow-y:auto;"></div>
+      </div>
+
+      <!-- TAB 3: Preview -->
+      <div class="fc-panel" id="fc-panel-preview">
+        <p style="font-size:12px;color:var(--gray-600);margin:0 0 12px;line-height:1.6">
+          Top 25 courses by projected enrollment for the coming semester. Formula: historical base + re-takers (failed last semester) + new student cohort share.
+        </p>
+        <div class="fc-pv-row fc-pv-header">
+          <div>Code</div><div>Course</div>
+          <div style="text-align:center">Hist.</div>
+          <div style="text-align:center">Re-takers</div>
+          <div style="text-align:center">New</div>
+          <div style="text-align:center">Total</div>
+          <div style="text-align:center">Sections</div>
+        </div>
+        <div id="fc-pv-list"></div>
+      </div>
+
+    </div>
+    <div class="ca-mft">
+      <div style="font-size:12px;color:var(--gray-400)">Changes apply immediately when you click Apply</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="caCloseForecast()" class="ca-abtn sec">Cancel</button>
+        <button onclick="caSaveForecast()" class="ca-abtn pr">Apply Forecast</button>
+      </div>
+    </div>
+  </div>
+</div>
+`; }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  RENDER — main render coordinator
+// ─────────────────────────────────────────────────────────────────────────────
+let _ttView = 'grid', _ttDay = 'all';
+
+function allocRender() {
+  allocRenderSources();
+  allocRenderKPIs();
+  allocRenderNotices();
+  const view = document.querySelector('.ca-vbtn.active')?.textContent?.includes('Timetable') ? 'tt' : 'plan';
+  if (view === 'plan') allocRenderRows(); else allocRenderTT();
+}
+
+function allocRenderSources() {
+  const el = document.getElementById('alloc-src'); if (!el) return;
+  const pd  = getApprovedPortalData();
+  const st  = pd.status;
+  const cnt = pd.counts;
+
+  const statusInfo = (s) => {
+    if (s === 'approved')  return { dot:'#22C55E', label:'Approved',  bg:'#F0FDF4', lc:'#16A34A' };
+    if (s === 'submitted') return { dot:'#F59E0B', label:'Submitted', bg:'#FFFBEB', lc:'#B45309' };
+    return                        { dot:'#CBD5E1', label:'Draft',     bg:'#F8FAFC', lc:'#94A3B8' };
+  };
+
+  const cards = [
+    { name:'HOD – Assignments',   key:'hod',      st: st.hod,
+      stat: st.hod==='approved' ? `${cnt.instructors} instructors · ${cnt.courses} courses`
+          : st.hod==='submitted' ? 'Awaiting admin approval'
+          : 'Not submitted yet' },
+    { name:'Registration 2 – Instructors', key:'reg2', st: st.reg2,
+      stat: st.reg2==='approved' ? `${Object.keys(pd.reg2Inst).length} instructor records`
+          : st.reg2==='submitted' ? 'Awaiting admin approval'
+          : 'Not submitted yet' },
+    { name:'Registration 1 – Credits',     key:'reg1', st: st.reg1,
+      stat: st.reg1==='approved' ? `${cnt.credits} credit overrides`
+          : st.reg1==='submitted' ? 'Awaiting admin approval'
+          : 'Using course defaults (3 cr)' },
+    { name:'Facility – Rooms',             key:'facility', st: st.facility,
+      stat: st.facility==='approved' ? `${cnt.rooms} rooms loaded`
+          : st.facility==='submitted' ? 'Awaiting admin approval'
+          : 'Using default rooms' },
+  ];
+
+  // Show a warning banner if critical portals aren't approved
+  const hodApproved = st.hod === 'approved';
+  const anyPending  = [st.hod, st.reg1, st.reg2, st.facility].some(s => s === 'submitted');
+  const banner = !hodApproved
+    ? `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span><strong>HOD assignments not yet approved.</strong> Course allocation uses instructor assignments from the approved HOD portal.
+        ${anyPending ? ' Some portals are submitted — approve them in <strong>Portal Review</strong>.' : ' Portals need to submit first.'}</span>
+       </div>` : '';
+
+  el.outerHTML = `<div id="alloc-src">
+    ${banner}
+    <div class="alloc-src-grid">${cards.map(c => {
+      const si = statusInfo(c.st);
+      return `<div class="alloc-src-card" style="border-left:3px solid ${si.dot}">
+        <div>
+          <div class="alloc-src-name">${c.name}</div>
+          <div class="alloc-src-stat">${c.stat}</div>
+        </div>
+        <span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${si.bg};color:${si.lc};white-space:nowrap;margin-left:auto;">${si.label}</span>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+function allocRenderKPIs() {
+  const p = AS.plan || [];
+  const total = p.length, asgn = p.filter(r => r.assigned).length;
+  const secs  = p.reduce((s,r) => s+r.secs, 0);
+  const stu   = p.reduce((s,r) => s+r.proj, 0);
+  const tt    = AS.timetable;
+  const conf  = tt ? tt.conflicts : 0;
+  const kv = (id, val, sub, col) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.querySelector('.ca-kpi-val').textContent = val;
+    const s = el.querySelector('.ca-kpi-sub'); s.textContent = sub||'';
+    if (col) s.style.color = col;
+  };
+  const ua = total - asgn;
+  const fc = AS.forecast[AS.semKey] || {};
+  const newTotal = Object.entries(fc).filter(([k])=>k!=='_total'&&k!=='_pass_rates').reduce((s,[,v])=>s+(+v||0),0);
+  kv('cak-total',   total,  p.filter(r=>r.session!=='lecture').length+' with lab');
+  kv('cak-assigned',asgn+'/'+total, ua>0?ua+' unassigned':'All covered', ua>0?'var(--orange-500)':'var(--green-500)');
+  kv('cak-sections',secs,   'across '+total+' courses');
+  kv('cak-students',stu||'—', newTotal>0?`incl. ${newTotal} new intake + re-takers`:'historical + pass/fail model');
+  kv('cak-conflicts',tt?conf:'—', tt?(conf===0?'Conflict-free':'Scheduling issues'):tt?'':'Run timetable to check', conf>0?'var(--cck-red)':'var(--green-500)');
+}
+
+function allocRenderNotices() {
+  const ns = document.getElementById('ca-ns');
+  if (ns) ns.style.display = Object.keys(AS.assignments).length ? 'none' : '';
+  const fc = (AS.forecast[AS.semKey]||{})._total||0;
+  const ni = document.getElementById('ca-ni'), nt = document.getElementById('ca-ni-txt');
+  if (ni && nt) {
+    ni.style.display = fc > 0 ? '' : 'none';
+    nt.textContent = `Forecast active: ${fc} new students across programs — enrollments include re-takers.`;
+  }
+}
+
+function allocRenderRows() {
+  const tbody = document.getElementById('ca-tbody'); if (!tbody) return;
+  let rows = [...(AS.plan||[])];
+  if (AS.filter==='assigned')   rows = rows.filter(r=>r.assigned);
+  if (AS.filter==='unassigned') rows = rows.filter(r=>!r.assigned);
+  if (AS.filter==='lab')        rows = rows.filter(r=>r.session!=='lecture');
+  if (AS.filter==='lecture')    rows = rows.filter(r=>r.session==='lecture');
+  if (AS.search) {
+    const q = AS.search.toLowerCase();
+    rows = rows.filter(r=>r.code.toLowerCase().includes(q)||r.name.toLowerCase().includes(q)||r.inames.some(n=>n.toLowerCase().includes(q)));
+  }
+  const cnt = document.getElementById('ca-cnt');
+  if (cnt) cnt.textContent = rows.length+' courses';
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="11" style="padding:40px;text-align:center;color:var(--gray-400)">No courses match the filter.</td></tr>`; return; }
+  const tt = AS.timetable;
+  tbody.innerHTML = rows.map(row => {
+    const stag = row.session==='lecture'?'<span class="c-tag c-lec">Lecture</span>':row.session==='lab'?'<span class="c-tag c-lab">Lab</span>':'<span class="c-tag c-both">Lec+Lab</span>';
+    const iCell = (() => {
+        if (!row.assigned) return `<span style="font-size:11px;color:var(--orange-500);font-weight:600">Not assigned</span>`;
+        const iid0 = row.iids[0];
+        const d0 = AS.instData[iid0]||{};
+        const hasN = !!(d0.name&&d0.name.trim());
+        const dispN = hasN ? d0.name.trim() : iid0;
+        const nameHtml = hasN
+          ? `<div style="font-size:12px;font-weight:600;color:var(--gray-900)">${dispN}</div>`
+          : `<div style="font-size:12px;font-weight:600;color:var(--orange-500)">${dispN} <span style="font-size:10px;font-weight:400;color:var(--gray-400)">(add name in Reg 2)</span></div>`;
+        const availHtml = d0.timeFrom ? `<div style="font-size:10px;color:var(--gray-400)">${d0.timeFrom}–${d0.timeTo||'?'}</div>` : '';
+        return nameHtml + availHtml;
+      })();
+    const isLab = row.session !== 'lecture';
+    const roomTag = isLab ? '<span class="c-tag c-lab">Lab needed</span>' : '<span class="c-tag c-lec">Classroom</span>';
+    const prPct = Math.round(row.passRate*100);
+    const prColor = prPct >= 80 ? '#16A34A' : prPct >= 65 ? '#D97706' : '#DC2626';
+    return `<tr style="cursor:pointer" onclick="caOpenDetail('${row.code}')">
+      <td><strong style="font-family:monospace;font-size:12px">${row.code}</strong></td>
+      <td style="font-size:12px;max-width:220px">${row.name}</td>
+      <td style="text-align:center;font-size:12px">${row.credits}</td>
+      <td style="text-align:center">${stag}</td>
+      <td style="text-align:center;font-size:12px">${row.base}</td>
+      <td style="text-align:center;font-size:12px;color:#DC2626;font-weight:600">+${row.retakers}</td>
+      <td style="text-align:center;font-size:12px;color:#16A34A;font-weight:600">+${row.newShare}</td>
+      <td style="text-align:center">
+        <div style="font-size:14px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
+        <div style="font-size:9px;color:${prColor}">${prPct}% pass rate</div>
+      </td>
+      <td style="text-align:center;font-size:13px;font-weight:700">${row.secs}</td>
+      <td>${iCell}</td>
+      <td style="text-align:center">${roomTag}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DETAIL SIDE PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function caOpenDetail(code) {
+  const row = (AS.plan||[]).find(r=>r.code===code);
+  if (!row) return;
+  const tt  = AS.timetable;
+  const secs = tt && tt.entries[code] ? tt.entries[code] : [];
+  const hist = ALLOC_HIST[code] || { pass_rate: 0.75 };
+  const pct  = Math.round(hist.pass_rate * 100);
+  const stag = row.session==='lecture'?'<span class="c-tag c-lec">Lecture</span>':row.session==='lab'?'<span class="c-tag c-lab">Lab</span>':'<span class="c-tag c-both">Lec+Lab</span>';
+
+  const allInstBase = Object.entries(AS.instData).map(([id,d])=>({id,name:(d.name||id)}));
+
+  const secCards = secs.length ? secs.map((s,i)=>{
+    const lecRooms = AS.rooms.filter(r=>(r.type||r.room_type)!=='lab').map(r=>String(r.id||r.name||'').trim()).filter(Boolean);
+    const labRooms = AS.rooms.filter(r=>(r.type||r.room_type)==='lab').map(r=>String(r.id||r.name||'').trim()).filter(Boolean);
+    const lr = s.lecRoom||'', ar = s.labRoom||'';
+    return `<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:8px">Section ${i+1}</div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Instructor</div>
+        <select onchange="caSecInst('${code}',${i},this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
+          <option value="">— TBA —</option>
+          ${allInstBase.map(ins=>`<option value="${ins.id}" ${ins.id===s.iid?'selected':''}>${ins.name}</option>`).join('')}
+        </select>
+      </div>
+      ${row.lhrs>0||row.session==='lecture'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lecture Slot</div>
+          <div style="font-size:12px;padding:6px 8px;background:var(--green-100);border-radius:4px">${s.lecSlot?s.lecSlot.days.join(',')+'  '+s.lecSlot.start+'–'+s.lecSlot.end:'Not scheduled'}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Classroom</div>
+          <select onchange="caSecRoom('${code}',${i},'lec',this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
+            <option value="">— Auto —</option>
+            ${(lecRooms.length?lecRooms:['BG-023','BG-024','B1-023','B2-023']).map(r=>`<option value="${r}" ${r===lr?'selected':''}>${r}</option>`).join('')}
+          </select></div>
+      </div>`:''}
+      ${row.lahrs>0||row.session==='lab'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lab Slot</div>
+          <div style="font-size:12px;padding:6px 8px;background:var(--cck-red-bg);border-radius:4px">${s.labSlot?s.labSlot.days.join(',')+'  '+s.labSlot.start+'–'+s.labSlot.end:'Not scheduled'}</div></div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lab Room</div>
+          <select onchange="caSecRoom('${code}',${i},'lab',this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
+            <option value="">— Auto —</option>
+            ${(labRooms.length?labRooms:['LAB-015','LAB-016','LAB-031']).map(r=>`<option value="${r}" ${r===ar?'selected':''}>${r}</option>`).join('')}
+          </select></div>
+      </div>`:''}
+    </div>`;
+  }).join('') : `<div style="padding:10px;background:var(--gray-50);border-radius:var(--radius);font-size:12px;color:var(--gray-500);text-align:center">Run "Generate Timetable" to schedule sections</div>`;
+
+  const instSection = row.iids.length
+    ? row.iids.map(iid=>{
+        const d=AS.instData[iid]||{};
+        const hasName=!!(d.name&&d.name.trim());
+        const name=hasName?d.name.trim():iid;
+        const isPT=d.employment==='Part-Time';
+        const ini=hasName
+          ? name.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i,'').split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase()||'?'
+          : '?';
+        const avail=(d.timeFrom&&d.timeTo)?`${d.timeFrom}–${d.timeTo}`:null;
+        const nameLabel=hasName?name:`<span style="color:var(--orange-500)">${iid}</span><span style="font-size:10px;font-weight:400;color:var(--gray-400);margin-left:6px">(name not set in Reg 2)</span>`;
+        return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;background:${isPT?'#FEF9C3':'#DBEAFE'};border:2px solid ${isPT?'#FDE68A':'#BFDBFE'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${isPT?'#92400E':'#1D4ED8'};flex-shrink:0">${ini}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--gray-900)">${nameLabel}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+              <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:2px;background:${isPT?'#FEF9C3':'#DBEAFE'};color:${isPT?'#92400E':'#1D4ED8'}">${isPT?'Part-Time':'Full-Time'}</span>
+              ${d.qualification?`<span style="font-size:10px;padding:2px 6px;border-radius:2px;background:var(--gray-100);color:var(--gray-600)">${d.qualification}</span>`:''}
+              ${avail?`<span style="font-size:10px;padding:2px 6px;border-radius:2px;background:var(--gray-100);color:var(--gray-600)">Available ${avail}</span>`:''}
+              ${d.maxCredits?`<span style="font-size:10px;padding:2px 6px;border-radius:2px;background:var(--gray-100);color:var(--gray-600)">Max ${d.maxCredits} cr</span>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="padding:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--radius);font-size:12px;color:#92400E;font-weight:600;margin-bottom:14px">Not yet assigned by HOD — assign in HOD portal</div>`;
+
+  const pn = document.getElementById('ca-pn');
+  pn.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:white;z-index:1">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:18px;font-weight:800;font-family:monospace">${row.code}</span>${stag}
+        </div>
+        <div style="font-size:12px;color:var(--gray-600);max-width:340px;line-height:1.4">${row.name}</div>
+      </div>
+      <button onclick="caPnClose()" style="width:28px;height:28px;border:1px solid var(--gray-200);background:white;border-radius:var(--radius);cursor:pointer;color:var(--gray-500)">&#x2715;</button>
+    </div>
+    <div style="padding:16px 20px">
+      ${instSection}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+        <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
+          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Credits</div>
+          <div style="font-size:22px;font-weight:800;color:var(--cck-red)">${row.credits}</div>
+        </div>
+        <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
+          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Projected</div>
+          <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
+          <div style="font-size:9px;color:var(--gray-400)">${row.base} hist + ${row.retakers} retake + ${row.newShare} new</div>
+        </div>
+        <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
+          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Sections</div>
+          <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${row.secs}</div>
+        </div>
+      </div>
+      <div style="background:#F8FAFC;border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:8px">Enrollment Breakdown</div>
+        <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap">
+          <div><div style="color:var(--gray-500);font-size:10px">Historical</div><strong>${row.base}</strong></div>
+          <div><div style="color:var(--gray-500);font-size:10px">Re-takers (failed)</div><strong style="color:#DC2626">${row.retakers}</strong></div>
+          <div><div style="color:var(--gray-500);font-size:10px">New students</div><strong style="color:#16A34A">${row.newShare}</strong></div>
+          <div style="margin-left:auto;text-align:right"><div style="color:var(--gray-500);font-size:10px">Pass Rate (hist.)</div><strong>${pct}%</strong></div>
+        </div>
+      </div>
+      ${row.lhrs>0?`<div style="padding:7px 10px;background:var(--green-100);border-radius:var(--radius);font-size:12px;color:#166534;margin-bottom:6px">Lecture: ${row.lhrs} hr/week — classroom needed</div>`:''}
+      ${row.lahrs>0?`<div style="padding:7px 10px;background:var(--cck-red-bg);border-radius:var(--radius);font-size:12px;color:var(--cck-red-dark);margin-bottom:6px">Lab: ${row.lahrs} hr/week — lab room needed</div>`:''}
+      <div style="font-size:12px;font-weight:700;color:var(--gray-900);margin:14px 0 8px">Scheduled Sections</div>
+      ${secCards}
+      <button onclick="caGenTT()" style="width:100%;margin-top:8px;padding:9px;background:var(--cck-red);color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Re-run Timetable Generator</button>
+    </div>`;
+  pn.classList.add('open');
+  document.getElementById('ca-ov').classList.add('open');
+}
+
+function caPnClose() {
+  document.getElementById('ca-pn')?.classList.remove('open');
+  document.getElementById('ca-ov')?.classList.remove('open');
+}
+function caSecInst(code,si,iid) {
+  if (!AS.timetable?.entries[code]?.[si]) return;
+  const d = AS.instData[iid];
+  AS.timetable.entries[code][si].iid = iid;
+  AS.timetable.entries[code][si].iname = (d&&d.name)||iid;
+  localStorage.setItem(LS_TT,JSON.stringify(AS.timetable));
+}
+function caSecRoom(code,si,type,room) {
+  if (!AS.timetable?.entries[code]?.[si]) return;
+  if (type==='lec') AS.timetable.entries[code][si].lecRoom=room;
+  else              AS.timetable.entries[code][si].labRoom=room;
+  localStorage.setItem(LS_TT,JSON.stringify(AS.timetable));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  FORECAST MODAL FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+let _prFilter = '';
+function caOpenForecast() {
+  const fc = AS.forecast[AS.semKey] || {};
+  document.getElementById('fc-prog-grid').innerHTML = ALLOC_PROGRAMS.map(p=>{
+    const val = fc[p.key]||0;
+    return `<div class="fc-prog-item">
+      <div class="fc-prog-head"><span class="fc-dot ${p.dept}"></span>${p.label}</div>
+      <div class="fc-row">
+        <label>New students entering (Semester 1)</label>
+        <input type="number" class="fc-num" min="0" max="999" id="fcp-${p.key}" value="${val}" oninput="fcUpdateTotal()">
+      </div>
+    </div>`;
+  }).join('');
+  fcUpdateTotal();
+  fcRenderPR('');
+  document.getElementById('ca-fcm').classList.add('open');
+}
+function caCloseForecast() { document.getElementById('ca-fcm').classList.remove('open'); }
+function fcTab(name,btn) {
+  document.querySelectorAll('.fc-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.fc-panel').forEach(p=>p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('fc-panel-'+name).classList.add('active');
+  if (name==='preview') fcRenderPreview();
+}
+function fcUpdateTotal() {
+  const t = ALLOC_PROGRAMS.reduce((s,p)=>s+(parseInt(document.getElementById('fcp-'+p.key)?.value)||0),0);
+  document.getElementById('fc-total-sum').textContent = t;
+}
+function fcPRSearch(v) { _prFilter=v; fcRenderPR(v); }
+function fcRenderPR(filter) {
+  const el=document.getElementById('fc-pr-list'); if(!el) return;
+  const stored=AS.forecast._pass_rates||{};
+  const codes=Object.keys(ALLOC_HIST)
+    .filter(c=>!filter||c.toLowerCase().includes(filter.toLowerCase())||
+      (ALLOC_COURSES[c]&&ALLOC_COURSES[c].name.toLowerCase().includes(filter.toLowerCase())))
+    .slice(0,100);
+  el.innerHTML=codes.map(code=>{
+    const h=ALLOC_HIST[code], base=h.pass_rate;
+    const cur=stored[code]!==undefined?stored[code]:base;
+    const pct=Math.round(cur*100);
+    const name=ALLOC_COURSES[code]?ALLOC_COURSES[code].name:code;
+    const color=pct>=80?'#16A34A':pct>=65?'#D97706':'#DC2626';
+    return `<div class="fc-pr-row">
+      <div class="fc-pr-code">${code}</div>
+      <div class="fc-pr-name" title="${name}">${name}</div>
+      <input type="number" class="fc-pr-inp" min="0" max="100" id="fcpr-${code.replace(/\W/g,'_')}" value="${pct}" oninput="fcSyncPR('${code}',this.value)">
+      <div class="fc-pr-pct" style="color:${color}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+function fcSyncPR(code,val) {
+  if(!AS.forecast._pass_rates) AS.forecast._pass_rates={};
+  const v=Math.max(0,Math.min(100,parseInt(val)||0))/100;
+  AS.forecast._pass_rates[code]=v;
+  if(ALLOC_HIST[code]) ALLOC_HIST[code].pass_rate=v;
+  const lbl=document.getElementById('fcpr-'+code.replace(/\W/g,'_'))?.parentElement?.querySelector('.fc-pr-pct');
+  if(lbl){const pct=Math.round(v*100);const color=pct>=80?'#16A34A':pct>=65?'#D97706':'#DC2626';lbl.textContent=pct+'%';lbl.style.color=color;}
+}
+function fcRenderPreview() {
+  const el=document.getElementById('fc-pv-list'); if(!el) return;
+  const top=(AS.plan?[...AS.plan]:allocBuildPlan()).sort((a,b)=>b.proj-a.proj).slice(0,25);
+  el.innerHTML=top.map(row=>{
+    const isLab=row.session!=='lecture';
+    const cap=isLab?ALLOC_CAP.lab:ALLOC_CAP.lecture;
+    const secs=row.proj>0?Math.max(1,Math.ceil(row.proj/cap)):1;
+    const pct=Math.round(row.passRate*100);
+    const color=pct>=80?'#16A34A':pct>=65?'#D97706':'#DC2626';
+    return `<div class="fc-pv-row">
+      <div style="font-family:monospace;font-size:11px;font-weight:700;color:var(--gray-900)">${row.code}</div>
+      <div style="font-size:11px;color:var(--gray-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${row.name}">${row.name}</div>
+      <div style="text-align:center;font-size:11px">${row.base}</div>
+      <div style="text-align:center;font-size:11px;color:#DC2626;font-weight:600">+${row.retakers}</div>
+      <div style="text-align:center;font-size:11px;color:#16A34A;font-weight:600">+${row.newShare}</div>
+      <div style="text-align:center;font-size:12px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
+      <div style="text-align:center"><span style="background:${isLab?'var(--cck-red-bg)':'var(--blue-100)'};color:${isLab?'var(--cck-red-dark)':'#1E40AF'};font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">${secs}</span></div>
+    </div>`;
+  }).join('');
+}
+function caSaveForecast() {
+  const sk=AS.semKey;
+  if(!AS.forecast[sk]) AS.forecast[sk]={};
+  let t=0;
+  ALLOC_PROGRAMS.forEach(p=>{ const v=parseInt(document.getElementById('fcp-'+p.key)?.value)||0; AS.forecast[sk][p.key]=v; t+=v; });
+  AS.forecast[sk]._total=t;
+  if(AS.forecast._pass_rates) Object.entries(AS.forecast._pass_rates).forEach(([c,v])=>{ if(ALLOC_HIST[c]) ALLOC_HIST[c].pass_rate=parseFloat(v); });
+  localStorage.setItem(LS_FC,JSON.stringify(AS.forecast));
+  caCloseForecast();
+  AS.plan=null; AS.timetable=null;
+  allocBuildPlan();
+  allocRender();
+  allocToast(t>0?`Forecast applied: ${t} new students — projections updated`:'Forecast cleared — using historical data only');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TIMETABLE RENDER
+// ─────────────────────────────────────────────────────────────────────────────
+function allocRenderTT() {
+  const wrap=document.getElementById('ca-tt-inner'); if(!wrap) return;
+  if(!AS.timetable) { wrap.innerHTML='<div style="padding:56px;text-align:center;color:var(--gray-400)"><p>Click <strong>Generate Timetable</strong> to schedule all courses.</p></div>'; return; }
+  if(_ttView==='grid') ttRenderGrid(wrap);
+  else if(_ttView==='inst') ttRenderByInst(wrap);
+  else ttRenderByRoom(wrap);
+}
+function ttRenderGrid(wrap) {
+  const tt=AS.timetable;
+  const fd=_ttDay!=='all'?_ttDay:null;
+  const days=fd?[fd]:ALLOC_DAYS;
+  const sessMap={};
+  days.forEach(d=>{sessMap[d]={}});
+  const allTimes=new Set();
+  Object.entries(tt.entries).forEach(([code,secs])=>{
+    const pr=(AS.plan||[]).find(r=>r.code===code);
+    secs.forEach((s,si)=>{
+      const add=(slot,room,type)=>{
+        if(!slot) return;
+        allTimes.add(slot.start);
+        slot.days.filter(d=>days.includes(d)).forEach(d=>{
+          if(!sessMap[d]) return;
+          if(!sessMap[d][slot.start]) sessMap[d][slot.start]=[];
+          sessMap[d][slot.start].push({code,name:pr?pr.name:code,sec:`S${si+1}`,type,room,iname:s.iname,slot});
+        });
+      };
+      add(s.lecSlot,s.lecRoom,'Lecture');
+      add(s.labSlot,s.labRoom,'Lab');
+    });
+  });
+  const times=[...allTimes].sort();
+  if(!times.length){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-400)">No sessions scheduled yet.</div>';return;}
+  wrap.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:${days.length*160+100}px;width:100%">
+    <thead><tr style="background:var(--gray-50)">
+      <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);text-align:left;width:80px">Time</th>
+      ${days.map(d=>`<th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);border-left:1px solid var(--gray-200);min-width:160px">${ALLOC_DAYF[d]}</th>`).join('')}
+    </tr></thead>
+    <tbody>${times.map(time=>`<tr>
+      <td style="padding:7px 14px;font-size:11px;font-weight:700;color:var(--gray-500);border-bottom:1px solid var(--gray-100);white-space:nowrap;vertical-align:top">${time}</td>
+      ${days.map(d=>{
+        const cells=(sessMap[d]&&sessMap[d][time])||[];
+        if(!cells.length) return `<td style="border-bottom:1px solid var(--gray-100);border-left:1px solid var(--gray-100);padding:5px;vertical-align:top"></td>`;
+        return `<td style="border-bottom:1px solid var(--gray-100);border-left:1px solid var(--gray-100);padding:5px;vertical-align:top">${cells.map(c=>{
+          const isLab=c.type==='Lab';
+          return `<div class="tt-cell" onclick="caOpenDetail('${c.code}')" style="background:${isLab?'var(--cck-red-bg)':'var(--blue-100)'};border-left-color:${isLab?'var(--cck-red)':'var(--blue-500)'}">
+            <div class="tt-cell-code">${c.code} ${c.sec}</div>
+            <div class="tt-cell-info">${c.type} · ${c.slot.end}<br>${c.room||'—'}<br>${(c.iname||'TBA').split(' ').slice(-1)[0]}</div>
+          </div>`;
+        }).join('')}</td>`;
+      }).join('')}
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function ttRenderByInst(wrap) {
+  const tt=AS.timetable; if(!tt){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable.</div>';return;}
+  const instS={};
+  Object.entries(tt.entries).forEach(([code,secs])=>{
+    secs.forEach((s,si)=>{
+      const key=s.iid||'TBA';
+      if(!instS[key]) instS[key]={name:s.iname||'TBA',sessions:[]};
+      if(s.lecSlot) instS[key].sessions.push({code,sec:`S${si+1}`,type:'Lecture',slot:s.lecSlot,room:s.lecRoom});
+      if(s.labSlot) instS[key].sessions.push({code,sec:`S${si+1}`,type:'Lab',slot:s.labSlot,room:s.labRoom});
+    });
+  });
+  const fd=_ttDay!=='all'?_ttDay:null;
+  wrap.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">
+    <thead><tr style="background:var(--gray-50)">
+      <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);text-align:left">Instructor</th>
+      <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);border-left:1px solid var(--gray-200);text-align:left">Assigned Sessions</th>
+    </tr></thead>
+    <tbody>${Object.entries(instS).map(([iid,d])=>{
+      const fs=fd?d.sessions.filter(s=>s.slot.days.includes(fd)):d.sessions;
+      if(!fs.length) return '';
+      return `<tr><td class="tt-inst-name">${d.name}</td><td class="tt-inst-slots">${fs.map(s=>{
+        const isLab=s.type==='Lab';
+        return `<div style="background:${isLab?'var(--cck-red-bg)':'var(--blue-100)'};border-left:3px solid ${isLab?'var(--cck-red)':'var(--blue-500)'};border-radius:4px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="caOpenDetail('${s.code}')">
+          <div style="font-weight:700;font-family:monospace">${s.code} ${s.sec}</div>
+          <div style="color:var(--gray-600);margin-top:1px">${s.slot.days.join(',')} ${s.slot.start}–${s.slot.end} · ${s.room||'—'}</div>
+        </div>`;
+      }).join('')}</td></tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+function ttRenderByRoom(wrap) {
+  const tt=AS.timetable; if(!tt){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable.</div>';return;}
+  const roomS={};
+  Object.entries(tt.entries).forEach(([code,secs])=>{
+    secs.forEach((s,si)=>{
+      const add=(room,slot,type)=>{ if(!room||!slot) return; if(!roomS[room]) roomS[room]={sessions:[]}; roomS[room].sessions.push({code,sec:`S${si+1}`,type,slot,iname:s.iname}); };
+      add(s.lecRoom,s.lecSlot,'Lecture'); add(s.labRoom,s.labSlot,'Lab');
+    });
+  });
+  const fd=_ttDay!=='all'?_ttDay:null;
+  wrap.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">
+    <thead><tr style="background:var(--gray-50)">
+      <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);text-align:left">Room</th>
+      <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);border-left:1px solid var(--gray-200);text-align:left">Scheduled Sessions</th>
+    </tr></thead>
+    <tbody>${Object.entries(roomS).sort(([a],[b])=>a.localeCompare(b)).map(([room,d])=>{
+      const fs=fd?d.sessions.filter(s=>s.slot.days.includes(fd)):d.sessions;
+      if(!fs.length) return '';
+      return `<tr><td class="tt-inst-name" style="font-family:monospace;font-size:12px">${room}</td><td class="tt-inst-slots">${fs.map(s=>{
+        const isLab=s.type==='Lab';
+        return `<div style="background:${isLab?'var(--cck-red-bg)':'var(--blue-100)'};border-left:3px solid ${isLab?'var(--cck-red)':'var(--blue-500)'};border-radius:4px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="caOpenDetail('${s.code}')">
+          <div style="font-weight:700;font-family:monospace">${s.code} ${s.sec}</div>
+          <div style="color:var(--gray-600);margin-top:1px">${s.slot.days.join(',')} ${s.slot.start}–${s.slot.end} · ${(s.iname||'TBA').split(' ').slice(-1)[0]}</div>
+        </div>`;
+      }).join('')}</td></tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function ttV(v,btn) {
+  _ttView=v;
+  document.querySelectorAll('#ca-tt-card .ca-vbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  allocRenderTT();
+}
+function ttD(d,btn) {
+  _ttDay=d;
+  document.querySelectorAll('[id^="ttd-"]').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  allocRenderTT();
+}
+function ttExportCSV() {
+  if(!AS.timetable){allocToast('Generate a timetable first','warn');return;}
+  const rows=[['Code','Course','Section','Type','Instructor','Days','Start','End','Room']];
+  Object.entries(AS.timetable.entries).forEach(([code,secs])=>{
+    const row=(AS.plan||[]).find(r=>r.code===code);
+    secs.forEach((s,i)=>{
+      if(s.lecSlot) rows.push([code,row?row.name:'',`S${i+1}`,'Lecture',s.iname||'TBA',s.lecSlot.days.join('+'),s.lecSlot.start,s.lecSlot.end,s.lecRoom||'']);
+      if(s.labSlot) rows.push([code,row?row.name:'',`S${i+1}`,'Lab',s.iname||'TBA',s.labSlot.days.join('+'),s.labSlot.start,s.labSlot.end,s.labRoom||'']);
+    });
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='CCK_Timetable.csv';
+  a.click();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  EVENT HANDLERS
+// ─────────────────────────────────────────────────────────────────────────────
+function caF(f,btn) {
+  AS.filter=f;
+  document.querySelectorAll('.ca-fb').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  allocRenderRows();
+}
+function caSearch(v) { AS.search=v; allocRenderRows(); }
+function caView(v,btn) {
+  document.querySelectorAll('.ca-vbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const pc=document.getElementById('ca-plan-card'), tc=document.getElementById('ca-tt-card');
+  if(pc) pc.style.display=v==='plan'?'':'none';
+  if(tc) tc.style.display=v==='tt'?'':'none';
+  if(v==='tt') allocRenderTT();
+}
+function caGenTT() {
+  AS.plan=AS.plan||allocBuildPlan();
+  allocToast('Generating conflict-free timetable from portal data...');
+  setTimeout(()=>{
+    const tt=allocRunScheduler();
+    AS.plan=null;
+    allocBuildPlan();
+    allocRender();
+    caPnClose();
+    allocToast(`Timetable ready — ${tt.conflicts} conflict${tt.conflicts!==1?'s':''}`,tt.conflicts>0?'warn':'ok');
+  },80);
+}
+
+function allocToast(msg,type) {
+  let tc=document.getElementById('toast-container');
+  if(!tc){tc=document.createElement('div');tc.id='toast-container';tc.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;';document.body.appendChild(tc);}
+  const d=document.createElement('div');
+  const bg=type==='warn'?'var(--orange-500)':type==='ok'?'#15803D':'var(--gray-900)';
+  d.style.cssText=`background:${bg};color:white;padding:11px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;font-family:var(--font-sans);box-shadow:0 4px 18px rgba(0,0,0,.14);max-width:320px;`;
+  d.textContent=msg;
+  tc.appendChild(d);
+  setTimeout(()=>d.remove(),3400);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  EXPOSE GLOBALS
+// ─────────────────────────────────────────────────────────────────────────────
+window.initAlloc      = initAlloc;
+window.allocLoadPortal  = allocLoadPortal;
+window.allocBuildPlan   = allocBuildPlan;
+window.allocRender      = allocRender;
+window.caF         = caF;
+window.caSearch    = caSearch;
+window.caView      = caView;
+window.caGenTT     = caGenTT;
+window.caOpenDetail= caOpenDetail;
+window.caPnClose   = caPnClose;
+window.caSecInst   = caSecInst;
+window.caSecRoom   = caSecRoom;
+window.caOpenForecast = caOpenForecast;
+window.caCloseForecast= caCloseForecast;
+window.fcTab       = fcTab;
+window.fcUpdateTotal = fcUpdateTotal;
+window.fcPRSearch  = fcPRSearch;
+window.fcSyncPR    = fcSyncPR;
+window.caSaveForecast = caSaveForecast;
+window.ttV = ttV;
+window.ttD = ttD;
+window.ttExportCSV = ttExportCSV;
+// Expose approval-gated data functions so loadInstructorManagement, readPortalData,
+// and timetable generation (all outside this IIFE) can call them
+window.getApprovedPortalData = getApprovedPortalData;
+window.allocGetSemKey        = allocGetSemKey;
+window.allocGetStatus        = allocGetStatus;
+
+})();
+
+function loadCourseAllocation() {
+  allocLoadPortal && allocLoadPortal();
+  if (typeof initAlloc === 'function') {
+    const existing = document.getElementById('ca-root');
+    if (existing) { allocLoadPortal(); allocBuildPlan && allocBuildPlan(); allocRender && allocRender(); }
+    else initAlloc();
+  }
+}
+
+
+
+// ── Build per-course projections ─────────────────────────────────────────────
+function buildPopulationProjections() {
+  const pe = {};    // courseCode → { count, repeaters, newStudents, sources }
+  const summary = {
+    totalStudents: 0,
+    byGroup: {},
+    advancingStudents: 0,
+    repeatingStudents: 0,
+  };
+
+  PROG_GROUPS.forEach(group => {
+    const intake    = PopulationState.intake[group.key]    || 0;
+    const passRatePct = PopulationState.passRates[group.key] || 82;
+    const passRate  = passRatePct / 100;
+    const failRate  = 1 - passRate;
+    const advIntake = PopulationState.advancedIntake[group.key] || {};
+
+    // For each program in the group, compute how many students are in each semester
+    // Simplified model:
+    //   Sem 1 → intake (new students)
+    //   Sem 2 → Sem1 passers (intake * passRate) + Sem1 repeaters (intake * failRate * repeatFraction)
+    //   Sem 3 → Sem2 passers ...  etc.
+    // We assume ~40% of failers retry next semester, rest drop out
+    const retryFraction = 0.55;
+
+    group.programs.forEach(progKey => {
+      const semMap = PROG_SEM_COURSES[progKey];
+      if (!semMap) return;
+
+      const semKeys = Object.keys(semMap).sort((a,b) => {
+        const na = parseInt(a.replace(/\D/g,''));
+        const nb = parseInt(b.replace(/\D/g,''));
+        return na - nb;
+      });
+
+      // Determine cohort sizes per semester
+      let cohortSizes = {};
+      let cohort = intake;
+
+      // Add advanced intake at Sem 3 and Sem 5 (transfers)
+      const sem3Boost = advIntake.sem3 || 0;
+      const sem5Boost = advIntake.sem5 || 0;
+
+      semKeys.forEach((semKey, idx) => {
+        const semNum = parseInt(semKey.replace(/\D/g,''));
+        let semCohort = cohort;
+        if (semNum === 3) semCohort += sem3Boost;
+        if (semNum === 5) semCohort += sem5Boost;
+        cohortSizes[semKey] = Math.round(semCohort);
+        // Next cohort = this cohort * passRate
+        cohort = Math.round(semCohort * passRate);
+      });
+
+      // Map courses to enrollment
+      semKeys.forEach(semKey => {
+        const codes = semMap[semKey] || [];
+        const cohortCount = cohortSizes[semKey] || 0;
+
+        codes.forEach(code => {
+          // Historical repeaters for this course
+          const histFail = COURSE_FAIL_RATES[code] || failRate;
+          const repeatersFromHist = typeof HistoricalData !== 'undefined' && HistoricalData.courseStats?.[code]
+            ? (HistoricalData.courseStats[code].failed || 0)
+            : Math.round(cohortCount * histFail * retryFraction);
+
+          if (!pe[code]) {
+            pe[code] = { count: 0, repeaters: 0, newStudents: 0, sources: [] };
+          }
+          pe[code].newStudents += cohortCount;
+          pe[code].repeaters  += repeatersFromHist;
+          pe[code].count      += cohortCount + repeatersFromHist;
+          pe[code].sources.push({ prog: progKey, sem: semKey, cohort: cohortCount });
+        });
+      });
+
+      // Summary tallies
+      const totalInProg = Object.values(cohortSizes).reduce((a,b)=>a+b,0);
+      summary.byGroup[group.key] = (summary.byGroup[group.key] || 0) + totalInProg;
+      summary.totalStudents += totalInProg;
+    });
+  });
+
+  // Count advancing vs repeating globally
+  Object.values(pe).forEach(v => {
+    summary.advancingStudents += v.newStudents;
+    summary.repeatingStudents += v.repeaters;
+  });
+
+  PopulationState.projectedEnrollment = pe;
+  PopulationState.summary = summary;
+  return pe;
+}
+
+// ── Read portal data from localStorage ───────────────────────────────────────
+function readPortalData() {
+  // Delegates to getApprovedPortalData() — all consumers use only admin-approved data
+  const pd = (typeof getApprovedPortalData === 'function' ? getApprovedPortalData : window.getApprovedPortalData)();
+  return {
+    instMap:            pd.instMap,
+    courseToInstructor: pd.courseToInstructor,
+    creditsShared:      pd.credits,
+    rooms:              pd.rooms,
+    hodAssignments:     pd.hodAssignments,
+    reg2Inst:           pd.reg2Inst,
+    status:             pd.status,
+    counts:             pd.counts,
+  };
+}
+
+// ── Get projected enrollment for a course (used by allocation engine) ─────────
+function getProjectedEnrollmentForCourse(courseCode) {
+  if (!PopulationState.configured) return null;
+  const pe = PopulationState.projectedEnrollment;
+  const data = pe[courseCode];
+  if (!data) return null;
+  return {
+    projected:  data.count,
+    newStudents: data.newStudents,
+    repeaters:  data.repeaters,
+  };
+}
+
+// ── Availability check: is an instructor available at a given time? ──────────
+function instructorAvailableAt(instData, timeSlot) {
+  if (!instData) return true;
+  // timeSlot format: 'Su,T 09:30-10:45' — we check the start time
+  const timeMatch = timeSlot.match(/(\d+):(\d+)-(\d+):(\d+)/);
+  if (!timeMatch) return true;
+  const slotStart = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+  const slotEnd   = parseInt(timeMatch[3]) * 60 + parseInt(timeMatch[4]);
+
+  const fromParts = (instData.timeFrom || '08:00').split(':');
+  const toParts   = (instData.timeTo   || '17:00').split(':');
+  const instFrom  = parseInt(fromParts[0]) * 60 + parseInt(fromParts[1] || 0);
+  const instTo    = parseInt(toParts[0])   * 60 + parseInt(toParts[1]   || 0);
+
+  return slotStart >= instFrom && slotEnd <= instTo;
+}
+
+// ── MAIN: Open the planner modal ─────────────────────────────────────────────
+window.openPopulationPlanner = function() {
+  // Read current portal data for the live stats panel
+  const portal = readPortalData();
+  const totalInstructors = Object.keys(portal.instMap).length;
+  const assignedCourses  = Object.keys(portal.courseToInstructor).length;
+  const totalRooms = portal.rooms.length;
+  const labCount   = portal.rooms.filter(r => r.type === 'lab').length;
+  const classCount = portal.rooms.filter(r => r.type === 'classroom' || r.type === 'hall').length;
+
+  const modal = document.getElementById('modal');
+  modal.classList.add('active');
+  modal.querySelector('.modal-content').innerHTML = `
+<div style="padding:0;font-family:inherit;max-height:92vh;overflow-y:auto;">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#0F172A 0%,#1E3A5F 100%);padding:22px 28px;position:sticky;top:0;z-index:10;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h3 style="font-size:17px;font-weight:700;color:white;margin:0 0 4px;display:flex;align-items:center;gap:10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" style="width:20px;height:20px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Student Population Planner
+        </h3>
+        <p style="font-size:11px;color:#94A3B8;margin:0;">Set new intake per program → engine projects course demand using pass/fail progression and portal data</p>
+      </div>
+      <button onclick="document.getElementById('modal').classList.remove('active')"
+        style="background:rgba(255,255,255,0.1);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <!-- Portal Data Status Bar -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;">
+      <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:${totalInstructors>0?'#4ADE80':'#F87171'}">${totalInstructors}</div>
+        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Instructors (${portal.status?.reg2==='approved'?'Reg2 ✓':'base data'})</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:${assignedCourses>0?'#4ADE80':'#F87171'}">${assignedCourses}</div>
+        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Courses (HOD${portal.status?.hod==='approved'?' ✓':' pending'})</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:${labCount>0?'#4ADE80':'#F87171'}">${labCount} / ${classCount}</div>
+        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Labs / Classrooms (${portal.status?.facility==='approved'?'Facility ✓':'default'})</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:#60A5FA">${Object.keys(portal.creditsShared).length}</div>
+        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Credits (Reg1${portal.status?.reg1==='approved'?' ✓':' defaults'})</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:20px 28px;background:#F8FAFC;">
+
+    <!-- Program intake inputs -->
+    <div style="margin-bottom:18px;">
+      <h4 style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;">New Student Intake (Semester 1 Entry)</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        ${PROG_GROUPS.map(g => `
+        <div style="background:white;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:3px solid ${g.color};">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span style="font-size:22px;">${g.icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1F2937;">${g.label}</div>
+              <div style="font-size:10px;color:#9CA3AF;">${g.programs.join(' + ')}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <label style="font-size:11px;color:#6B7280;width:90px;flex-shrink:0;">New (Sem 1)</label>
+            <input type="number" id="intake-${g.key}" value="${PopulationState.intake[g.key]||0}" min="0" max="2000"
+              style="flex:1;padding:6px 10px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:14px;font-weight:700;color:${g.color};text-align:center;"
+              oninput="updatePopPreview()"
+              onfocus="this.style.borderColor='${g.color}';this.style.background='${g.color}10'"
+              onblur="this.style.borderColor='#E5E7EB';this.style.background='white'">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <label style="font-size:11px;color:#6B7280;width:90px;flex-shrink:0;">Transfers (Sem 3)</label>
+            <input type="number" id="adv3-${g.key}" value="${PopulationState.advancedIntake[g.key]?.sem3||0}" min="0" max="500"
+              style="flex:1;padding:6px 10px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:13px;font-weight:600;color:#6B7280;text-align:center;"
+              oninput="updatePopPreview()">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:11px;color:#6B7280;width:90px;flex-shrink:0;">Transfers (Sem 5)</label>
+            <input type="number" id="adv5-${g.key}" value="${PopulationState.advancedIntake[g.key]?.sem5||0}" min="0" max="500"
+              style="flex:1;padding:6px 10px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:13px;font-weight:600;color:#6B7280;text-align:center;"
+              oninput="updatePopPreview()">
+          </div>
+          <!-- Pass rate slider -->
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #F1F5F9;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <label style="font-size:10px;color:#9CA3AF;">Historical pass rate</label>
+              <span id="pr-label-${g.key}" style="font-size:12px;font-weight:700;color:${g.color}">${PopulationState.passRates[g.key]||82}%</span>
+            </div>
+            <input type="range" id="passrate-${g.key}" min="40" max="100" step="1"
+              value="${PopulationState.passRates[g.key]||82}"
+              style="width:100%;accent-color:${g.color}"
+              oninput="document.getElementById('pr-label-${g.key}').textContent=this.value+'%';updatePopPreview()">
+          </div>
+        </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Live projection table -->
+    <div style="background:white;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;margin-bottom:18px;">
+      <div style="padding:12px 16px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;">
+        <h4 style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;margin:0;">Next Semester Projection</h4>
+      </div>
+      <div id="pop-proj-table" style="padding:16px;">
+        <p style="color:#9CA3AF;font-size:12px;text-align:center;">Adjust intake above...</p>
+      </div>
+    </div>
+
+    <!-- Top 10 most demanded courses preview -->
+    <div style="background:white;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;">
+        <h4 style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;margin:0;">🎓 Top Courses by Projected Enrollment</h4>
+        <span style="font-size:10px;color:#9CA3AF;">Sorted by demand · includes repeaters</span>
+      </div>
+      <div id="pop-courses-preview" style="padding:0;max-height:260px;overflow-y:auto;">
+        <p style="color:#9CA3AF;font-size:12px;padding:16px;text-align:center;">Adjust intake above...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="padding:14px 28px;background:white;border-top:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;position:sticky;bottom:0;">
+    <div style="font-size:11px;color:#9CA3AF;">Instructor availability and room constraints will be enforced during allocation</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="document.getElementById('modal').classList.remove('active')"
+        style="padding:9px 18px;border:1px solid #E5E7EB;border-radius:8px;background:white;color:#374151;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
+      <button onclick="applyPopulationPlan()"
+        style="padding:9px 22px;border:none;border-radius:8px;background:linear-gradient(135deg,#3B82F6,#6366F1);color:white;font-size:12px;font-weight:700;cursor:pointer;">
+        ✓ Apply Plan
+      </button>
+    </div>
+  </div>
+</div>
+  `;
+
+  updatePopPreview();
+};
+
+window.updatePopPreview = function() {
+  // Read all inputs
+  PROG_GROUPS.forEach(g => {
+    PopulationState.intake[g.key] = parseInt(document.getElementById('intake-'+g.key)?.value||0)||0;
+    PopulationState.passRates[g.key] = parseInt(document.getElementById('passrate-'+g.key)?.value||82)||82;
+    if (!PopulationState.advancedIntake[g.key]) PopulationState.advancedIntake[g.key]={};
+    PopulationState.advancedIntake[g.key].sem3 = parseInt(document.getElementById('adv3-'+g.key)?.value||0)||0;
+    PopulationState.advancedIntake[g.key].sem5 = parseInt(document.getElementById('adv5-'+g.key)?.value||0)||0;
+  });
+
+  const pe = buildPopulationProjections();
+  const summary = PopulationState.summary;
+
+  // ── Projection table ──────────────────────────────────────────────────────
+  const projEl = document.getElementById('pop-proj-table');
+  if (projEl) {
+    const rows = PROG_GROUPS.map(g => {
+      const count   = summary.byGroup[g.key] || 0;
+      const intake  = PopulationState.intake[g.key] || 0;
+      const pr      = PopulationState.passRates[g.key] || 82;
+      const passers = Math.round(count * pr / 100);
+      const fail    = count - passers;
+      return `<tr style="border-bottom:1px solid #F8FAFC;">
+        <td style="padding:8px 12px;"><div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">${g.icon}</span>
+          <span style="font-size:12px;font-weight:600;color:#1F2937;">${g.label}</span>
+        </div></td>
+        <td style="padding:8px 12px;text-align:center;font-size:13px;font-weight:700;color:#1F2937;">${count}</td>
+        <td style="padding:8px 12px;text-align:center;font-size:12px;font-weight:600;color:#059669;">+${passers}</td>
+        <td style="padding:8px 12px;text-align:center;font-size:12px;font-weight:600;color:#DC2626;">${fail} repeat</td>
+        <td style="padding:8px 12px;text-align:center;">
+          <div style="height:6px;background:#F1F5F9;border-radius:3px;overflow:hidden;width:80px;margin:0 auto;">
+            <div style="height:100%;width:${pr}%;background:${g.color};border-radius:3px;"></div>
+          </div>
+          <div style="font-size:9px;color:#9CA3AF;margin-top:2px;">${pr}% pass</div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    projEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#F8FAFC;">
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Program</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Total Students</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Advance</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Repeat</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Pass Rate</th>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="border-top:2px solid #E5E7EB;background:#F8FAFC;">
+          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#374151;">TOTAL</td>
+          <td style="padding:10px 12px;text-align:center;font-size:14px;font-weight:800;color:#1F2937;">${summary.totalStudents}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;font-weight:700;color:#059669;">+${summary.advancingStudents}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;font-weight:700;color:#DC2626;">${summary.repeatingStudents} repeating</td>
+          <td></td>
+        </tr></tfoot>
+      </table>`;
+  }
+
+  // ── Top courses preview ────────────────────────────────────────────────────
+  const coursesEl = document.getElementById('pop-courses-preview');
+  if (coursesEl) {
+    const sorted = Object.entries(pe)
+      .filter(([,v]) => v.count > 0)
+      .sort((a,b) => b[1].count - a[1].count)
+      .slice(0, 20);
+
+    const portal = readPortalData();
+    const rows = sorted.map(([code, data], idx) => {
+      const name = COURSE_NAME_MAP[code] || code;
+      const instrId = portal.courseToInstructor[code];
+      const instr = instrId ? portal.instMap[instrId] : null;
+      const instrName = instr ? instr.name : '⚠ Not assigned';
+      const instrColor = instr ? '#1F2937' : '#DC2626';
+      const sections = Math.ceil(data.count / 35);
+      const maxWidth = sorted[0][1].count;
+      const barPct = Math.round(data.count / maxWidth * 100);
+
+      // Find which program this is primarily from
+      const progSource = data.sources?.[0]?.prog || '';
+      const progGroup = PROG_GROUPS.find(g => g.programs.includes(progSource));
+      const dotColor = progGroup?.color || '#6B7280';
+
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid #F8FAFC;${idx%2===0?'':'background:#FAFAFA'}">
+        <span style="width:22px;text-align:center;font-size:10px;color:#9CA3AF;font-weight:700;">${idx+1}</span>
+        <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;"></div>
+        <div style="width:72px;flex-shrink:0;">
+          <div style="font-size:11px;font-weight:800;color:#1F2937;">${code}</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+          <div style="font-size:9px;color:${instrColor};margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${instrName}</div>
+        </div>
+        <div style="width:60px;text-align:right;flex-shrink:0;">
+          <div style="font-size:13px;font-weight:700;color:#1F2937;">${data.count}</div>
+          <div style="font-size:9px;color:#9CA3AF;">${sections} sec</div>
+        </div>
+        <div style="width:50px;flex-shrink:0;">
+          <div style="height:5px;background:#F1F5F9;border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${barPct}%;background:${dotColor};border-radius:3px;"></div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    coursesEl.innerHTML = rows || '<p style="color:#9CA3AF;font-size:12px;padding:16px;text-align:center;">No courses with projected enrollment</p>';
+  }
+};
+
+window.applyPopulationPlan = function() {
+  // Save final values from inputs
+  PROG_GROUPS.forEach(g => {
+    PopulationState.intake[g.key] = parseInt(document.getElementById('intake-'+g.key)?.value||0)||0;
+    PopulationState.passRates[g.key] = parseInt(document.getElementById('passrate-'+g.key)?.value||82)||82;
+    if (!PopulationState.advancedIntake[g.key]) PopulationState.advancedIntake[g.key]={};
+    PopulationState.advancedIntake[g.key].sem3 = parseInt(document.getElementById('adv3-'+g.key)?.value||0)||0;
+    PopulationState.advancedIntake[g.key].sem5 = parseInt(document.getElementById('adv5-'+g.key)?.value||0)||0;
+  });
+
+  buildPopulationProjections();
+  PopulationState.configured = true;
+
+  document.getElementById('modal')?.classList.remove('active');
+
+  // Update the summary chip
+  const summary = PopulationState.summary;
+  const totalIntake = PROG_GROUPS.reduce((a,g) => a + (PopulationState.intake[g.key]||0), 0);
+
+  const textEl = document.getElementById('pop-summary-text');
+  if (textEl) {
+    textEl.innerHTML = `<strong style="color:#1D4ED8">${summary.totalStudents} students projected</strong> · ${totalIntake} new intake`;
+  }
+
+  const barsEl = document.getElementById('pop-mini-bars');
+  if (barsEl) {
+    barsEl.style.display = 'flex';
+    barsEl.style.gap = '4px';
+    const maxCount = Math.max(...PROG_GROUPS.map(g => PopulationState.summary.byGroup[g.key]||0), 1);
+    barsEl.innerHTML = PROG_GROUPS.map(g => {
+      const cnt = summary.byGroup[g.key] || 0;
+      const pct = Math.round(cnt/maxCount*100);
+      return `<div style="flex:1;text-align:center;">
+        <div style="height:4px;background:#E5E7EB;border-radius:2px;overflow:hidden;margin-bottom:2px;">
+          <div style="height:100%;width:${pct}%;background:${g.color};border-radius:2px;"></div>
+        </div>
+        <div style="font-size:9px;color:#6B7280;">${g.icon}&nbsp;${cnt}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Imply a growth factor for legacy code
+  const currentTotal = AppState.students?.length || 1;
+  const impliedFactor = Math.max(0.7, Math.min(2.5, summary.totalStudents / currentTotal));
+  const gfEl = document.getElementById('growth-factor');
+  if (gfEl) gfEl.value = impliedFactor.toFixed(3);
+
+  showToast(`Population plan applied — ${summary.totalStudents} students projected (${totalIntake} new intake)`, 'success');
+};
+
 
 // AI Allocation Engine State
 const AIAllocation = {
@@ -4873,8 +7418,30 @@ function initAIAllocationEngine() {
         const currentEnrollment = courseEnrollments[course.code] || 0;
         let predicted = Math.ceil(currentEnrollment * growthFactor);
         let repeatStudents = 0;
+        let newStudentsCount = predicted;
+
+        // ── Population Model: use program-based projections if configured ──
+        if (typeof PopulationState !== 'undefined' && PopulationState.configured) {
+            const popData = getProjectedEnrollmentForCourse(course.code);
+            if (popData && popData.projected > 0) {
+                predicted       = popData.projected;
+                repeatStudents  = popData.repeaters;
+                newStudentsCount= popData.newStudents;
+                AIAllocation.predictedEnrollments[course.code] = {
+                    total: predicted,
+                    new: newStudentsCount,
+                    repeat: repeatStudents,
+                    passRate: null,
+                    failRate: null,
+                    historical: currentEnrollment,
+                    hasHistoricalData: repeatStudents > 0,
+                    populationModel: true
+                };
+                return; // skip historical fallback
+            }
+        }
         
-        // Check if we have historical grade data for this course
+        // Fallback: Check if we have historical grade data for this course
         if (typeof HistoricalData !== 'undefined' && HistoricalData.loaded && HistoricalData.courseStats) {
             const stats = HistoricalData.courseStats[course.code];
             if (stats) {
@@ -4958,10 +7525,14 @@ function renderInitialAllocationTable() {
         
         // Build prediction display
         let predDisplay = '';
-        if (hasHistorical && repeatStudents > 0) {
+        const _pd = AIAllocation.predictedEnrollments[course.code];
+        const _showRepeat = _pd ? _pd.repeat : repeatStudents;
+        const _showNew    = _pd ? _pd.new    : newStudents;
+        const _hasSplit   = _showRepeat > 0;
+        if (_hasSplit) {
             predDisplay = '<div style="text-align: center;">' +
                 '<div style="font-weight: 600; color: #1F2937;">' + total + '</div>' +
-                '<div style="font-size: 10px; color: #6B7280;">' + newStudents + ' new + ' + repeatStudents + ' repeat</div>' +
+                '<div style="font-size: 10px; color: #6B7280;">' + _showNew + ' new + ' + _showRepeat + ' repeat</div>' +
                 '</div>';
         } else {
             predDisplay = '<div style="text-align: center; font-weight: 600;">' + total + '</div>';
@@ -4973,6 +7544,11 @@ function renderInitialAllocationTable() {
             const badgeColor = failRate > 30 ? '#DC2626' : (failRate > 20 ? '#D97706' : '#059669');
             const badgeBg = failRate > 30 ? '#FEE2E2' : (failRate > 20 ? '#FEF3C7' : '#D1FAE5');
             failBadge = '<span style="font-size: 10px; padding: 2px 6px; border-radius: 8px; background: ' + badgeBg + '; color: ' + badgeColor + '; margin-left: 4px;">' + failRate + '% fail</span>';
+        }
+        // Population model badge
+        const _predObj = AIAllocation.predictedEnrollments[course.code];
+        if (_predObj && _predObj.populationModel) {
+            failBadge += '<span style="font-size: 10px; padding: 2px 6px; border-radius: 8px; background: #EDE9FE; color: #7C3AED; margin-left: 4px;" title="Predicted via program population model">pop</span>';
         }
         
         const courseName = course.name || '';
@@ -5149,31 +7725,241 @@ function calculateConflictFreeAllocations(maxStudents, growthFactor) {
         });
     });
     
+    // Build department-based instructor lists
+    const instructorsByDepartment = {
+        cs: [],      // Computer Science instructors
+        business: [], // Business/Accounting instructors
+        general: []   // General education instructors
+    };
+    
+    // Also track instructors by their actual course assignments from course data
+    const instructorFromCourseData = {};
+    
+    // First, extract instructors from EMBEDDED_COURSE_SCHEDULES and ADDITIONAL_COURSES
+    if (typeof EMBEDDED_COURSE_SCHEDULES !== 'undefined') {
+        Object.entries(EMBEDDED_COURSE_SCHEDULES).forEach(([code, course]) => {
+            const instructor = course.sections?.[0]?.instructor;
+            if (instructor && instructor !== 'TBA') {
+                instructorFromCourseData[code] = instructor;
+            }
+        });
+    }
+    if (typeof ADDITIONAL_COURSES !== 'undefined') {
+        Object.entries(ADDITIONAL_COURSES).forEach(([code, course]) => {
+            const instructor = course.sections?.[0]?.instructor;
+            if (instructor && instructor !== 'TBA') {
+                instructorFromCourseData[code] = instructor;
+            }
+        });
+    }
+    
+    console.log('Instructors from course data:', Object.keys(instructorFromCourseData).length, 'courses have assigned instructors');
+    
+    // Categorize instructors - STRICT matching for CS (only CST/CSIT, NOT MAT/ICT/ENL)
+    AppState.instructors.forEach(inst => {
+        const courses = inst.courses || [];
+        
+        // Check if instructor teaches CORE CS courses (CST8xxx, CSIT, CST2xxx programming courses)
+        const teachesCoreCS = courses.some(c => 
+            c.startsWith('CST8') ||   // Diploma CS courses 
+            c.startsWith('CST2') ||   // Second year CS courses
+            c.startsWith('CSIT')      // Bachelor CS courses
+        );
+        
+        // Check if instructor teaches Business courses
+        const teachesBusiness = courses.some(c => 
+            c.startsWith('ACC') || c.startsWith('BUS') || c.startsWith('MKT') || 
+            c.startsWith('FIN') || c.startsWith('MGT') || c.startsWith('HRM') ||
+            c.startsWith('BUAC') || c.startsWith('BUMG') || c.startsWith('BUMK') ||
+            c.startsWith('BUAD') || c.startsWith('BUEN') || c.startsWith('BUHR') ||
+            c.startsWith('BUCO') || c.startsWith('BUMT') || c.startsWith('RET') ||
+            c.startsWith('LAW') || c.startsWith('QUA')
+        );
+        
+        // Only instructors who teach CORE CS courses are CS instructors
+        // MAT, ICT, ENL, GECU are general education - don't make someone a CS instructor
+        if (teachesCoreCS && !teachesBusiness) {
+            instructorsByDepartment.cs.push(inst.name);
+            console.log(`CS Instructor: ${inst.name} (teaches: ${courses.filter(c => c.startsWith('CST') || c.startsWith('CSIT')).join(', ')})`);
+        } else if (teachesBusiness) {
+            instructorsByDepartment.business.push(inst.name);
+        } else {
+            instructorsByDepartment.general.push(inst.name);
+        }
+    });
+    
+    console.log('Instructors by department:', {
+        cs: instructorsByDepartment.cs.length,
+        business: instructorsByDepartment.business.length,
+        general: instructorsByDepartment.general.length
+    });
+    console.log('CS Instructors:', instructorsByDepartment.cs);
+    
+    // Helper function to determine course department
+    // MUST match the instructor categorization logic above
+    function getCourseDepartment(courseCode) {
+        if (!courseCode) return 'general';
+        const code = courseCode.toUpperCase();
+        // CS courses: CST8xxx (diploma), CST2xxx (2nd year), CSIT (bachelor)
+        if (code.startsWith('CST8') || code.startsWith('CST2') || code.startsWith('CSIT')) {
+            return 'cs';
+        }
+        // Business courses
+        if (code.startsWith('ACC') || code.startsWith('BUS') || code.startsWith('MKT') || 
+            code.startsWith('FIN') || code.startsWith('MGT') || code.startsWith('HRM') ||
+            code.startsWith('BUAC') || code.startsWith('BUMG') || code.startsWith('BUMK') ||
+            code.startsWith('BUAD') || code.startsWith('BUEN') || code.startsWith('BUHR') ||
+            code.startsWith('BUCO') || code.startsWith('BUMT') || code.startsWith('RET') ||
+            code.startsWith('LAW') || code.startsWith('QUA')) {
+            return 'business';
+        }
+        // Everything else is general (ICT, MAT, ENL, GED, GEN, GECU, GEPH, etc.)
+        return 'general';
+    }
+    
     let totalSections = 0;
     
-    sortedCourses.forEach(course => {
-        const currentEnrollment = courseEnrollments[course.code] || 0;
-        if (currentEnrollment === 0) return; // Skip courses with no enrollment
+    // Get all courses from study plans to ensure none are missed
+    const studyPlanCourses = new Set();
+    Object.values(AppState.studyPlans || {}).forEach(plan => {
+        (plan.courses || []).forEach(c => studyPlanCourses.add(c.code));
+    });
+    
+    // Combine regular courses with study plan courses
+    const allCourseCodes = new Set([
+        ...sortedCourses.map(c => c.code),
+        ...studyPlanCourses
+    ]);
+    
+    // Process all courses including those from study plans
+    allCourseCodes.forEach(courseCode => {
+        // Find course in AppState.courses or create from study plan
+        let course = sortedCourses.find(c => c.code === courseCode);
         
-        const predicted = Math.ceil(currentEnrollment * growthFactor);
+        // If not in regular courses, check ADDITIONAL_COURSES or EMBEDDED_COURSE_SCHEDULES
+        if (!course) {
+            if (typeof ADDITIONAL_COURSES !== 'undefined' && ADDITIONAL_COURSES[courseCode]) {
+                course = ADDITIONAL_COURSES[courseCode];
+            } else if (typeof EMBEDDED_COURSE_SCHEDULES !== 'undefined' && EMBEDDED_COURSE_SCHEDULES[courseCode]) {
+                course = EMBEDDED_COURSE_SCHEDULES[courseCode];
+            }
+        }
+        
+        if (!course) return; // Skip if course data not found anywhere
+        
+        const currentEnrollment = courseEnrollments[courseCode] || 0;
+        // Don't skip courses with 0 enrollment - use minimum of 15 for scheduling
+        const baseEnrollment = currentEnrollment > 0 ? currentEnrollment : 15;
+        
+        // Population model overrides growth factor if configured
+        let predicted;
+        if (typeof PopulationState !== 'undefined' && PopulationState.configured) {
+            const popData = getProjectedEnrollmentForCourse(courseCode);
+            predicted = (popData && popData.projected > 0) ? popData.projected : Math.ceil(baseEnrollment * growthFactor);
+        } else {
+            predicted = Math.ceil(baseEnrollment * growthFactor);
+        }
         const sectionsNeeded = Math.max(1, Math.ceil(predicted / maxStudents));
         
         // Determine if it's a CS/IT course (needs lab)
-        const isLabCourse = course.code.startsWith('CST') || course.code.startsWith('ICT') || 
-                           course.code.startsWith('MAT8') || course.name.toLowerCase().includes('computer') ||
-                           course.name.toLowerCase().includes('programming') || course.name.toLowerCase().includes('database');
+        const isLabCourse = course.code.startsWith('CST') || course.code.startsWith('CSIT') || 
+                           course.code.startsWith('ICT') || course.code.startsWith('MAT8') || 
+                           course.name?.toLowerCase().includes('computer') ||
+                           course.name?.toLowerCase().includes('programming') || 
+                           course.name?.toLowerCase().includes('database');
         
-        // Get available rooms based on course type
-        const labRooms = AppState.rooms.filter(r => r.type === 'lab' || r.id.startsWith('LAB'));
-        const classRooms = AppState.rooms.filter(r => r.type === 'classroom' || !r.id.startsWith('LAB'));
+        // Get available rooms - uses approved Facility rooms (from getApprovedPortalData)
+        // Falls back to AppState.rooms if facility not yet approved
+        let allRooms = (typeof getApprovedPortalData === 'function')
+            ? ((window.getApprovedPortalData||getApprovedPortalData)().rooms.length ? (window.getApprovedPortalData||getApprovedPortalData)().rooms : (AppState.rooms || []))
+            : (AppState.rooms || []);
+        
+        const labRooms   = allRooms.filter(r => r.type === 'lab'  || r.id?.startsWith('LAB'));
+        const classRooms = allRooms.filter(r => r.type === 'classroom' || r.type === 'hall' || (!r.id?.startsWith('LAB') && r.type !== 'lab'));
         const preferredRooms = isLabCourse ? [...labRooms, ...classRooms] : [...classRooms, ...labRooms];
         
-        // Find instructors for this course
-        let possibleInstructors = instructorCourses[course.code] || [];
+        // Find instructors for this course - PRIORITY ORDER:
+        // 0. HOD portal assignment (cck_hod_assignments) — highest priority, with availability check from reg2
+        // 1. Instructor from embedded course data (EMBEDDED_COURSE_SCHEDULES / ADDITIONAL_COURSES)
+        // 2. Instructor mapped in instructorCourses (from instructors.json) - ONLY if they're in the right department
+        // 3. Department-specific instructors
+        // 4. "CS Faculty TBA" / "Business Faculty TBA" (never cross-assign)
+        
+        let possibleInstructors = [];
+        const courseDept = getCourseDepartment(course.code);
+        
+        // PRIORITY 0: HOD portal assignment — uses approved data only
+        const _getApproved = window.getApprovedPortalData || (typeof getApprovedPortalData === 'function' ? getApprovedPortalData : null);
+        const _portalData = _getApproved ? _getApproved() : (typeof readPortalData === 'function' ? readPortalData() : null);
+        if (_portalData && _portalData.courseToInstructor[courseCode]) {
+            const hodInstId   = _portalData.courseToInstructor[courseCode];
+            const hodInstData = _portalData.instMap[hodInstId];
+            if (hodInstData && hodInstData.name) {
+                // Store the availability data for use in the time-slot loop below
+                course._portalInstructor     = hodInstData.name;
+                course._portalInstructorData = hodInstData;
+                possibleInstructors = [hodInstData.name];
+                // Also add this instructor to the by-department list for future sections
+                if (!instructorsByDepartment[courseDept]) instructorsByDepartment[courseDept] = [];
+                if (!instructorsByDepartment[courseDept].includes(hodInstData.name)) {
+                    instructorsByDepartment[courseDept].push(hodInstData.name);
+                }
+                // Register availability data for the time-slot check
+                if (!window._regInstAvail) window._regInstAvail = {};
+                window._regInstAvail[hodInstData.name] = hodInstData;
+            }
+        } else {
+            course._portalInstructor     = null;
+            course._portalInstructorData = null;
+        }
+        
+        // FIRST: Check if this course has an instructor in the embedded data
+        const embeddedInstructor = instructorFromCourseData[course.code];
+        if (embeddedInstructor && embeddedInstructor !== 'TBA') {
+            // VALIDATE: Only use embedded instructor if they're from the right department
+            const isValidDept = (courseDept === 'cs' && instructorsByDepartment.cs.includes(embeddedInstructor)) ||
+                               (courseDept === 'business' && instructorsByDepartment.business.includes(embeddedInstructor)) ||
+                               (courseDept === 'general');
+            if (isValidDept) {
+                possibleInstructors = [embeddedInstructor];
+                console.log(`${course.code}: Using embedded instructor: ${embeddedInstructor}`);
+            } else {
+                console.log(`${course.code}: Embedded instructor ${embeddedInstructor} is wrong department, skipping`);
+            }
+        }
+        
+        // SECOND: Check instructorCourses mapping - ONLY use instructors from the right department
         if (possibleInstructors.length === 0) {
-            // Use the instructor from course sections or assign TBA
-            const defaultInstructor = course.sections?.[0]?.instructor || 'Staff TBA';
-            possibleInstructors = [defaultInstructor];
+            const mappedInstructors = instructorCourses[course.code] || [];
+            // Filter to only include instructors from the correct department
+            const validMappedInstructors = mappedInstructors.filter(name => {
+                if (courseDept === 'cs') return instructorsByDepartment.cs.includes(name);
+                if (courseDept === 'business') return instructorsByDepartment.business.includes(name);
+                return true; // General courses can use anyone
+            });
+            if (validMappedInstructors.length > 0) {
+                possibleInstructors = validMappedInstructors;
+                console.log(`${course.code}: Using mapped instructor from ${courseDept}: ${possibleInstructors[0]}`);
+            }
+        }
+        
+        // THIRD: Use department-specific instructors ONLY
+        if (possibleInstructors.length === 0) {
+            let deptInstructors = instructorsByDepartment[courseDept] || [];
+            
+            if (deptInstructors.length > 0) {
+                // Rotate through department instructors to balance load
+                const rotationIndex = results.length % deptInstructors.length;
+                possibleInstructors = [deptInstructors[rotationIndex], ...deptInstructors.filter((_, i) => i !== rotationIndex)];
+                console.log(`${course.code}: Using ${courseDept} department instructor: ${possibleInstructors[0]}`);
+            }
+        }
+        
+        // FOURTH: If still no instructor, use TBA with department name - NEVER cross-assign
+        if (possibleInstructors.length === 0) {
+            const deptName = courseDept === 'cs' ? 'CS' : (courseDept === 'business' ? 'Business' : 'General');
+            possibleInstructors = [`${deptName} Faculty TBA`];
+            console.log(`${course.code}: No ${courseDept} instructor available, marking as ${deptName} Faculty TBA`);
         }
         
         // For each section needed
@@ -5196,6 +7982,13 @@ function calculateConflictFreeAllocations(maxStudents, growthFactor) {
                     // Check if instructor is free at this time
                     if (instructorSchedule[instructor].includes(timeSlot)) {
                         continue; // Instructor busy, try next slot
+                    }
+                    // Check reg2 availability window (timeFrom–timeTo)
+                    const _instAvailData = window._regInstAvail?.[instructor];
+                    if (_instAvailData && typeof instructorAvailableAt === 'function') {
+                        if (!instructorAvailableAt(_instAvailData, timeSlot)) {
+                            continue; // Outside instructor's registered availability window
+                        }
                     }
                     
                     // Try each room
@@ -5531,629 +8324,2076 @@ window.instructorData = [];
 function loadInstructorManagement() {
     const container = document.getElementById('section-instructors');
     if (!container) return;
-    
-    // Check if we have saved allocation data
-    const hasAllocation = AppState.savedAllocation && AppState.savedAllocation.results?.length > 0;
-    
-    // Calculate instructor stats from saved allocation or enrollments
-    const instructorStats = {};
-    
-    if (hasAllocation) {
-        // Use saved allocation data
-        AppState.savedAllocation.results.forEach(a => {
-            const instructor = a.fullInstructor || a.instructor;
-            if (!instructor || instructor === 'Staff TBA') return;
-            
-            if (!instructorStats[instructor]) {
-                instructorStats[instructor] = {
-                    name: instructor,
-                    courses: [],
-                    courseSet: new Set(),
-                    sections: 0,
-                    students: 0,
-                    timeSlots: [],
-                    rooms: new Set()
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 1 — Load approved portal data via getApprovedPortalData()
+    //          Only approved portals contribute data; others fall back to defaults.
+    // ─────────────────────────────────────────────────────────────
+    const _pd = (typeof getApprovedPortalData === 'function' ? getApprovedPortalData : window.getApprovedPortalData)();
+    const hodAssignments = _pd.hodAssignments;   // {} if HOD not approved
+    const instShared     = _pd.instShared || {}; // HOD metadata (always read)
+    const reg2Inst       = _pd.reg2Inst   || {}; // {} if Reg2 not approved
+    const creditsShared  = _pd.credits;          // {} if Reg1 not approved
+    const reg1Changes    = {};                   // merged into creditsShared already
+    const facilityRooms  = _pd.rooms;            // AppState.rooms if Facility not approved
+
+    // Timetable (generated by admin — most complete schedule data)
+    let ttMajors = {};
+    try {
+        const semKey = AppState.currentSemester || allocGetSemKey() || 'spring2026';
+        const raw = localStorage.getItem('cck_timetables_' + semKey);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            ttMajors = (parsed && parsed.majors) ? parsed.majors : parsed;
+        }
+    } catch(e) {}
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 2 — Build per-instructor metadata using approved merged map
+    // ─────────────────────────────────────────────────────────────
+    const baseList = (AppState.instructors && AppState.instructors.length)
+        ? AppState.instructors : [];
+    const baseById = {};
+    baseList.forEach(ins => { baseById[ins.id] = ins; });
+
+    // Use the merged instMap from getApprovedPortalData as the authority
+    const _approvedInstMap = _pd.instMap;
+
+    function mergedMeta(id) {
+        const approved = _approvedInstMap[id] || {};
+        const base     = baseById[id] || {};
+        const nameSrc  = approved.name || base.name || id;
+        const defQual  = /^Dr\./i.test(nameSrc) ? 'PhD' : 'Master';
+        return {
+            name:          nameSrc,
+            employment:    approved.employment    || base.employment_type || 'Full-Time',
+            qualification: approved.qualification || base.qualification   || defQual,
+            maxCredits:    approved.maxCredits    || base.max_credits     || 21,
+            timeFrom:      approved.timeFrom      || base.time_from       || '08:00',
+            timeTo:        approved.timeTo        || base.time_to         || '17:00',
+            notes:         approved.notes         || '',
+            teachDepts:    approved.teachDepts    || [],
+            department:    base.department        || ''
+        };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 3 — Build per-instructor baseline course list
+    //   Uses approved HOD assignments if approved, else instructors.json
+    // ─────────────────────────────────────────────────────────────
+    const hodHasSaved = Object.keys(hodAssignments).length > 0;
+    const baseCodesById = {};
+    baseList.forEach(ins => {
+        baseCodesById[ins.id] = hodHasSaved
+            ? (hodAssignments[ins.id] || ins.courses || []).map(c => c.trim()).filter(Boolean)
+            : (ins.courses || []).map(c => c.trim()).filter(Boolean);
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 4 — Build per-instructor enriched course lists
+    //          Priority: Timetable (adds time+room) > Allocation (adds time+room+students)
+    //          > baseline (codes only, time/room TBA)
+    // ─────────────────────────────────────────────────────────────
+
+    // Course name lookup from AppState
+    const courseNameMap = {};
+    (AppState.courses || []).forEach(c => { courseNameMap[c.code] = c.name || c.code; });
+
+    // Helper: get credit hours — uses approved Reg1 credits (creditsShared already
+    // contains only approved values from getApprovedPortalData)
+    function getCreditHours(code) {
+        if (creditsShared[code] !== undefined) return creditsShared[code];
+        const bc = (AppState.courses || []).find(c => c.code === code);
+        return bc ? (bc.credits || 3) : 3;
+    }
+
+    // Build from timetable: instId → { courseCode → enriched entry }
+    // Timetable adds real time + room to the baseline course list
+    const ttEnrichByInst = {}; // instId → { code → { time, room, section, students } }
+    const hasTimetable = Object.keys(ttMajors).length > 0;
+
+    if (hasTimetable) {
+        Object.values(ttMajors).forEach(majorData => {
+            (majorData.courses || []).forEach(entry => {
+                if (!entry.iid) return;
+                if (!ttEnrichByInst[entry.iid]) ttEnrichByInst[entry.iid] = {};
+                // Build time string
+                let timeStr = 'TBA';
+                if (entry.lecStart && entry.lecDays && entry.lecDays.length) {
+                    timeStr = entry.lecDays.join('/') + ' ' + entry.lecStart + '–' + entry.lecEnd;
+                } else if (entry.labStart && entry.labDays && entry.labDays.length) {
+                    timeStr = entry.labDays.join('/') + ' ' + entry.labStart + '–' + entry.labEnd;
+                }
+                // Use entry.room (pre-combined lecRoom||labRoom from scheduler) as most reliable source
+                const roomStr = entry.room || entry.lecRoom || entry.labRoom || '';
+
+                const existingEnrich = ttEnrichByInst[entry.iid][entry.code];
+                if (existingEnrich) {
+                    // Update if existing has no room but this occurrence does
+                    if (roomStr && (!existingEnrich.room || existingEnrich.room === 'TBA')) {
+                        existingEnrich.room = roomStr;
+                    }
+                    // Update time if existing is still TBA
+                    if (timeStr !== 'TBA' && existingEnrich.time === 'TBA') {
+                        existingEnrich.time = timeStr;
+                    }
+                    return;
+                }
+                ttEnrichByInst[entry.iid][entry.code] = {
+                    time: timeStr, room: roomStr || 'TBA',
+                    section: entry.section || 1, students: entry.students || 0
                 };
-            }
-            if (!instructorStats[instructor].courseSet.has(a.courseCode)) {
-                instructorStats[instructor].courseSet.add(a.courseCode);
-                instructorStats[instructor].courses.push({
-                    code: a.courseCode,
-                    name: a.courseName,
-                    time: a.time,
-                    room: a.room,
-                    students: a.predicted,
-                    sections: a.sections || 1
-                });
-            }
-            instructorStats[instructor].sections += a.sections || 1;
-            instructorStats[instructor].students += a.predicted || 0;
-            instructorStats[instructor].timeSlots.push(a.time);
-            instructorStats[instructor].rooms.add(a.room);
-        });
-    } else {
-        // Use current enrollment data
-        AppState.enrollments.forEach(e => {
-            if (!e.instructor) return;
-            if (!instructorStats[e.instructor]) {
-                instructorStats[e.instructor] = {
-                    name: e.instructor,
-                    courses: [],
-                    courseSet: new Set(),
-                    sections: 0,
-                    students: 0,
-                    timeSlots: [],
-                    rooms: new Set()
-                };
-            }
-            if (!instructorStats[e.instructor].courseSet.has(e.course_code)) {
-                instructorStats[e.instructor].courseSet.add(e.course_code);
-                instructorStats[e.instructor].courses.push({
-                    code: e.course_code,
-                    name: e.course_code,
-                    time: 'TBA',
-                    room: 'TBA',
-                    students: 1,
-                    sections: 1
-                });
-            }
-            instructorStats[e.instructor].students++;
+            });
         });
     }
-    
-    const instructorList = Object.values(instructorStats).map(i => ({
-        ...i,
-        courseCount: i.courseSet.size,
-        hours: i.courseSet.size * 3,
-        status: i.courseSet.size > 6 ? 'Overloaded' : i.courseSet.size > 4 ? 'At Capacity' : 'Available'
-    })).sort((a, b) => b.courseCount - a.courseCount);
-    
-    // Store globally for access in other functions
+
+    // Build from savedAllocation: instId → { courseCode → enriched entry }
+    const hasAllocation = !!(AppState.savedAllocation && AppState.savedAllocation.results?.length);
+    const allocEnrichByInst = {}; // instId → { code → { time, room, section, students } }
+
+    if (hasAllocation) {
+        // Build course→instId from baseline so we can look up instId by course code
+        const courseToInstId = {};
+        baseList.forEach(ins => {
+            (baseCodesById[ins.id] || []).forEach(code => { courseToInstId[code] = ins.id; });
+        });
+        AppState.savedAllocation.results.forEach(a => {
+            const instId = courseToInstId[a.courseCode];
+            if (!instId) return;
+            if (!allocEnrichByInst[instId]) allocEnrichByInst[instId] = {};
+            if (allocEnrichByInst[instId][a.courseCode]) return;
+            allocEnrichByInst[instId][a.courseCode] = {
+                time: a.time || 'TBA', room: a.room || 'TBA',
+                section: a.sections || 1, students: a.predicted || 0
+            };
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 5 — Assemble final instructor records
+    // ─────────────────────────────────────────────────────────────
+
+    const instructorList = [];
+
+    // Collect every known instId across ALL sources
+    const allInstIds = new Set([
+        ...baseList.map(i => i.id),
+        ...Object.keys(hodAssignments),
+        ...Object.keys(reg2Inst),
+        ...Object.keys(instShared)
+    ]);
+
+    allInstIds.forEach(id => {
+        const meta = mergedMeta(id);
+
+        // Build course list from baseline (same codes Reg2 shows),
+        // enriched with time+room from timetable or allocation where available
+        const baseCodes = baseCodesById[id] || [];
+        let dataSource = 'baseline';
+        if (hasTimetable && ttEnrichByInst[id])          dataSource = 'timetable';
+        else if (hasAllocation && allocEnrichByInst[id]) dataSource = 'allocation';
+        else if (baseCodes.length)                        dataSource = 'hod';
+
+        const courses = baseCodes.map(code => {
+            const ttE    = ttEnrichByInst[id]?.[code];
+            const allocE = allocEnrichByInst[id]?.[code];
+            const enrich = ttE || allocE || null;
+            return {
+                code,
+                name:     courseNameMap[code] || code,
+                time:     enrich ? enrich.time    : 'TBA',
+                room:     (enrich && enrich.room) ? enrich.room : 'TBA',
+                section:  enrich ? enrich.section : 1,
+                credits:  getCreditHours(code),
+                students: enrich ? enrich.students : 0,
+                source:   ttE ? 'timetable' : allocE ? 'allocation' : 'baseline'
+            };
+        });
+
+        // Which portals contributed data (for UI indicator)
+        const portals = [];
+        if (hasTimetable && ttEnrichByInst[id])        portals.push('Timetable');
+        if (hasAllocation && allocEnrichByInst[id])    portals.push('Allocation');
+        if (hodAssignments[id])                         portals.push('HOD');
+        if (reg2Inst[id])                               portals.push('Reg2');
+        if (instShared[id] && !reg2Inst[id])            portals.push('HOD-Meta');
+        if (!portals.length)                            portals.push('Baseline');
+
+        const uniqueCodes   = [...new Set(courses.map(c => c.code))];
+        const courseCount   = uniqueCodes.length;
+        const totalCredits  = courses.reduce((s, c) => s + (c.credits || 3), 0);
+        const totalSections = courses.reduce((s, c) => s + (c.section  || 1), 0);
+        const totalStudents = courses.reduce((s, c) => s + (c.students || 0), 0);
+
+        // Status based on credit load vs max allowed (Reg2/HOD-set maxCredits)
+        let status = 'Available';
+        if (courseCount > 0) {
+            if (totalCredits > meta.maxCredits)              status = 'Overloaded';
+            else if (totalCredits >= meta.maxCredits * 0.85) status = 'At Capacity';
+        }
+
+        instructorList.push({
+            id, ...meta,
+            courses, courseCount,
+            totalCredits, totalSections,
+            sections: totalSections,   // keep compat with old export/fix code
+            students: totalStudents,
+            hours:    totalCredits,
+            status,   dataSource, portals
+        });
+    });
+
+    // Sort: Overloaded first → At Capacity → Available, then by courseCount desc
+    const statusRank = { 'Overloaded': 0, 'At Capacity': 1, 'Available': 2 };
+    instructorList.sort((a, b) =>
+        (statusRank[a.status] - statusRank[b.status]) || (b.courseCount - a.courseCount)
+    );
+
+    // Store globally (used by filterInstructorTable, exportInstructorList, fix functions)
     window.instructorData = instructorList;
-    
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 6 — Summary numbers for stat cards
+    // ─────────────────────────────────────────────────────────────
     const totalInstructors = instructorList.length;
-    const totalSections = instructorList.reduce((sum, i) => sum + (i.sections || i.courseCount), 0);
-    const avgCourses = totalInstructors > 0 ? (instructorList.reduce((sum, i) => sum + i.courseCount, 0) / totalInstructors).toFixed(1) : 0;
+    const totalSectionsAll = instructorList.reduce((s, i) => s + i.totalSections, 0);
+    const avgCourses = totalInstructors > 0
+        ? (instructorList.reduce((s, i) => s + i.courseCount, 0) / totalInstructors).toFixed(1)
+        : '0.0';
     const overloadedCount = instructorList.filter(i => i.status === 'Overloaded').length;
-    
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 7 — Data-source banner (same visual style as before)
+    // ─────────────────────────────────────────────────────────────
+    const hodCount  = Object.keys(hodAssignments).length;
+    const reg2Count = Object.keys(reg2Inst).length;
+    const facCount  = facilityRooms.length;
+
+    let bannerHtml;
+    if (hasTimetable) {
+        bannerHtml = `
+        <div style="background:linear-gradient(135deg,#DCFCE7 0%,#BBF7D0 100%);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;background:#22C55E;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:20px;height:20px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div>
+                    <div style="font-weight:600;color:#166534;">All Portals Synced — Live Timetable Data</div>
+                    <div style="font-size:12px;color:#15803D;margin-top:2px;">
+                        HOD: ${hodCount} assignments &nbsp;·&nbsp;
+                        Reg2: ${reg2Count} instructor profiles &nbsp;·&nbsp;
+                        Facility: ${facCount} rooms &nbsp;·&nbsp;
+                        Timetable: active
+                    </div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:#166534;text-align:right;">
+                ${getSemesterLabel(AppState.currentSemester)}<br>
+                <span style="opacity:.7;">${new Date().toLocaleTimeString()}</span>
+            </div>
+        </div>`;
+    } else if (hasAllocation) {
+        bannerHtml = `
+        <div style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;background:#3B82F6;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:20px;height:20px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                    <div style="font-weight:600;color:#1E40AF;">Using Saved Allocation Data</div>
+                    <div style="font-size:12px;color:#1D4ED8;margin-top:2px;">
+                        HOD: ${hodCount} assignments &nbsp;·&nbsp;
+                        Reg2: ${reg2Count} profiles &nbsp;·&nbsp;
+                        ${AppState.savedAllocation.results.length} courses allocated
+                    </div>
+                </div>
+            </div>
+            <button onclick="showSection('section-timetable')" class="btn-primary" style="padding:8px 16px;font-size:13px;">Generate Timetable →</button>
+        </div>`;
+    } else {
+        bannerHtml = `
+        <div style="background:linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;background:#F59E0B;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:20px;height:20px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                    <div style="font-weight:600;color:#92400E;">Using Baseline Instructor Data</div>
+                    <div style="font-size:12px;color:#B45309;margin-top:2px;">
+                        HOD: ${hodCount ? hodCount+' assignments' : 'not set'} &nbsp;·&nbsp;
+                        Reg2: ${reg2Count ? reg2Count+' profiles' : 'not set'} &nbsp;·&nbsp;
+                        Run allocation for richer schedule data
+                    </div>
+                </div>
+            </div>
+            <button onclick="showSection('section-allocation')" class="btn-primary" style="padding:8px 16px;font-size:13px;">Go to Course Allocation</button>
+        </div>`;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // STEP 8 — Render (SAME design as before, just richer data)
+    // ─────────────────────────────────────────────────────────────
     container.innerHTML = `
-        <!-- Allocation Status Banner -->
-        ${hasAllocation ? `
-            <div style="background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; background: #22C55E; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width: 20px; height: 20px;">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; color: #166534;">Using Saved Allocation Data</div>
-                        <div style="font-size: 12px; color: #15803D;">Fall 2025 • ${AppState.savedAllocation.results.length} courses allocated</div>
-                    </div>
-                </div>
-                <div style="font-size: 12px; color: #166534;">Saved: ${new Date(AppState.savedAllocation.savedAt).toLocaleString()}</div>
+        ${bannerHtml}
+
+        <!-- Stats Cards — identical layout -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;">
+            <div style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);">
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Total Instructors</div>
+                <div style="font-size:28px;font-weight:700;color:var(--gray-900);">${totalInstructors}</div>
             </div>
-        ` : `
-            <div style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; background: #F59E0B; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width: 20px; height: 20px;">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; color: #92400E;">No Saved Allocation</div>
-                        <div style="font-size: 12px; color: #B45309;">Using current enrollment data. Run Course Allocation to see Fall 2025 assignments.</div>
-                    </div>
-                </div>
-                <button onclick="showSection('section-allocation')" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">Go to Course Allocation</button>
+            <div style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);">
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Total Sections</div>
+                <div style="font-size:28px;font-weight:700;color:#3B82F6;">${totalSectionsAll}</div>
             </div>
-        `}
-        
-        <!-- Stats Cards -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Total Instructors</div>
-                <div style="font-size: 28px; font-weight: 700; color: var(--gray-900);">${totalInstructors}</div>
+            <div style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);">
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Avg Courses / Instructor</div>
+                <div style="font-size:28px;font-weight:700;color:#22C55E;">${avgCourses}</div>
             </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Total Sections</div>
-                <div style="font-size: 28px; font-weight: 700; color: #3B82F6;">${totalSections}</div>
-            </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Avg Courses/Instructor</div>
-                <div style="font-size: 28px; font-weight: 700; color: #22C55E;">${avgCourses}</div>
-            </div>
-            <div style="background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);">
-                <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Overloaded</div>
-                <div style="font-size: 28px; font-weight: 700; color: #EF4444;">${overloadedCount}</div>
+            <div onclick="document.getElementById('inst-status-filter').value='Overloaded';filterInstructorTable();" style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);cursor:pointer;border:2px solid transparent;" onmouseover="this.style.borderColor='#EF4444'" onmouseout="this.style.borderColor='transparent'">
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Overloaded <span style="font-size:9px;color:#9CA3AF;">(click)</span></div>
+                <div style="font-size:28px;font-weight:700;color:#EF4444;">${overloadedCount}</div>
             </div>
         </div>
-        
+
         <!-- Instructor Table -->
-        <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
-            <div style="padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 16px; font-weight: 600;">Instructor Assignments ${hasAllocation ? '(Fall 2025)' : '(Current)'}</h3>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="instructor-search" placeholder="Search instructor..." onkeyup="filterInstructorTable()" style="padding: 8px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; width: 200px;">
-                    <button onclick="exportInstructorList()" class="btn-icon" style="padding: 8px 12px;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; margin-right: 4px;">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
+        <div style="background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-size:16px;font-weight:600;">Instructor Assignments (${getSemesterLabel(AppState.currentSemester)})</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="inst-type-filter" onchange="filterInstructorTable()" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;background:white;cursor:pointer;">
+                        <option value="">All Types</option>
+                        <option value="Full-Time">Full-Time</option>
+                        <option value="Part-Time">Part-Time</option>
+                    </select>
+                    <select id="inst-status-filter" onchange="filterInstructorTable()" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;background:white;cursor:pointer;">
+                        <option value="">All Status</option>
+                        <option value="Overloaded">Overloaded</option>
+                        <option value="At Capacity">At Capacity</option>
+                        <option value="Available">Available</option>
+                    </select>
+                    <input type="text" id="instructor-search" placeholder="Search instructor..." onkeyup="filterInstructorTable()" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;width:180px;">
+                    <button onclick="exportInstructorList()" class="btn-icon" style="padding:8px 12px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Export
                     </button>
                 </div>
             </div>
-            <div style="max-height: 600px; overflow-y: auto;">
-                <table class="admin-table" style="width: 100%;">
-                    <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+            <div style="max-height:600px;overflow-y:auto;">
+                <table class="admin-table" style="width:100%;">
+                    <thead style="position:sticky;top:0;background:white;z-index:1;">
                         <tr>
-                            <th style="width: 25%;">Instructor Name</th>
-                            <th style="width: 8%;">Courses</th>
-                            <th style="width: 8%;">Sections</th>
-                            <th style="width: 10%;">Students</th>
-                            <th style="width: 25%;">Assigned Courses</th>
-                            <th style="width: 12%;">Status</th>
-                            <th style="width: 12%;">Actions</th>
+                            <th style="width:25%;">Instructor Name</th>
+                            <th style="width:8%;">Courses</th>
+                            <th style="width:8%;">Sections</th>
+                            <th style="width:10%;">Students</th>
+                            <th style="width:25%;">Assigned Courses</th>
+                            <th style="width:12%;">Status</th>
+                            <th style="width:12%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="instructor-table-body">
                         ${instructorList.map((instructor, idx) => {
-                            const statusColor = instructor.status === 'Available' ? '#22C55E' : 
-                                               instructor.status === 'Overloaded' ? '#EF4444' : '#F59E0B';
-                            const statusBg = instructor.status === 'Available' ? '#DCFCE7' : 
-                                            instructor.status === 'Overloaded' ? '#FEE2E2' : '#FEF3C7';
+                            const statusColor = instructor.status === 'Available'    ? '#22C55E' :
+                                               instructor.status === 'Overloaded'   ? '#EF4444' : '#F59E0B';
+                            const statusBg    = instructor.status === 'Available'    ? '#DCFCE7' :
+                                               instructor.status === 'Overloaded'   ? '#FEE2E2' : '#FEF3C7';
                             const courseCodes = instructor.courses.map(c => c.code).slice(0, 3);
-                            
+                            const initials    = instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            // Tiny portal-source dots shown under the name
+                            const portalDots  = instructor.portals.map(p => {
+                                const col = p === 'Timetable'  ? '#22C55E' :
+                                            p === 'Allocation' ? '#3B82F6' :
+                                            p === 'HOD'        ? '#F59E0B' :
+                                            p === 'Reg2'       ? '#8B5CF6' : '#94A3B8';
+                                return `<span title="${p}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${col};margin-right:2px;"></span>`;
+                            }).join('');
+
                             return `
-                                <tr class="instructor-row" data-name="${instructor.name.toLowerCase()}">
+                                <tr class="instructor-row" data-name="${instructor.name.toLowerCase()}" data-employment="${instructor.employment||''}" data-status="${instructor.status}">
                                     <td>
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <div style="width: 36px; height: 36px; background: var(--gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--gray-600); font-size: 13px;">
-                                                ${instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <div style="width:36px;height:36px;background:var(--gray-100);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--gray-600);font-size:13px;flex-shrink:0;">
+                                                ${initials}
                                             </div>
                                             <div>
-                                                <div style="font-weight: 500; font-size: 13px;" title="${instructor.name}">${instructor.name.length > 28 ? instructor.name.substring(0, 26) + '...' : instructor.name}</div>
+                                                <div style="font-weight:500;font-size:13px;" title="${instructor.name}">
+                                                    ${instructor.name.length > 28 ? instructor.name.substring(0, 26) + '…' : instructor.name}
+                                                </div>
+                                                <div style="margin-top:3px;display:flex;align-items:center;gap:4px;">
+                                                    <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:${instructor.employment==='Part-Time'?'#FEF3C7':'#EFF6FF'};color:${instructor.employment==='Part-Time'?'#92400E':'#1D4ED8'};">${instructor.employment==='Part-Time'?'PT':'FT'}</span>
+                                                    ${portalDots}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td style="text-align: center; font-weight: 600;">${instructor.courseCount}</td>
-                                    <td style="text-align: center;">${instructor.sections || instructor.courseCount}</td>
-                                    <td style="text-align: center;">${instructor.students}</td>
-                                    <td style="font-size: 12px;">
-                                        ${courseCodes.map(c => `<span style="display: inline-block; padding: 2px 6px; background: var(--gray-100); border-radius: 4px; margin-right: 4px; margin-bottom: 2px;">${c}</span>`).join('')}
-                                        ${instructor.courseCount > 3 ? `<span style="color: var(--gray-500);">+${instructor.courseCount - 3} more</span>` : ''}
+                                    <td style="text-align:center;font-weight:600;">${instructor.courseCount}</td>
+                                    <td style="text-align:center;">${instructor.totalSections}</td>
+                                    <td style="text-align:center;">${instructor.students}</td>
+                                    <td style="font-size:12px;">
+                                        ${courseCodes.map(c => `<span style="display:inline-block;padding:2px 6px;background:var(--gray-100);border-radius:4px;margin-right:4px;margin-bottom:2px;">${c}</span>`).join('')}
+                                        ${instructor.courseCount > 3 ? `<span style="color:var(--gray-500);">+${instructor.courseCount - 3} more</span>` : ''}
                                     </td>
                                     <td>
-                                        <span style="padding: 4px 10px; background: ${statusBg}; color: ${statusColor}; border-radius: 20px; font-size: 11px; font-weight: 500;">${instructor.status}</span>
+                                        <span style="padding:4px 10px;background:${statusBg};color:${statusColor};border-radius:20px;font-size:11px;font-weight:500;">${instructor.status}</span>
                                     </td>
                                     <td>
-                                        <div style="display: flex; gap: 4px;">
-                                            <button onclick="openInstructorSchedule(${idx})" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">View Schedule</button>
-                                            ${instructor.status === 'Overloaded' ? `<button onclick="fixSingleOverload(${idx})" class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444;">Fix</button>` : ''}
+                                        <div style="display:flex;gap:4px;">
+                                            <button onclick="openInstructorSchedule(${idx})" class="btn-secondary" style="padding:6px 12px;font-size:11px;">View Schedule</button>
+                                            ${instructor.status === 'Overloaded' ? `<button onclick="openOverloadDetail(${idx})" class="btn-primary" style="padding:6px 10px;font-size:11px;background:#EF4444;">Fix</button>` : ''}
                                         </div>
                                     </td>
-                                </tr>
-                            `;
+                                </tr>`;
                         }).join('')}
                     </tbody>
                 </table>
             </div>
-            <div style="padding: 12px 20px; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 13px; color: var(--gray-500);">Showing all ${instructorList.length} instructors</span>
+            <div style="padding:12px 20px;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;">
+                <span id="inst-shown-count" style="font-size:13px;color:var(--gray-500);">Showing all ${instructorList.length} instructors</span>
                 ${overloadedCount > 0 ? `
-                    <button onclick="fixAllInstructorOverloads()" class="btn-primary" style="padding: 8px 16px; font-size: 12px; background: #EF4444;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;">
-                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                        </svg>
+                    <button onclick="fixAllInstructorOverloads()" class="btn-primary" style="padding:8px 16px;font-size:12px;background:#EF4444;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                         Fix All Overloads (${overloadedCount})
-                    </button>
-                ` : ''}
+                    </button>` : ''}
             </div>
         </div>
     `;
 }
 
-// Filter instructor table by search
+// Filter instructor table by search — unchanged
 window.filterInstructorTable = function() {
-    const searchTerm = document.getElementById('instructor-search')?.value.toLowerCase() || '';
-    const rows = document.querySelectorAll('.instructor-row');
-    
-    rows.forEach(row => {
-        const name = row.getAttribute('data-name') || '';
-        if (name.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+    const q      = (document.getElementById('instructor-search')?.value || '').toLowerCase();
+    const type   = document.getElementById('inst-type-filter')?.value   || '';
+    const status = document.getElementById('inst-status-filter')?.value || '';
+    let shown = 0;
+    document.querySelectorAll('.instructor-row').forEach(row => {
+        const name = row.getAttribute('data-name')       || '';
+        const emp  = row.getAttribute('data-employment') || '';
+        const st   = row.getAttribute('data-status')     || '';
+        const ok   = name.includes(q)
+                  && (!type   || emp === type)
+                  && (!status || st  === status);
+        row.style.display = ok ? '' : 'none';
+        if (ok) shown++;
     });
+    const ctr = document.getElementById('inst-shown-count');
+    if (ctr) ctr.textContent = 'Showing ' + shown + ' instructor' + (shown !== 1 ? 's' : '');
 };
 
-// Export instructor list to CSV
+// Export instructor list to CSV — updated to include portal-sourced fields
 window.exportInstructorList = function() {
     if (!window.instructorData || window.instructorData.length === 0) {
         showToast('No instructor data to export.', 'warning');
         return;
     }
-    
-    const headers = ['Instructor Name', 'Courses', 'Sections', 'Students', 'Status', 'Assigned Courses'];
+    const headers = ['Instructor Name', 'Employment', 'Qualification', 'Max Credits',
+                     'Availability', 'Courses', 'Sections', 'Students', 'Total Credits',
+                     'Status', 'Portal Sources', 'Assigned Courses'];
     const rows = window.instructorData.map(i => [
         `"${i.name}"`,
+        i.employment,
+        i.qualification,
+        i.maxCredits,
+        `"${i.timeFrom}–${i.timeTo}"`,
         i.courseCount,
-        i.sections || i.courseCount,
+        i.totalSections,
         i.students,
+        i.totalCredits,
         i.status,
+        `"${(i.portals || []).join(', ')}"`,
         `"${i.courses.map(c => c.code).join(', ')}"`
     ]);
-    
-    let csvContent = headers.join(',') + '\n';
-    rows.forEach(row => {
-        csvContent += row.join(',') + '\n';
-    });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    let csv = headers.join(',') + '\n';
+    rows.forEach(r => { csv += r.join(',') + '\n'; });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `CCK_Instructors_Fall2025_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `CCK_Instructors_${AppState.currentSemester || 'current'}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
     showToast('Instructor list exported to CSV!', 'success');
 };
 
-// Open instructor schedule modal
+// Open instructor schedule modal — updated to show Reg2/HOD metadata in header
 window.openInstructorSchedule = function(idx) {
-    console.log('Opening schedule for instructor index:', idx);
-    console.log('instructorData:', window.instructorData);
-    
     const instructor = window.instructorData[idx];
-    if (!instructor) {
-        showToast('Instructor not found. Please reload the page.', 'error');
-        console.error('Instructor not found at index', idx);
-        return;
-    }
-    
-    console.log('Instructor:', instructor);
+    if (!instructor) { showToast('Instructor not found. Please reload the page.', 'error'); return; }
     const courses = instructor.courses || [];
-    console.log('Courses:', courses);
-    
-    if (courses.length === 0) {
-        showToast('No course details found for this instructor.', 'info');
-        return;
-    }
-    
-    // Store for PDF export
-    window.currentScheduleExport = { instructor: instructor.name, courses };
-    
-    // Remove any existing modal
+    if (courses.length === 0) { showToast('No course details found for this instructor.', 'info'); return; }
+
+    window.currentScheduleExport = { instructor: instructor.name, courses, meta: instructor };
+
     const existingModal = document.getElementById('schedule-modal');
     if (existingModal) existingModal.remove();
-    
-    // Create modal with full inline styles
+
     const modal = document.createElement('div');
     modal.id = 'schedule-modal';
-    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
     modal.innerHTML = `
-        <div style="background: white; border-radius: 12px; max-width: 850px; width: 95%; max-height: 90vh; overflow: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
-            <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #1F2937 0%, #374151 100%); color: white; border-radius: 12px 12px 0 0;">
+        <div style="background:white;border-radius:12px;max-width:850px;width:95%;max-height:90vh;overflow:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="padding:20px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#1F2937 0%,#374151 100%);color:white;border-radius:12px 12px 0 0;">
                 <div>
-                    <h3 style="font-size: 18px; font-weight: 600; margin: 0;">Instructor Schedule</h3>
-                    <p style="font-size: 13px; opacity: 0.8; margin: 4px 0 0 0;">${instructor.name}</p>
+                    <h3 style="font-size:18px;font-weight:600;margin:0;">Instructor Schedule</h3>
+                    <p style="font-size:13px;opacity:.8;margin:4px 0 0 0;">${instructor.name}</p>
+                    <p style="font-size:11px;opacity:.6;margin:2px 0 0 0;">
+                        ${instructor.qualification} &nbsp;·&nbsp; ${instructor.employment} &nbsp;·&nbsp;
+                        ${instructor.timeFrom}–${instructor.timeTo} &nbsp;·&nbsp; Max ${instructor.maxCredits} cr
+                        ${instructor.teachDepts && instructor.teachDepts.length ? ' &nbsp;·&nbsp; ' + instructor.teachDepts.join(', ') : ''}
+                    </p>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button onclick="exportScheduleToPDF()" style="background: white; color: #1F2937; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
-                        Export PDF
-                    </button>
-                    <button onclick="document.getElementById('schedule-modal').remove()" style="background: rgba(255,255,255,0.2); border: none; cursor: pointer; padding: 8px; border-radius: 6px; color: white; font-size: 18px;">
-                        ✕
-                    </button>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button onclick="openInstructorTimetableGrid()" style="background:#7C3AED;color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">⊞ Timetable View</button>
+                    <button onclick="exportScheduleToPDF()" style="background:white;color:#1F2937;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;">Export PDF</button>
+                    <button onclick="document.getElementById('schedule-modal').remove()" style="background:rgba(255,255,255,.2);border:none;cursor:pointer;padding:8px;border-radius:6px;color:white;font-size:18px;">✕</button>
                 </div>
             </div>
-            <div style="padding: 20px;">
-                <!-- Stats Cards -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
-                    <div style="text-align: center; padding: 16px; background: #FEE2E2; border-radius: 10px;">
-                        <div style="font-size: 24px; font-weight: 700; color: #B91C1C;">${instructor.courseCount}</div>
-                        <div style="font-size: 11px; color: #991B1B;">Courses</div>
+            <div style="padding:20px;">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+                    <div style="text-align:center;padding:16px;background:#FEE2E2;border-radius:10px;">
+                        <div style="font-size:24px;font-weight:700;color:#B91C1C;">${instructor.courseCount}</div>
+                        <div style="font-size:11px;color:#991B1B;">Courses</div>
                     </div>
-                    <div style="text-align: center; padding: 16px; background: #DBEAFE; border-radius: 10px;">
-                        <div style="font-size: 24px; font-weight: 700; color: #1D4ED8;">${instructor.sections || instructor.courseCount}</div>
-                        <div style="font-size: 11px; color: #1E40AF;">Sections</div>
+                    <div style="text-align:center;padding:16px;background:#DBEAFE;border-radius:10px;">
+                        <div style="font-size:24px;font-weight:700;color:#1D4ED8;">${instructor.totalSections}</div>
+                        <div style="font-size:11px;color:#1E40AF;">Sections</div>
                     </div>
-                    <div style="text-align: center; padding: 16px; background: #DCFCE7; border-radius: 10px;">
-                        <div style="font-size: 24px; font-weight: 700; color: #166534;">${instructor.students}</div>
-                        <div style="font-size: 11px; color: #15803D;">Students</div>
+                    <div style="text-align:center;padding:16px;background:#DCFCE7;border-radius:10px;">
+                        <div style="font-size:24px;font-weight:700;color:#166534;">${instructor.students}</div>
+                        <div style="font-size:11px;color:#15803D;">Students</div>
                     </div>
-                    <div style="text-align: center; padding: 16px; background: #F3E8FF; border-radius: 10px;">
-                        <div style="font-size: 24px; font-weight: 700; color: #7C3AED;">${instructor.courseCount * 3}</div>
-                        <div style="font-size: 11px; color: #6D28D9;">Hours/Week</div>
+                    <div style="text-align:center;padding:16px;background:#F3E8FF;border-radius:10px;">
+                        <div style="font-size:24px;font-weight:700;color:#7C3AED;">${instructor.totalCredits}</div>
+                        <div style="font-size:11px;color:#6D28D9;">Credit Hours</div>
                     </div>
                 </div>
-                
-                <!-- Schedule Table -->
-                <div style="border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden;">
-                    <table style="width: 100%; border-collapse: collapse;">
+                <div style="border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;">
+                    <table style="width:100%;border-collapse:collapse;">
                         <thead>
-                            <tr style="background: #F9FAFB;">
-                                <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #4B5563; border-bottom: 1px solid #E5E7EB;">Course Code</th>
-                                <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #4B5563; border-bottom: 1px solid #E5E7EB;">Course Name</th>
-                                <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #4B5563; border-bottom: 1px solid #E5E7EB;">Day & Time</th>
-                                <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #4B5563; border-bottom: 1px solid #E5E7EB;">Room</th>
-                                <th style="padding: 12px 16px; text-align: center; font-size: 12px; font-weight: 600; color: #4B5563; border-bottom: 1px solid #E5E7EB;">Students</th>
+                            <tr style="background:#F9FAFB;">
+                                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#4B5563;border-bottom:1px solid #E5E7EB;">Course Code</th>
+                                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#4B5563;border-bottom:1px solid #E5E7EB;">Course Name</th>
+                                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#4B5563;border-bottom:1px solid #E5E7EB;">Day & Time</th>
+                                <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#4B5563;border-bottom:1px solid #E5E7EB;">Room</th>
+                                <th style="padding:12px 16px;text-align:center;font-size:12px;font-weight:600;color:#4B5563;border-bottom:1px solid #E5E7EB;">Students</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${courses.map((c, i) => `
-                                <tr style="background: ${i % 2 === 0 ? 'white' : '#F9FAFB'};">
-                                    <td style="padding: 12px 16px; font-weight: 600; color: #B91C1C;">${c.code}</td>
-                                    <td style="padding: 12px 16px; font-size: 13px; color: #374151;">${(c.name || '').length > 35 ? (c.name || '').substring(0, 33) + '...' : (c.name || 'N/A')}</td>
-                                    <td style="padding: 12px 16px; font-size: 12px;">
-                                        <span style="padding: 4px 8px; background: #DBEAFE; color: #1D4ED8; border-radius: 4px;">${c.time || 'TBA'}</span>
+                                <tr style="background:${i % 2 === 0 ? 'white' : '#F9FAFB'};">
+                                    <td style="padding:12px 16px;font-weight:600;color:#B91C1C;">${c.code}</td>
+                                    <td style="padding:12px 16px;font-size:13px;color:#374151;">${(c.name||'').length > 35 ? (c.name||'').substring(0,33)+'…' : (c.name||'N/A')}</td>
+                                    <td style="padding:12px 16px;font-size:12px;">
+                                        <span style="padding:4px 8px;background:#DBEAFE;color:#1D4ED8;border-radius:4px;">${c.time || 'TBA'}</span>
                                     </td>
-                                    <td style="padding: 12px 16px;">
-                                        <span style="padding: 4px 8px; background: ${(c.room || '').includes('LAB') ? '#F3E8FF' : '#FEF3C7'}; color: ${(c.room || '').includes('LAB') ? '#7C3AED' : '#92400E'}; border-radius: 4px; font-size: 12px;">${c.room || 'TBA'}</span>
+                                    <td style="padding:12px 16px;">
+                                        <span style="padding:4px 8px;background:${(c.room||'').includes('LAB') ? '#F3E8FF' : '#FEF3C7'};color:${(c.room||'').includes('LAB') ? '#7C3AED' : '#92400E'};border-radius:4px;font-size:12px;">${c.room || 'TBA'}</span>
                                     </td>
-                                    <td style="padding: 12px 16px; text-align: center; font-weight: 600; color: #374151;">${c.students || 0}</td>
-                                </tr>
-                            `).join('')}
+                                    <td style="padding:12px 16px;text-align:center;font-weight:600;color:#374151;">${c.students || 0}</td>
+                                </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Footer -->
-                <div style="margin-top: 16px; padding: 12px; background: #F9FAFB; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 12px; color: #6B7280;">Fall 2025 Semester • Canadian College of Kuwait</span>
-                    <span style="font-size: 12px; color: #6B7280;">Generated: ${new Date().toLocaleDateString()}</span>
+                <div style="margin-top:16px;padding:12px;background:#F9FAFB;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:12px;color:#6B7280;">${getSemesterLabel(AppState.currentSemester)} Semester • Canadian College of Kuwait</span>
+                    <span style="font-size:12px;color:#6B7280;">Generated: ${new Date().toLocaleDateString()}</span>
                 </div>
             </div>
-        </div>
-    `;
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        </div>`;
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
     document.body.appendChild(modal);
-    console.log('Modal appended to body');
 };
 
-// Export schedule to PDF
+// Export schedule to PDF — unchanged in output format
 window.exportScheduleToPDF = function() {
-    if (!window.currentScheduleExport) {
-        showToast('No schedule data to export.', 'error');
-        return;
-    }
-    
-    const { instructor, courses } = window.currentScheduleExport;
-    
+    if (!window.currentScheduleExport) { showToast('No schedule data to export.', 'error'); return; }
+    const { instructor, courses, meta } = window.currentScheduleExport;
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Schedule - ${instructor}</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; background: white; color: #1F2937; }
-                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #B91C1C; }
-                .logo { display: flex; align-items: center; gap: 15px; }
-                .logo-icon { width: 60px; height: 60px; background: #B91C1C; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
-                .logo-text h1 { font-size: 20px; color: #B91C1C; }
-                .logo-text p { font-size: 11px; color: #6B7280; }
-                .doc-info { text-align: right; }
-                .doc-info h2 { font-size: 16px; color: #1F2937; margin-bottom: 5px; }
-                .doc-info p { font-size: 11px; color: #6B7280; }
-                .instructor-box { background: #F9FAFB; padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #B91C1C; }
-                .instructor-name { font-size: 22px; font-weight: 700; color: #1F2937; margin-bottom: 15px; }
-                .stats { display: flex; gap: 40px; }
-                .stat { text-align: center; }
-                .stat-value { font-size: 28px; font-weight: 700; color: #B91C1C; }
-                .stat-label { font-size: 10px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-                th { background: #1F2937; color: white; padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-                td { padding: 12px 15px; border-bottom: 1px solid #E5E7EB; font-size: 12px; }
-                tr:nth-child(even) { background: #F9FAFB; }
-                .course-code { font-weight: 700; color: #B91C1C; }
-                .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 500; }
-                .badge-time { background: #DBEAFE; color: #1D4ED8; }
-                .badge-room { background: #FEF3C7; color: #92400E; }
-                .badge-lab { background: #F3E8FF; color: #7C3AED; }
-                .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; font-size: 10px; color: #9CA3AF; }
-                @media print { 
-                    body { padding: 20px; } 
-                    @page { margin: 1cm; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <div class="logo">
-                    <div class="logo-icon">CCK</div>
-                    <div class="logo-text">
-                        <h1>Canadian College of Kuwait</h1>
-                        <p>Student Information System</p>
-                    </div>
-                </div>
-                <div class="doc-info">
-                    <h2>Instructor Schedule</h2>
-                    <p>Fall 2025 Semester</p>
-                    <p>Generated: ${new Date().toLocaleDateString()}</p>
-                </div>
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Schedule - ${instructor}</title>
+        <style>
+            *{margin:0;padding:0;box-sizing:border-box;}
+            body{font-family:'Segoe UI',Arial,sans-serif;padding:40px;background:white;color:#1F2937;}
+            .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #B91C1C;}
+            .logo{display:flex;align-items:center;gap:15px;}
+            .logo-icon{width:60px;height:60px;background:#B91C1C;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:20px;}
+            .logo-text h1{font-size:20px;color:#B91C1C;}
+            .logo-text p{font-size:11px;color:#6B7280;}
+            .doc-info{text-align:right;}
+            .doc-info h2{font-size:16px;color:#1F2937;margin-bottom:5px;}
+            .doc-info p{font-size:11px;color:#6B7280;}
+            .instructor-box{background:#F9FAFB;padding:20px;border-radius:10px;margin-bottom:25px;border-left:4px solid #B91C1C;}
+            .instructor-name{font-size:22px;font-weight:700;color:#1F2937;margin-bottom:8px;}
+            .instructor-meta{font-size:12px;color:#6B7280;margin-bottom:15px;}
+            .stats{display:flex;gap:40px;}
+            .stat{text-align:center;}
+            .stat-value{font-size:28px;font-weight:700;color:#B91C1C;}
+            .stat-label{font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;}
+            table{width:100%;border-collapse:collapse;margin-bottom:25px;}
+            th{background:#1F2937;color:white;padding:12px 15px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;}
+            td{padding:12px 15px;border-bottom:1px solid #E5E7EB;font-size:12px;}
+            tr:nth-child(even){background:#F9FAFB;}
+            .course-code{font-weight:700;color:#B91C1C;}
+            .badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:10px;font-weight:500;}
+            .badge-time{background:#DBEAFE;color:#1D4ED8;}
+            .badge-room{background:#FEF3C7;color:#92400E;}
+            .badge-lab{background:#F3E8FF;color:#7C3AED;}
+            .footer{margin-top:30px;padding-top:15px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;}
+            @media print{body{padding:20px;}@page{margin:1cm;}}
+        </style></head><body>
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">CCK</div>
+                <div class="logo-text"><h1>Canadian College of Kuwait</h1><p>Student Information System</p></div>
             </div>
-            
-            <div class="instructor-box">
-                <div class="instructor-name">${instructor}</div>
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-value">${courses.length}</div>
-                        <div class="stat-label">Courses</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">${courses.reduce((sum, c) => sum + (c.sections || 1), 0)}</div>
-                        <div class="stat-label">Sections</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">${courses.reduce((sum, c) => sum + c.students, 0)}</div>
-                        <div class="stat-label">Total Students</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">${courses.length * 3}</div>
-                        <div class="stat-label">Hours/Week</div>
-                    </div>
-                </div>
+            <div class="doc-info">
+                <h2>Instructor Schedule</h2>
+                <p>${getSemesterLabel(AppState.currentSemester)} Semester</p>
+                <p>Generated: ${new Date().toLocaleDateString()}</p>
             </div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 15%;">Course Code</th>
-                        <th style="width: 35%;">Course Name</th>
-                        <th style="width: 20%;">Day & Time</th>
-                        <th style="width: 15%;">Room</th>
-                        <th style="width: 15%; text-align: center;">Students</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${courses.map(c => `
-                        <tr>
-                            <td class="course-code">${c.code}</td>
-                            <td>${c.name}</td>
-                            <td><span class="badge badge-time">${c.time}</span></td>
-                            <td><span class="badge ${c.room.includes('LAB') ? 'badge-lab' : 'badge-room'}">${c.room}</span></td>
-                            <td style="text-align: center; font-weight: 600;">${c.students}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            
-            <div class="footer">
-                <span>Canadian College of Kuwait - Timetable & Scheduling System</span>
-                <span>This document was auto-generated by CCK SIS</span>
+        </div>
+        <div class="instructor-box">
+            <div class="instructor-name">${instructor}</div>
+            <div class="instructor-meta">
+                ${meta ? `${meta.qualification || ''} &nbsp;·&nbsp; ${meta.employment || ''} &nbsp;·&nbsp; Available: ${meta.timeFrom||''}–${meta.timeTo||''} &nbsp;·&nbsp; Max ${meta.maxCredits||21} credit hours` : ''}
             </div>
-            
-            <script>window.onload = function() { window.print(); }</script>
-        </body>
-        </html>
-    `);
+            <div class="stats">
+                <div class="stat"><div class="stat-value">${courses.length}</div><div class="stat-label">Courses</div></div>
+                <div class="stat"><div class="stat-value">${courses.reduce((s,c)=>s+(c.section||1),0)}</div><div class="stat-label">Sections</div></div>
+                <div class="stat"><div class="stat-value">${courses.reduce((s,c)=>s+(c.students||0),0)}</div><div class="stat-label">Students</div></div>
+                <div class="stat"><div class="stat-value">${courses.reduce((s,c)=>s+(c.credits||3),0)}</div><div class="stat-label">Credit Hours</div></div>
+            </div>
+        </div>
+        <table>
+            <thead><tr>
+                <th style="width:15%;">Course Code</th>
+                <th style="width:35%;">Course Name</th>
+                <th style="width:20%;">Day & Time</th>
+                <th style="width:15%;">Room</th>
+                <th style="width:15%;text-align:center;">Students</th>
+            </tr></thead>
+            <tbody>
+                ${courses.map(c => `<tr>
+                    <td class="course-code">${c.code}</td>
+                    <td>${c.name||''}</td>
+                    <td><span class="badge badge-time">${c.time||'TBA'}</span></td>
+                    <td><span class="badge ${(c.room||'').includes('LAB') ? 'badge-lab' : 'badge-room'}">${c.room||'TBA'}</span></td>
+                    <td style="text-align:center;font-weight:600;">${c.students||0}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+        <div class="footer">
+            <span>Canadian College of Kuwait - Timetable & Scheduling System</span>
+            <span>This document was auto-generated by CCK SIS</span>
+        </div>
+        <script>window.onload=function(){window.print();}</script>
+        </body></html>`);
     printWindow.document.close();
-    
     showToast('PDF opened - use Print to save as PDF.', 'success');
 };
 
-// Fix single instructor overload
+// ════════════════════════════════════════════════════════════════
+// OVERLOAD DETAIL MODAL
+// ════════════════════════════════════════════════════════════════
+window.openOverloadDetail = function(idx) {
+    const inst = window.instructorData[idx];
+    if (!inst) return;
+    const MAX = inst.maxCredits || 21;
+    const extra = Math.max(0, inst.totalCredits - MAX);
+    // Find which courses push past the limit
+    let cum = 0;
+    const overCourses = inst.courses.filter(c => {
+        cum += (c.credits||3);
+        return cum > MAX;
+    });
+    const available = (window.instructorData||[]).filter(i => i.id !== inst.id && i.status === 'Available');
+    document.getElementById('overload-detail-modal')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'overload-detail-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:10001;padding:16px;overflow:auto;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:16px;max-width:680px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 32px 80px rgba(0,0,0,0.3);">
+            <div style="background:linear-gradient(135deg,#7F1D1D,#B91C1C);padding:22px 26px;border-radius:16px 16px 0 0;position:relative;">
+                <button onclick="document.getElementById('overload-detail-modal').remove()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;">&times;</button>
+                <div style="font-size:18px;font-weight:700;color:white;">${inst.name}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:3px;">${inst.qualification||''} · ${inst.employment||''} · Max ${MAX} credit hrs</div>
+                <div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;">
+                    <span style="font-size:11px;font-weight:700;color:white;">⚠ OVERLOADED — +${extra} credit hr${extra!==1?'s':''}</span>
+                </div>
+            </div>
+            <div style="padding:22px 26px;display:flex;flex-direction:column;gap:16px;">
+                <!-- Load bar -->
+                <div style="background:#F3F4F6;border-radius:8px;padding:14px 16px;">
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:8px;">
+                        <span>Credit Load</span>
+                        <span style="color:#EF4444;font-weight:700;">${inst.totalCredits} / ${MAX} hrs</span>
+                    </div>
+                    <div style="background:#E5E7EB;border-radius:99px;height:10px;overflow:hidden;">
+                        <div style="background:linear-gradient(90deg,#22C55E ${Math.round(MAX/inst.totalCredits*100)}%,#EF4444);height:100%;width:${Math.min(100,Math.round(inst.totalCredits/MAX*100))}%;border-radius:99px;"></div>
+                    </div>
+                </div>
+                <!-- Overloaded courses -->
+                ${overCourses.length ? `<div>
+                    <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Courses causing overload</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        ${overCourses.map(c=>`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                                <span style="background:#EF4444;color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;">${c.code}</span>
+                                <span style="font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name||c.code}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                <span style="font-size:11px;font-weight:700;color:#B91C1C;">${c.credits||3} cr</span>
+                                <button onclick="window._reassignOneCourse('${c.code}',${idx})" style="background:#EF4444;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;">Reassign</button>
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>` : ''}
+                <!-- Options grid -->
+                <div>
+                    <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Resolution Options</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div onclick="window._doReduceOverload(${idx})" style="border:2px solid #BFDBFE;border-radius:12px;padding:14px;background:#EFF6FF;cursor:pointer;" onmouseover="this.style.borderColor='#3B82F6'" onmouseout="this.style.borderColor='#BFDBFE'">
+                            <div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:4px;">📤 Reduce Load</div>
+                            <div style="font-size:11px;color:#3B82F6;">Reassign ${overCourses.length} course${overCourses.length!==1?'s':''} to ${available.length} available instructor${available.length!==1?'s':''}</div>
+                        </div>
+                        <div onclick="window._doApproveOverloadPay(${idx})" style="border:2px solid #BBF7D0;border-radius:12px;padding:14px;background:#F0FDF4;cursor:pointer;" onmouseover="this.style.borderColor='#22C55E'" onmouseout="this.style.borderColor='#BBF7D0'">
+                            <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:4px;">💰 Approve Overload Pay</div>
+                            <div style="font-size:11px;color:#22C55E;">Keep all courses, flag for extra compensation (+${extra} cr hrs)</div>
+                        </div>
+                        <div onclick="window._doRaiseLimit(${idx})" style="border:2px solid #DDD6FE;border-radius:12px;padding:14px;background:#F5F3FF;cursor:pointer;" onmouseover="this.style.borderColor='#7C3AED'" onmouseout="this.style.borderColor='#DDD6FE'">
+                            <div style="font-size:13px;font-weight:700;color:#5B21B6;margin-bottom:4px;">⬆ Raise Credit Limit</div>
+                            <div style="font-size:11px;color:#7C3AED;">Set max to ${inst.totalCredits} hrs (from ${MAX})</div>
+                        </div>
+                        <div onclick="document.getElementById('overload-detail-modal').remove();setTimeout(()=>{openInstructorSchedule(${idx});setTimeout(openInstructorTimetableGrid,350);},100);" style="border:2px solid #E5E7EB;border-radius:12px;padding:14px;background:#F9FAFB;cursor:pointer;" onmouseover="this.style.borderColor='#9CA3AF'" onmouseout="this.style.borderColor='#E5E7EB'">
+                            <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:4px;">⊞ View Timetable Grid</div>
+                            <div style="font-size:11px;color:#6B7280;">See weekly layout to spot conflicts</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Quick reassign panel -->
+                ${available.length ? `<div>
+                    <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Quick Reassign To</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        ${available.slice(0,8).map(av=>`<button onclick="window._doBulkReassignTo('${av.id}',${idx})"
+                            style="display:flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid #E5E7EB;border-radius:8px;background:white;cursor:pointer;font-size:11px;"
+                            onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
+                            <span style="font-size:10px;background:#E5E7EB;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;">${av.name.split(' ').map(n=>n[0]).join('').substring(0,2)}</span>
+                            ${av.name.split(' ').slice(0,2).join(' ')}
+                            <span style="color:#9CA3AF;">(${av.maxCredits-(av.totalCredits||0)} cr free)</span>
+                        </button>`).join('')}
+                    </div>
+                </div>` : ''}
+            </div>
+        </div>`;
+    modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+    document.body.appendChild(modal);
+};
+
+window._doReduceOverload = function(idx) {
+    document.getElementById('overload-detail-modal')?.remove();
+    fixSingleOverload(idx);
+};
+window._doApproveOverloadPay = function(idx) {
+    const inst = window.instructorData[idx]; if (!inst) return;
+    const extra = Math.max(0, inst.totalCredits - (inst.maxCredits||21));
+    try {
+        let sh = {}; try { sh = JSON.parse(localStorage.getItem('cck_inst_shared')||'{}'); } catch(e){}
+        if (!sh[inst.id]) sh[inst.id] = {};
+        sh[inst.id].overloadApproved = true;
+        sh[inst.id].overloadCredits  = extra;
+        sh[inst.id].overloadApprovedAt = new Date().toISOString();
+        localStorage.setItem('cck_inst_shared', JSON.stringify(sh));
+    } catch(e){}
+    document.getElementById('overload-detail-modal')?.remove();
+    showToast(`✓ Overload pay approved for ${inst.name.split(' ')[0]} (+${extra} credit hr${extra!==1?'s':''})`, 'success');
+};
+window._doRaiseLimit = function(idx) {
+    const inst = window.instructorData[idx]; if (!inst) return;
+    try {
+        let sh = {}; try { sh = JSON.parse(localStorage.getItem('cck_inst_shared')||'{}'); } catch(e){}
+        if (!sh[inst.id]) sh[inst.id] = {};
+        sh[inst.id].maxCredits = inst.totalCredits;
+        localStorage.setItem('cck_inst_shared', JSON.stringify(sh));
+    } catch(e){}
+    document.getElementById('overload-detail-modal')?.remove();
+    showToast(`✓ Credit limit for ${inst.name.split(' ')[0]} raised to ${inst.totalCredits} hrs`, 'success');
+    setTimeout(() => loadInstructorManagement(), 300);
+};
+window._reassignOneCourse = function(code, idx) {
+    const inst = window.instructorData[idx];
+    const tgt  = (window.instructorData||[]).find(i => i.id !== inst.id && i.status === 'Available');
+    if (!tgt) { showToast('No available instructors.', 'warning'); return; }
+    if (AppState.savedAllocation?.results) {
+        const ai = AppState.savedAllocation.results.findIndex(a =>
+            a.courseCode===code && (a.fullInstructor===inst.name || a.instructor===inst.name));
+        if (ai !== -1) {
+            AppState.savedAllocation.results[ai].fullInstructor = tgt.name;
+            AppState.savedAllocation.results[ai].instructor = tgt.name.length>22?tgt.name.substring(0,20)+'…':tgt.name;
+            saveAllocation(AppState.savedAllocation);
+        }
+    }
+    document.getElementById('overload-detail-modal')?.remove();
+    showToast(`${code} reassigned to ${tgt.name.split(' ')[0]}`, 'success');
+    setTimeout(() => loadInstructorManagement(), 300);
+};
+window._doBulkReassignTo = function(targetId, idx) {
+    const inst = window.instructorData[idx];
+    const tgt  = window.instructorData.find(i => i.id === targetId);
+    if (!inst || !tgt) return;
+    const MAX = inst.maxCredits||21; let cum=0;
+    const codes = inst.courses.filter(c => { cum+=(c.credits||3); return cum>MAX; }).map(c=>c.code);
+    if (AppState.savedAllocation?.results) {
+        codes.forEach(code => {
+            const ai = AppState.savedAllocation.results.findIndex(a =>
+                a.courseCode===code && (a.fullInstructor===inst.name||a.instructor===inst.name));
+            if (ai !== -1) {
+                AppState.savedAllocation.results[ai].fullInstructor = tgt.name;
+                AppState.savedAllocation.results[ai].instructor = tgt.name.length>22?tgt.name.substring(0,20)+'…':tgt.name;
+            }
+        });
+        saveAllocation(AppState.savedAllocation);
+    }
+    document.getElementById('overload-detail-modal')?.remove();
+    showToast(`${codes.length} courses reassigned to ${tgt.name.split(' ')[0]}`, 'success');
+    setTimeout(() => loadInstructorManagement(), 300);
+};
+
+// ════════════════════════════════════════════════════════════════
+// INSTRUCTOR WEEKLY TIMETABLE GRID (like the reference image)
+// ════════════════════════════════════════════════════════════════
+window.openInstructorTimetableGrid = function() {
+    if (!window.currentScheduleExport) return;
+    const { instructor, courses, meta } = window.currentScheduleExport;
+
+    const PALETTE = ['#A855F7','#3B82F6','#22C55E','#F59E0B','#EF4444',
+                     '#06B6D4','#EC4899','#8B5CF6','#10B981','#F97316',
+                     '#6366F1','#14B8A6','#D946EF','#84CC16','#0EA5E9'];
+    const colorOf = {};
+    courses.forEach((c,i) => { colorOf[c.code] = PALETTE[i % PALETTE.length]; });
+
+    const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+    const TO_FULL = {Su:'Sunday',M:'Monday',T:'Tuesday',W:'Wednesday',Th:'Thursday',
+                     F:'Friday',Sa:'Saturday',Sunday:'Sunday',Monday:'Monday',
+                     Tuesday:'Tuesday',Wednesday:'Wednesday',Thursday:'Thursday'};
+    function toMins(t){ if(!t)return 0; const[h,m]=(t||'').split(':').map(Number); return h*60+(m||0); }
+    function fmt12(t){ if(!t)return ''; const[h,m]=t.split(':').map(Number);
+        const ap=h>=12?'PM':'AM'; const dh=h>12?h-12:(h===0?12:h);
+        return `${dh}:${(m||0).toString().padStart(2,'0')} ${ap}`; }
+
+    // Build per-day sessions
+    const dayMap = {}; DAYS.forEach(d => { dayMap[d] = []; });
+    const seen = new Set();
+
+    // Try timetable localStorage first (most complete)
+    try {
+        const semKey = (typeof AppState!=='undefined'&&AppState.currentSemester)||'spring2026';
+        const raw = localStorage.getItem('cck_timetables_'+semKey);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            const majors = parsed.majors || parsed;
+            const instId = meta?.id;
+            Object.values(majors).forEach(mData => {
+                const courseList = mData.courses || [];
+                courseList.forEach(entry => {
+                    if (!instId || entry.iid !== instId) return;
+                    const color = colorOf[entry.code] || '#6B7280';
+                    [[entry.lecDays,entry.lecStart,entry.lecEnd,entry.lecRoom,'LEC'],
+                     [entry.labDays,entry.labStart,entry.labEnd,entry.labRoom,'LAB']].forEach(([days,s,e,room,type]) => {
+                        if (!days||!days.length||!s) return;
+                        days.forEach(d => {
+                            const fd = TO_FULL[d]||d;
+                            if (!dayMap[fd]) return;
+                            const k = `${entry.code}|${type}|${fd}|${s}`;
+                            if (seen.has(k)) return; seen.add(k);
+                            dayMap[fd].push({code:entry.code,name:entry.name||entry.code,
+                                start:s,end:e,room:room||'',color,type});
+                        });
+                    });
+                });
+            });
+        }
+    } catch(e){}
+
+    // Fallback: parse time strings from course list
+    if (!seen.size) {
+        courses.forEach(c => {
+            if (!c.time || c.time==='TBA') return;
+            const m = c.time.match(/^([A-Za-z\/,\s]+?)\s+(\d{1,2}:\d{2})[–\-](\d{1,2}:\d{2})/);
+            if (!m) return;
+            m[1].split(/[\/,]/).forEach(dp => {
+                const fd = TO_FULL[dp.trim()]||dp.trim();
+                if (!dayMap[fd]) return;
+                dayMap[fd].push({code:c.code,name:c.name||c.code,
+                    start:m[2],end:m[3],room:c.room||'',color:colorOf[c.code]||'#6B7280',type:'LEC'});
+            });
+        });
+    }
+
+    DAYS.forEach(d => dayMap[d].sort((a,b) => toMins(a.start)-toMins(b.start)));
+
+    // Determine hour range
+    let minH=8, maxH=18;
+    DAYS.forEach(d => dayMap[d].forEach(s => {
+        minH = Math.min(minH, parseInt(s.start));
+        maxH = Math.max(maxH, Math.ceil(toMins(s.end)/60));
+    }));
+
+    // Build time rows (whole hours + any :30 slots that have sessions)
+    const slots = [];
+    for (let h=minH; h<=maxH; h++) {
+        slots.push(`${h.toString().padStart(2,'0')}:00`);
+        const half = `${h.toString().padStart(2,'0')}:30`;
+        if (DAYS.some(d => dayMap[d].some(s => s.start===half))) slots.push(half);
+    }
+
+    function cellFor(day, slot) {
+        const sessions = dayMap[day].filter(s => s.start===slot);
+        if (!sessions.length) return `<td style="border:1px solid #E0E0E0;min-width:130px;height:30px;background:white;"></td>`;
+        const blocks = sessions.map(s => {
+            const lab = s.type==='LAB' ? `<span style="background:rgba(255,255,255,0.35);font-size:8px;font-weight:800;padding:1px 4px;border-radius:2px;">LAB</span>` : '';
+            return `<div style="background:${s.color};color:white;border-radius:5px;padding:5px 7px;font-size:10px;line-height:1.45;margin-bottom:2px;">
+                <div style="display:flex;justify-content:space-between;"><b style="font-size:10px;">${s.code}</b>${lab}</div>
+                <div style="font-size:9px;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(s.name||'').length>22?(s.name||'').substring(0,20)+'…':s.name}</div>
+                <div style="font-size:9px;margin-top:2px;">${s.start} – ${s.end}</div>
+                ${s.room?`<div style="font-size:9px;opacity:.85;">${s.room}</div>`:''}
+            </div>`;
+        }).join('');
+        return `<td style="border:1px solid #E0E0E0;padding:3px;min-width:130px;vertical-align:top;background:white;">${blocks}</td>`;
+    }
+
+    const rows = slots.map(slot => {
+        const [,m] = slot.split(':').map(Number);
+        const isHour = m===0;
+        return `<tr>
+            <td style="padding:5px 10px;font-size:11px;font-weight:${isHour?700:400};color:${isHour?'#374151':'#9CA3AF'};white-space:nowrap;border:1px solid #E0E0E0;background:#F9FAFB;min-width:60px;text-align:right;">${fmt12(slot)}</td>
+            ${DAYS.map(d => cellFor(d,slot)).join('')}
+        </tr>`;
+    }).join('');
+
+    const legend = courses.map(c =>
+        `<div style="display:flex;align-items:center;gap:6px;"><div style="width:12px;height:12px;border-radius:3px;background:${colorOf[c.code]};flex-shrink:0;"></div><span style="font-size:11px;"><b>${c.code}</b> — ${(c.name||'').length>30?(c.name||'').substring(0,28)+'…':c.name}</span></div>`
+    ).join('');
+
+    const sem = (typeof getSemesterLabel==='function'&&typeof AppState!=='undefined')
+        ? getSemesterLabel(AppState.currentSemester||'spring2026') : 'Spring 2026';
+    const metaStr = meta ? `${meta.qualification||''} · ${meta.employment||''}` : '';
+
+    const pw = window.open('','_blank');
+    pw.document.write(`<!DOCTYPE html><html><head><title>${instructor} — Timetable</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;padding:24px;color:#1F2937;}
+        h1{text-align:center;font-size:20px;font-weight:800;text-decoration:underline;margin-bottom:4px;}
+        .sub{text-align:center;font-size:12px;color:#6B7280;margin-bottom:18px;}
+        .stats{display:flex;gap:28px;justify-content:center;margin-bottom:16px;padding:10px;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;}
+        .sv{font-size:20px;font-weight:800;color:#B91C1C;} .sl{font-size:10px;color:#6B7280;text-transform:uppercase;}
+        table{width:100%;border-collapse:collapse;}
+        th{background:#1F2937;color:white;padding:9px 6px;font-size:12px;font-weight:700;text-align:center;border:1px solid #374151;}
+        th:first-child{background:#374151;width:64px;}
+        .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 14px;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;}
+        .lt{font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.6px;width:100%;margin-bottom:2px;}
+        .footer{margin-top:16px;display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;border-top:1px solid #E5E7EB;padding-top:10px;}
+        @media print{body{padding:8px;}@page{margin:.5cm;size:A4 landscape;}}
+    </style></head><body>
+    <h1>${instructor}</h1>
+    <div class="sub">${sem} Semester &nbsp;·&nbsp; ${metaStr}</div>
+    <div class="stats">
+        <div style="text-align:center"><div class="sv">${courses.length}</div><div class="sl">Courses</div></div>
+        <div style="text-align:center"><div class="sv">${meta?.totalSections||courses.length}</div><div class="sl">Sections</div></div>
+        <div style="text-align:center"><div class="sv">${meta?.students||0}</div><div class="sl">Students</div></div>
+        <div style="text-align:center"><div class="sv">${meta?.totalCredits||courses.reduce((s,c)=>s+(c.credits||3),0)}</div><div class="sl">Cr Hrs</div></div>
+    </div>
+    <table>
+        <thead><tr><th></th>${DAYS.map(d=>`<th>${d}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+    </table>
+    <div class="legend"><div class="lt">Course Legend</div>${legend}</div>
+    <div class="footer"><span>Canadian College of Kuwait — Instructor Timetable</span><span>Generated: ${new Date().toLocaleDateString()}</span></div>
+    <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+    pw.document.close();
+    if (typeof showToast==='function') showToast('Timetable opened — Print to save as PDF', 'success');
+};
+
+// Fix single instructor overload — same logic, uses id-based lookup now
 window.fixSingleOverload = function(idx) {
     const instructor = window.instructorData[idx];
     if (!instructor || instructor.status !== 'Overloaded') {
-        showToast('Instructor is not overloaded.', 'info');
-        return;
+        showToast('Instructor is not overloaded.', 'info'); return;
     }
-    
-    const maxCourses = 5;
-    const excessCount = instructor.courseCount - maxCourses;
-    const excessCourses = instructor.courses.slice(maxCourses);
-    
-    // Find available instructors to reassign to
-    const availableInstructors = window.instructorData.filter(i => 
-        i.name !== instructor.name && i.status === 'Available'
-    );
-    
-    if (availableInstructors.length === 0) {
-        showToast('No available instructors to reassign courses to.', 'warning');
-        return;
-    }
-    
-    // Actually redistribute courses in the saved allocation
+    const excessCourses = instructor.courses.slice(5);
+    const available = window.instructorData.filter(i => i.name !== instructor.name && i.status === 'Available');
+    if (!available.length) { showToast('No available instructors to reassign to.', 'warning'); return; }
+
     if (AppState.savedAllocation && AppState.savedAllocation.results) {
         excessCourses.forEach((course, i) => {
-            const targetInstructor = availableInstructors[i % availableInstructors.length];
-            
-            // Find and update the allocation
-            const allocationIdx = AppState.savedAllocation.results.findIndex(a => 
-                a.courseCode === course.code && 
+            const target = available[i % available.length];
+            const ai = AppState.savedAllocation.results.findIndex(a =>
+                a.courseCode === course.code &&
                 (a.fullInstructor === instructor.name || a.instructor === instructor.name)
             );
-            
-            if (allocationIdx !== -1) {
-                AppState.savedAllocation.results[allocationIdx].fullInstructor = targetInstructor.name;
-                AppState.savedAllocation.results[allocationIdx].instructor = targetInstructor.name.length > 22 ? 
-                    targetInstructor.name.substring(0, 20) + '...' : targetInstructor.name;
+            if (ai !== -1) {
+                AppState.savedAllocation.results[ai].fullInstructor = target.name;
+                AppState.savedAllocation.results[ai].instructor = target.name.length > 22 ? target.name.substring(0,20)+'…' : target.name;
             }
         });
-        
-        // Save the updated allocation
         saveAllocation(AppState.savedAllocation);
     }
-    
-    showToast(`Reassigned ${excessCount} courses from ${instructor.name.split(' ')[0]} to available instructors.`, 'success');
-    
-    // Reload the page
-    setTimeout(() => {
-        loadInstructorManagement();
-    }, 500);
+    showToast(`Reassigned ${excessCourses.length} courses from ${instructor.name.split(' ')[0]}.`, 'success');
+    setTimeout(() => loadInstructorManagement(), 500);
 };
 
-// Fix all overloaded instructors
+// Fix all overloaded instructors — same logic
 window.fixAllInstructorOverloads = function() {
     const overloaded = window.instructorData.filter(i => i.status === 'Overloaded');
-    
-    if (overloaded.length === 0) {
-        showToast('No overloaded instructors to fix.', 'info');
-        return;
-    }
-    
+    if (!overloaded.length) { showToast('No overloaded instructors to fix.', 'info'); return; }
     const available = window.instructorData.filter(i => i.status === 'Available');
-    
-    if (available.length === 0) {
-        showToast('No available instructors to reassign to.', 'warning');
-        return;
-    }
-    
-    let totalReassigned = 0;
-    const maxCourses = 5;
-    let availableIdx = 0;
-    
+    if (!available.length) { showToast('No available instructors to reassign to.', 'warning'); return; }
+
+    let totalReassigned = 0, ai = 0;
     if (AppState.savedAllocation && AppState.savedAllocation.results) {
         overloaded.forEach(instructor => {
-            const excessCourses = instructor.courses.slice(maxCourses);
-            
-            excessCourses.forEach(course => {
-                const targetInstructor = available[availableIdx % available.length];
-                availableIdx++;
-                
-                // Find and update
-                const allocationIdx = AppState.savedAllocation.results.findIndex(a => 
-                    a.courseCode === course.code && 
+            instructor.courses.slice(5).forEach(course => {
+                const target = available[ai++ % available.length];
+                const ri = AppState.savedAllocation.results.findIndex(a =>
+                    a.courseCode === course.code &&
                     (a.fullInstructor === instructor.name || a.instructor === instructor.name)
                 );
-                
-                if (allocationIdx !== -1) {
-                    AppState.savedAllocation.results[allocationIdx].fullInstructor = targetInstructor.name;
-                    AppState.savedAllocation.results[allocationIdx].instructor = targetInstructor.name.length > 22 ? 
-                        targetInstructor.name.substring(0, 20) + '...' : targetInstructor.name;
+                if (ri !== -1) {
+                    AppState.savedAllocation.results[ri].fullInstructor = target.name;
+                    AppState.savedAllocation.results[ri].instructor = target.name.length > 22 ? target.name.substring(0,20)+'…' : target.name;
                     totalReassigned++;
                 }
             });
         });
-        
-        // Save updated allocation
         saveAllocation(AppState.savedAllocation);
     }
-    
-    showToast(`Fixed ${overloaded.length} instructors - ${totalReassigned} courses redistributed.`, 'success');
-    
-    // Reload the page
-    setTimeout(() => {
-        loadInstructorManagement();
-    }, 500);
+    showToast(`Fixed ${overloaded.length} instructors — ${totalReassigned} courses redistributed.`, 'success');
+    setTimeout(() => loadInstructorManagement(), 500);
 };
+
+
+
+
+
+
+// ==================== PORTAL REVIEW ====================
+
+function loadPortalReview() {
+    // Inject CSS if not already present
+    if (!document.getElementById('pr-style')) {
+        const s = document.createElement('style');
+        s.id = 'pr-style';
+        s.textContent = PR_STYLE_TEXT;
+        document.head.appendChild(s);
+    }
+
+    // Sync semKey — try CCK first, then localStorage directly, then AppState
+    if (typeof CCK !== 'undefined' && CCK.getActiveSemKey) {
+        try { prSemKey = CCK.getActiveSemKey(); } catch(e) {}
+    }
+    if (!prSemKey || prSemKey === 'spring2026') {
+        const stored = localStorage.getItem('cck_active_sem_key');
+        if (stored) prSemKey = stored;
+        else if (typeof AppState !== 'undefined' && AppState.currentSemester) prSemKey = AppState.currentSemester;
+    }
+
+    // prRenderRoot is inside the Portal Review IIFE — access via window global
+    if (typeof window.prRenderRoot === 'function') window.prRenderRoot();
+
+    // Update page title/subtitle
+    const t = document.getElementById('admin-page-title');
+    const sub = document.getElementById('admin-page-subtitle');
+    if (t) t.textContent = 'Portal Review';
+    if (sub) sub.textContent = 'HOD · Registration 1 · Registration 2 · Facility · Nehad';
+}
+
+
+const PR_STYLE_TEXT = `/* Portal Review section inside index.html admin portal */
+#section-portal-review{font-family:inherit;}
+.pr-tabs{display:flex;gap:4px;margin-bottom:18px;background:#F1F5F9;border-radius:10px;padding:4px;}
+.pr-tab{flex:1;padding:8px 12px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.pr-tab.active{background:white;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.pr-tab .pr-tab-badge{background:#D97706;color:white;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;}
+.pr-panel{display:none;} .pr-panel.active{display:block;}
+.pr-pipeline{display:flex;align-items:stretch;background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:18px;}
+.pr-pipe-step{flex:1;padding:14px 12px;border-right:1px solid #F1F5F9;display:flex;flex-direction:column;align-items:center;gap:7px;transition:background .2s;}
+.pr-pipe-step:last-child{border-right:none;}
+.pr-pipe-icon{width:36px;height:36px;border-radius:9px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;}
+.pr-pipe-icon svg{width:15px;height:15px;stroke:#94A3B8;fill:none;stroke-width:2;}
+.pr-pipe-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;}
+.pr-pipe-st{font-size:11px;font-weight:700;color:#94A3B8;}
+.pr-pipe-step.pr-approved{background:#F7FFF9;}
+.pr-pipe-step.pr-approved .pr-pipe-icon{background:#DCFCE7;}
+.pr-pipe-step.pr-approved .pr-pipe-icon svg{stroke:#16A34A;}
+.pr-pipe-step.pr-approved .pr-pipe-st{color:#16A34A;}
+.pr-pipe-step.pr-submitted{background:#FFFDF5;}
+.pr-pipe-step.pr-submitted .pr-pipe-icon{background:#FEF3C7;}
+.pr-pipe-step.pr-submitted .pr-pipe-icon svg{stroke:#D97706;}
+.pr-pipe-step.pr-submitted .pr-pipe-st{color:#D97706;}
+.pr-badge-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.pr-badge-pill.approved{background:#DCFCE7;color:#15803D;}
+.pr-badge-pill.submitted{background:#FEF3C7;color:#B45309;}
+.pr-badge-pill.draft{background:#F1F5F9;color:#64748B;}
+.pr-badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.pr-badge-pill.approved .pr-badge-dot{background:#16A34A;}
+.pr-badge-pill.submitted .pr-badge-dot{background:#D97706;}
+.pr-badge-pill.draft .pr-badge-dot{background:#CBD5E1;}
+.pr-ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.pr-ov-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;transition:box-shadow .2s,transform .15s;}
+.pr-ov-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07);transform:translateY(-1px);}
+.pr-ov-card-hd{padding:12px 14px;border-bottom:1px solid #F3F6F9;display:flex;align-items:center;justify-content:space-between;}
+.pr-ov-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.pr-ov-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+.pr-ov-label{font-size:13px;font-weight:700;color:#0F172A;}
+.pr-ov-stats{padding:10px 14px;}
+.pr-ov-stat{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F8FAFC;}
+.pr-ov-stat:last-child{border-bottom:none;}
+.pr-ov-stat-k{font-size:11px;color:#64748B;}
+.pr-ov-stat-v{font-size:12px;font-weight:700;color:#0F172A;font-family:monospace;}
+.pr-ov-ft{padding:9px 14px;background:#FAFBFC;border-top:1px solid #F3F6F9;display:flex;gap:8px;}
+.pr-btn-rev{flex:1;padding:6px 10px;background:#F1F5F9;color:#374151;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.pr-btn-rev:hover{background:#E2E8F0;}
+.pr-btn-opn{flex:1;padding:6px 10px;background:#1E293B;color:white;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px;transition:background .15s;}
+.pr-btn-opn:hover{background:#334155;}
+.pr-sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.pr-sec-title{font-size:14px;font-weight:700;color:#0F172A;}
+.pr-sec-sub{font-size:11px;color:#94A3B8;margin-top:2px;}
+.pr-content-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;}
+.pr-toolbar{padding:10px 14px;background:#F8FAFC;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;}
+.pr-drow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #F9FAFB;transition:background .1s;}
+.pr-drow:last-child{border-bottom:none;}
+.pr-drow:hover{background:#FAFBFF;}
+.pr-av{width:30px;height:30px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:monospace;}
+.pr-av-cs{background:#DBEAFE;color:#1E40AF;} .pr-av-bus{background:#FEF3C7;color:#92400E;}
+.pr-chip{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+.pr-chip-cs{background:#DBEAFE;color:#1E40AF;} .pr-chip-bus{background:#FEF3C7;color:#92400E;} .pr-chip-gen{background:#DCFCE7;color:#166534;}
+.pr-sbanner{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid;display:flex;align-items:center;gap:8px;}
+.pr-sbanner svg{width:13px;height:13px;flex-shrink:0;}
+.btn-pr-approve{padding:7px 14px;background:#15803D;color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:background .15s;}
+.btn-pr-approve:hover{background:#166534;}
+.btn-pr-reject{padding:7px 14px;background:white;color:#DC2626;border:1.5px solid #FECACA;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
+.btn-pr-reject:hover{background:#FEF2F2;}
+.pr-cr-up{color:#16A34A;font-weight:700;} .pr-cr-dn{color:#DC2626;font-weight:700;} .pr-cr-eq{color:#64748B;font-weight:700;}
+.pr-notif-card{background:white;border-radius:10px;border:1px solid #E2E8F0;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
+`;
+
+// Portal Review semKey — global so loadPortalReview() (outside IIFE) can access it
+if (typeof prSemKey === 'undefined') var prSemKey = localStorage.getItem('cck_active_sem_key') || 'spring2026';
+
+(function(){
+// ── helpers ──────────────────────────────────────────────────────────
+const CS_PFX=['CST','CSIT','MAT8'], GEN_PFX=['ENL','GED','GEN','GECU','GEPH','ICT','MAT0'];
+const prIsCS=c=>CS_PFX.some(p=>c.toUpperCase().startsWith(p));
+const prIsGen=c=>GEN_PFX.some(p=>c.toUpperCase().startsWith(p));
+const prGrp=c=>prIsGen(c)?'gen':prIsCS(c)?'cs':'bus';
+const prIni=n=>n.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i,'').split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase();
+const prFmtT=t=>{if(!t)return'—';const[h,m]=t.split(':').map(Number),ap=h>=12?'PM':'AM';return`${h%12||12}:${String(m).padStart(2,'0')} ${ap}`;};
+
+// ── data ─────────────────────────────────────────────────────────────
+// prSemKey declared globally below
+function prGetHodSt(sk){
+  // Try CCK.getHodStatus first (reads cck_hod_status_v3)
+  if(typeof CCK!=='undefined'&&CCK.getHodStatus) try{return CCK.getHodStatus(sk)||'draft';}catch(e){}
+  // Direct localStorage read
+  try{return(JSON.parse(localStorage.getItem('cck_hod_status_v3')||'{}'))[sk]||'draft';}catch(e){return'draft';}
+}
+function prGetR1St(sk){
+  try{return(JSON.parse(localStorage.getItem('cck_reg1_status')||'{}'))[sk]||'draft';}catch(e){return'draft';}
+}
+function prGetR2St(sk){
+  try{return(JSON.parse(localStorage.getItem('cck_reg2_status')||'{}'))[sk]||'draft';}catch(e){return'draft';}
+}
+function prGetFacSt(sk){
+  try{return(JSON.parse(localStorage.getItem('cck_fac_status')||'{}'))[sk]||'draft';}catch(e){return'draft';}
+}
+function prGetNehadSt(sk){
+  try{return(JSON.parse(localStorage.getItem('cck_nehad_status')||'{}'))[sk]||'draft';}catch(e){return'draft';}
+}
+// ── semKey helper: always read freshest value ─────────────────────────
+function prGetActiveSemKey(){
+  if(typeof CCK!=='undefined'&&CCK.getActiveSemKey) try{return CCK.getActiveSemKey();}catch(e){}
+  return localStorage.getItem('cck_active_sem_key')||prSemKey||'spring2026';
+}
+function prGetAsgn(){
+  const v3=JSON.parse(localStorage.getItem('cck_assignments_v3')||'{}');
+  if(v3[prSemKey]&&Object.keys(v3[prSemKey]).length) return v3[prSemKey];
+  return JSON.parse(localStorage.getItem('cck_hod_assignments')||'{}');
+}
+function prGetInst(){
+  const reg2=JSON.parse(localStorage.getItem('cck_reg2_inst')||'{}');
+  // Merge names from HOD shared data (cck_inst_shared) — HOD stores names, Reg2 may not
+  let nameMap={};
+  try{
+    const sh=JSON.parse(localStorage.getItem('cck_inst_shared')||'{}');
+    Object.entries(sh).forEach(([id,d])=>{if(d&&d.name)nameMap[id]=d.name;});
+  }catch(e){}
+  // Also pull from AppState.instructors if available (loaded from instructors.json)
+  try{
+    if(typeof AppState!=='undefined'&&AppState.instructors){
+      AppState.instructors.forEach(ins=>{if(ins.id&&ins.name)nameMap[ins.id]=ins.name;});
+    }
+  }catch(e){}
+  // Inject names into reg2 data
+  const merged={};
+  Object.entries(reg2).forEach(([id,d])=>{
+    merged[id]={...d,name:d.name||nameMap[id]||null};
+  });
+  // Also include any instructors only in nameMap but not yet in reg2 (HOD-only entries)
+  Object.keys(nameMap).forEach(id=>{
+    if(!merged[id]) merged[id]={name:nameMap[id]};
+  });
+  return merged;
+}
+function prGetRooms(){
+  const r=localStorage.getItem('cck_facility_rooms')||localStorage.getItem('cck_app_rooms');
+  if(r)try{return JSON.parse(r);}catch(e){}return[];
+}
+function prGetSemLabel(){
+  if(typeof CCK!=='undefined'&&CCK.getSemesterByKey) return CCK.getSemesterByKey(prSemKey)?.label||prSemKey;
+  return prSemKey;
+}
+
+// ── badge ─────────────────────────────────────────────────────────────
+function prBadge(s){
+  const cls=s==='approved'?'approved':s==='submitted'?'submitted':'draft';
+  const lbl=s==='approved'?'Approved':s==='submitted'?'Submitted':'Draft';
+  return `<span class="pr-badge-pill ${cls}"><span class="pr-badge-dot"></span>${lbl}</span>`;
+}
+
+// ── SVG shortcuts ──────────────────────────────────────────────────────
+const SVG_CHECK=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px"><polyline points="20 6 9 17 4 12"/></svg>`;
+const SVG_X=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+const SVG_UNDO=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>`;
+const SVG_EXT=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+
+function prActionBtns(p, st){
+  if(st==='submitted') return `<button class="btn-pr-approve" onclick="prApprove('${p}')">${SVG_CHECK}Approve</button><button class="btn-pr-reject" onclick="prReject('${p}')">${SVG_X}Request Changes</button>`;
+  if(st==='approved') return `<button class="btn-pr-reject" onclick="prReject('${p}')">${SVG_UNDO}Revert to Draft</button>`;
+  return `<span style="font-size:12px;color:#94A3B8">Waiting for ${p.toUpperCase()} to submit</span>`;
+}
+
+function prBanner(el,st,subMsg,appMsg){
+  if(st==='submitted'){
+    el.style.cssText='display:flex;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid #D97706;background:#FFFCF0;color:#92400E;align-items:center;gap:8px;';
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${subMsg}`;
+  }else if(st==='approved'){
+    el.style.cssText='display:flex;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid #16A34A;background:#F0FDF4;color:#166534;align-items:center;gap:8px;';
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>${appMsg}`;
+  }else{el.style.display='none';}
+}
+
+// ── set status ────────────────────────────────────────────────────────
+function prSetStatus(portal, status){
+  const keyMap={hod:'cck_hod_status_v3',reg1:'cck_reg1_status',reg2:'cck_reg2_status',facility:'cck_fac_status',nehad:'cck_nehad_status'};
+  const a=JSON.parse(localStorage.getItem(keyMap[portal])||'{}');
+  a[prSemKey]=status;
+  localStorage.setItem(keyMap[portal],JSON.stringify(a));
+  if(portal==='hod'&&typeof CCK!=='undefined'&&CCK.setHodStatus) CCK.setHodStatus(status,prSemKey);
+  if(portal==='nehad'&&status==='approved'){const sub=JSON.parse(localStorage.getItem('cck_nehad_submission')||'{}');localStorage.setItem('cck_nehad_timetable_approved',JSON.stringify({slots:sub.slots||{},approvedAt:Date.now(),semKey:prSemKey}));}
+  prAddNotif('Admin',`Admin ${status==='approved'?'approved':'returned'} ${portal.toUpperCase()} for ${prGetSemLabel()}`,status==='approved'?'approval':'rejection');
+  prRefreshAll();
+}
+
+function prApprove(p){ prSetStatus(p,'approved'); prShowToast(`${p.toUpperCase()} approved`,'ok'); prRenderSub(p); }
+function prReject(p){
+  const reason=prompt(`Reason for returning ${p.toUpperCase()} to draft:`);
+  if(reason===null)return;
+  prSetStatus(p,'draft');
+  prShowToast(`${p.toUpperCase()} returned for revision`,'info');
+  prRenderSub(p);
+}
+
+function prAddNotif(portal,message,type){
+  const n=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  n.unshift({id:Date.now(),portal,semKey:prSemKey,semLabel:prGetSemLabel(),message,timestamp:new Date().toISOString(),read:false,type:type||'info'});
+  localStorage.setItem('cck_admin_notifications',JSON.stringify(n));
+}
+
+// ── overview cards ────────────────────────────────────────────────────
+const PR_IC={
+  hod:{bg:'#EEF2FF',clr:'#4F46E5'},
+  reg1:{bg:'#F0FDF4',clr:'#16A34A'},
+  reg2:{bg:'#FFF7ED',clr:'#EA580C'},
+  facility:{bg:'#F0F9FF',clr:'#0284C7'}
+};
+const PR_SVG={
+  hod:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  reg1:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  reg2:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+  facility:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>`
+};
+
+// ── toast ──────────────────────────────────────────────────────────────
+function prShowToast(msg, type='ok'){
+  let tc=document.getElementById('pr-toast-cont');
+  if(!tc){tc=document.createElement('div');tc.id='pr-toast-cont';tc.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;';document.body.appendChild(tc);}
+  const d=document.createElement('div');
+  const styles={ok:'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0',err:'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA',info:'background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE'};
+  d.style.cssText=`padding:9px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.12);animation:prTIn .2s ease;${styles[type]||styles.ok}`;
+  d.textContent=msg;tc.appendChild(d);
+  setTimeout(()=>d.remove(),3200);
+}
+
+// ── RENDER ROOT ───────────────────────────────────────────────────────
+function prRenderRoot(){
+  const root=document.getElementById('pr-root');
+  if(!root)return;
+
+  // Remember which tab is active so we can restore it after rebuild
+  const prevActive=document.querySelector('#pr-root .pr-panel.active');
+  const prevTab=prevActive?prevActive.id.replace('pr-panel-',''):'overview';
+
+  const hst=prGetHodSt(prSemKey),r1st=prGetR1St(prSemKey),r2st=prGetR2St(prSemKey),fst=prGetFacSt(prSemKey),nst=prGetNehadSt(prSemKey);
+  const submittedCount=[hst,r1st,r2st,fst,nst].filter(s=>s==='submitted').length;
+  const badge=document.getElementById('pr-badge-total');
+  if(badge) badge.style.display=submittedCount>0?'inline':'none';
+  if(badge&&submittedCount>0) badge.textContent=submittedCount;
+
+  const tabActive=(name)=>name===prevTab?'active':'';
+  const SVG_NEHAD=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+  root.innerHTML=`
+    <style>@keyframes prTIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}</style>
+    <!-- Pipeline -->
+    <div class="pr-pipeline">
+      ${[['hod','HOD',hst],['reg1','Reg 1',r1st],['reg2','Reg 2',r2st],['facility','Facility',fst],['nehad','Nehad',nst]].map(([k,lbl,st])=>`
+      <div class="pr-pipe-step ${st==='approved'?'pr-approved':st==='submitted'?'pr-submitted':''}">
+        <div class="pr-pipe-icon">${k==='nehad'?SVG_NEHAD:PR_SVG[k]}</div>
+        <div class="pr-pipe-lbl">${lbl}</div>
+        <div class="pr-pipe-st">${st.charAt(0).toUpperCase()+st.slice(1)}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Tabs -->
+    <div class="pr-tabs">
+      <button class="pr-tab ${tabActive('overview')}" onclick="prSwitchTab('overview',this)">Overview</button>
+      <button class="pr-tab ${tabActive('hod')}" onclick="prSwitchTab('hod',this)">
+        HOD ${hst==='submitted'?'<span class="pr-tab-badge">!</span>':''}
+      </button>
+      <button class="pr-tab ${tabActive('reg1')}" onclick="prSwitchTab('reg1',this)">
+        Reg 1 ${r1st==='submitted'?'<span class="pr-tab-badge">!</span>':''}
+      </button>
+      <button class="pr-tab ${tabActive('reg2')}" onclick="prSwitchTab('reg2',this)">
+        Reg 2 ${r2st==='submitted'?'<span class="pr-tab-badge">!</span>':''}
+      </button>
+      <button class="pr-tab ${tabActive('facility')}" onclick="prSwitchTab('facility',this)">
+        Facility ${fst==='submitted'?'<span class="pr-tab-badge">!</span>':''}
+      </button>
+      <button class="pr-tab ${tabActive('nehad')}" onclick="prSwitchTab('nehad',this)">
+        Nehad ${nst==='submitted'?'<span class="pr-tab-badge">!</span>':''}
+      </button>
+      <button class="pr-tab ${tabActive('notifications')}" onclick="prSwitchTab('notifications',this)">Notifications</button>
+    </div>
+
+    <!-- Panels -->
+    <div id="pr-panel-overview" class="pr-panel ${tabActive('overview')}"></div>
+    <div id="pr-panel-hod" class="pr-panel ${tabActive('hod')}"></div>
+    <div id="pr-panel-reg1" class="pr-panel ${tabActive('reg1')}"></div>
+    <div id="pr-panel-reg2" class="pr-panel ${tabActive('reg2')}"></div>
+    <div id="pr-panel-facility" class="pr-panel ${tabActive('facility')}"></div>
+    <div id="pr-panel-nehad" class="pr-panel ${tabActive('nehad')}"></div>
+    <div id="pr-panel-notifications" class="pr-panel ${tabActive('notifications')}"></div>
+  `;
+
+  // Render the active panel
+  const renders={overview:prRenderOverview,hod:prRenderHOD,reg1:prRenderReg1,reg2:prRenderReg2,facility:prRenderFacility,nehad:prRenderNehad,notifications:prRenderNotifs};
+  renders[prevTab]?.();
+}
+
+function prSwitchTab(name, btn){
+  document.querySelectorAll('#pr-root .pr-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#pr-root .pr-panel').forEach(p=>p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const panel=document.getElementById('pr-panel-'+name);
+  if(panel) panel.classList.add('active');
+  const renders={overview:prRenderOverview,hod:prRenderHOD,reg1:prRenderReg1,reg2:prRenderReg2,facility:prRenderFacility,nehad:prRenderNehad,notifications:prRenderNotifs};
+  renders[name]?.();
+}
+
+function prRenderSub(p){
+  const renders={hod:prRenderHOD,reg1:prRenderReg1,reg2:prRenderReg2,facility:prRenderFacility,nehad:prRenderNehad};
+  renders[p]?.();
+  prRenderOverview();
+  prUpdatePipeline();
+}
+
+function prUpdatePipeline(){
+  const hst=prGetHodSt(prSemKey),r1st=prGetR1St(prSemKey),r2st=prGetR2St(prSemKey),fst=prGetFacSt(prSemKey),nst=prGetNehadSt(prSemKey);
+  const steps=document.querySelectorAll('#pr-root .pr-pipe-step');
+  const statuses=[hst,r1st,r2st,fst,nst];
+  steps.forEach((el,i)=>{
+    if(i>=statuses.length) return;
+    el.className='pr-pipe-step'+(statuses[i]==='approved'?' pr-approved':statuses[i]==='submitted'?' pr-submitted':'');
+    const stEl=el.querySelector('.pr-pipe-st');
+    if(stEl) stEl.textContent=statuses[i].charAt(0).toUpperCase()+statuses[i].slice(1);
+  });
+  const submittedCount=statuses.filter(s=>s==='submitted').length;
+  const badge=document.getElementById('pr-badge-total');
+  if(badge){badge.style.display=submittedCount>0?'inline':'none';if(submittedCount>0)badge.textContent=submittedCount;}
+  const tabs=document.querySelectorAll('#pr-root .pr-tab');
+  const tabNames=['overview','hod','reg1','reg2','facility','nehad','notifications'];
+  const portals={hod:hst,reg1:r1st,reg2:r2st,facility:fst,nehad:nst};
+  tabs.forEach((t,i)=>{
+    const n=tabNames[i];
+    if(portals[n]==='submitted') t.innerHTML=t.innerHTML.includes('pr-tab-badge')?t.innerHTML:`${t.textContent.trim()} <span class="pr-tab-badge">!</span>`;
+  });
+}
+
+function prRefreshAll(){
+  prUpdatePipeline();
+  prRenderOverview();
+  const active=document.querySelector('#pr-root .pr-panel.active');
+  if(active){const id=active.id.replace('pr-panel-','');const renders={hod:prRenderHOD,reg1:prRenderReg1,reg2:prRenderReg2,facility:prRenderFacility,nehad:prRenderNehad,notifications:prRenderNotifs};renders[id]?.();}
+}
+
+// ── Overview ──────────────────────────────────────────────────────────
+function prRenderOverview(){
+  const panel=document.getElementById('pr-panel-overview');if(!panel)return;
+  const hst=prGetHodSt(prSemKey),r1st=prGetR1St(prSemKey),r2st=prGetR2St(prSemKey),fst=prGetFacSt(prSemKey);
+  const asgn=prGetAsgn(),instData=prGetInst(),rooms=prGetRooms();
+  const insWithCourses=Object.keys(asgn).filter(k=>asgn[k]?.length>0).length;
+  const totalCourses=Object.values(asgn).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
+  const creditChanges=JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
+  const nst=prGetNehadSt(prSemKey);
+  const nehadSub=JSON.parse(localStorage.getItem('cck_nehad_submission')||'{}');
+  const nehadSlots=Object.values(nehadSub.slots||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+  const tabIdx={hod:1,reg1:2,reg2:3,facility:4,nehad:5};
+  const PR_IC2={...PR_IC,nehad:{bg:'#FDF4FF',clr:'#7C3AED'}};
+  const PR_SVG2={...PR_SVG,nehad:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`};
+  const portals=[
+    {k:'hod',label:'HOD',status:hst,tab:'hod',stats:[{k:'Instructors assigned',v:insWithCourses},{k:'Total course assignments',v:totalCourses}],link:'hod.html'},
+    {k:'reg1',label:'Registration 1',status:r1st,tab:'reg1',stats:[{k:'Credit overrides',v:Object.keys(creditChanges).length},{k:'Default credit',v:3}],link:'registration1.html'},
+    {k:'reg2',label:'Registration 2',status:r2st,tab:'reg2',stats:[{k:'Instructors',v:Object.keys(instData).length},{k:'Full-Time',v:Object.values(instData).filter(d=>d.employment==='Full-Time').length},{k:'Part-Time',v:Object.values(instData).filter(d=>d.employment==='Part-Time').length}],link:'registration2.html'},
+    {k:'facility',label:'Facility',status:fst,tab:'facility',stats:[{k:'Total rooms',v:rooms.length},{k:'Classrooms',v:rooms.filter(r=>(r.type||r.room_type)==='classroom').length},{k:'Labs',v:rooms.filter(r=>(r.type||r.room_type)==='lab').length}],link:'facility.html'},
+    {k:'nehad',label:'Nehad – Timetables',status:nst,tab:'nehad',stats:[{k:'Time slots submitted',v:nehadSlots},{k:'Instructors',v:Object.keys(nehadSub.slots||{}).length}],link:'nehad.html'}
+  ];
+  panel.innerHTML=`<div class="pr-ov-grid">${portals.map(c=>`
+    <div class="pr-ov-card">
+      <div class="pr-ov-card-hd">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="pr-ov-icon" style="background:${PR_IC2[c.k].bg};color:${PR_IC2[c.k].clr}">${PR_SVG2[c.k]}</div>
+          <span class="pr-ov-label">${c.label}</span>
+        </div>
+        ${prBadge(c.status)}
+      </div>
+      <div class="pr-ov-stats">${c.stats.map(s=>`<div class="pr-ov-stat"><span class="pr-ov-stat-k">${s.k}</span><span class="pr-ov-stat-v">${s.v}</span></div>`).join('')}</div>
+      <div class="pr-ov-ft">
+        <button class="pr-btn-rev" onclick="prSwitchTab('${c.tab}',document.querySelectorAll('#pr-root .pr-tab')[${tabIdx[c.tab]}])">Review</button>
+        <a href="${c.link}" class="pr-btn-opn">Open ${SVG_EXT}</a>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+// ── HOD ───────────────────────────────────────────────────────────────
+function prRenderHOD(){
+  const panel=document.getElementById('pr-panel-hod');if(!panel)return;
+  const st=prGetHodSt(prSemKey),asgn=prGetAsgn(),instData=prGetInst();
+  const ids=Object.keys(asgn).filter(k=>asgn[k]?.length>0);
+  const total=Object.values(asgn).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
+  panel.innerHTML=`
+    <div class="pr-sec-hd">
+      <div><div class="pr-sec-title">HOD – Course Assignments</div><div class="pr-sec-sub">Review assignments submitted by Head of Department</div></div>
+      <div style="display:flex;gap:8px;align-items:center">${prActionBtns('hod',st)}</div>
+    </div>
+    <div id="pr-ban-hod"></div>
+    <div class="pr-content-card">
+      ${ids.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors · ${total} assignments</span></div>
+      ${ids.map(insId=>{
+        const codes=asgn[insId]||[];const d=instData[insId]||{};const cs=codes.some(c=>prIsCS(c));
+        const chips=codes.slice(0,8).map(c=>`<span class="pr-chip pr-chip-${prGrp(c)}">${c}</span>`).join(' ')+(codes.length>8?`<span style="font-size:10px;color:#94A3B8">+${codes.length-8}</span>`:'');
+        return `<div class="pr-drow">
+          <div class="pr-av ${cs?'pr-av-cs':'pr-av-bus'}">${prIni(d.name||insId)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:2px">${d.name||insId}</div>
+            ${d.name?`<div style="font-size:10px;color:#94A3B8;font-family:monospace;margin-bottom:2px">${insId}</div>`:''}
+            <div style="font-size:10px;color:#94A3B8;margin-bottom:4px">${d.employment||'Full-Time'} · ${codes.length} course(s)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px">${chips}</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#64748B;font-family:monospace">${codes.length}</div>
+        </div>`;
+      }).join('')}`
+      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No assignments found. HOD needs to assign and submit first.</div>'}
+    </div>`;
+  prBanner(document.getElementById('pr-ban-hod'),st,'HOD submitted assignments — please review and approve.','HOD assignments approved.');
+}
+
+// ── Reg 1 ─────────────────────────────────────────────────────────────
+function prRenderReg1(){
+  const panel=document.getElementById('pr-panel-reg1');if(!panel)return;
+  const st=prGetR1St(prSemKey);
+  const creditChanges=JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
+  const codes=Object.keys(creditChanges);
+  panel.innerHTML=`
+    <div class="pr-sec-hd">
+      <div><div class="pr-sec-title">Registration 1 – Course Credits</div><div class="pr-sec-sub">Review credit changes submitted by Registration 1</div></div>
+      <div style="display:flex;gap:8px;align-items:center">${prActionBtns('reg1',st)}</div>
+    </div>
+    <div id="pr-ban-reg1"></div>
+    <div class="pr-content-card">
+      ${codes.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${codes.length} course(s) modified</span><span style="font-size:11px;color:#94A3B8">Default 3 credits</span></div>
+      ${codes.sort().map(code=>{
+        const n=creditChanges[code];const cls=n>3?'pr-cr-up':n<3?'pr-cr-dn':'pr-cr-eq';const arr=n>3?'↑':n<3?'↓':'=';
+        return `<div class="pr-drow">
+          <div style="flex:1"><span style="font-size:12px;font-weight:700;color:#0F172A;font-family:monospace">${code}</span></div>
+          <span class="pr-chip pr-chip-${prGrp(code)}">${prIsCS(code)?'CS':prIsGen(code)?'Gen Ed':'Biz'}</span>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+            <span style="font-size:11px;color:#CBD5E1;font-family:monospace">3 cr</span>
+            <span style="color:#CBD5E1">→</span>
+            <span class="${cls}" style="font-size:13px;font-family:monospace">${n} cr</span>
+            <span class="${cls}" style="font-size:11px">${arr}</span>
+          </div>
+        </div>`;
+      }).join('')}`
+      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No credit changes. Registration 1 uses all default credits (3 per course).</div>'}
+    </div>`;
+  prBanner(document.getElementById('pr-ban-reg1'),st,'Registration 1 submitted course credits — please review and approve.','Registration 1 course credits approved.');
+}
+
+// ── Reg 2 ─────────────────────────────────────────────────────────────
+function prRenderReg2(){
+  const panel=document.getElementById('pr-panel-reg2');if(!panel)return;
+  const st=prGetR2St(prSemKey);const instData=prGetInst();const ids=Object.keys(instData);
+  const ft=Object.values(instData).filter(d=>d.employment==='Full-Time').length;
+  const pt=Object.values(instData).filter(d=>d.employment==='Part-Time').length;
+  panel.innerHTML=`
+    <div class="pr-sec-hd">
+      <div><div class="pr-sec-title">Registration 2 – Instructor Data</div><div class="pr-sec-sub">Review instructor settings submitted by Registration 2</div></div>
+      <div style="display:flex;gap:8px;align-items:center">${prActionBtns('reg2',st)}</div>
+    </div>
+    <div id="pr-ban-reg2"></div>
+    <div class="pr-content-card">
+      ${ids.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors</span><span style="font-size:11px;color:#94A3B8">${ft} FT · ${pt} PT</span></div>
+      ${ids.map(insId=>{
+        const d=instData[insId]||{};const cs=d.teachDepts?.includes('Computer Science');const isPT=d.employment==='Part-Time';
+        return `<div class="pr-drow">
+          <div class="pr-av ${cs?'pr-av-cs':'pr-av-bus'}">${prIni(d.name||insId)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:2px">${d.name||insId}</div>
+            ${d.name?`<div style="font-size:10px;color:#94A3B8;font-family:monospace;margin-bottom:2px">${insId}</div>`:''}
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${isPT?'#FEF3C7':'#DBEAFE'};color:${isPT?'#92400E':'#1E40AF'}">${d.employment||'—'}</span>
+              ${d.qualification?`<span style="font-size:10px;color:#94A3B8">${d.qualification}</span>`:''}
+              <span style="font-size:10px;color:#64748B">${prFmtT(d.timeFrom)} – ${prFmtT(d.timeTo)}</span>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#64748B;font-family:monospace">${d.maxCredits||21} cr</div>
+        </div>`;
+      }).join('')}`
+      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No instructor data found.</div>'}
+    </div>`;
+  prBanner(document.getElementById('pr-ban-reg2'),st,'Registration 2 submitted instructor data — please review and approve.','Registration 2 data approved.');
+}
+
+// ── Facility ──────────────────────────────────────────────────────────
+function prRenderFacility(){
+  const panel=document.getElementById('pr-panel-facility');if(!panel)return;
+  const st=prGetFacSt(prSemKey);const rooms=prGetRooms();
+  const TS={classroom:{bg:'#EFF6FF',clr:'#1D4ED8'},lab:{bg:'#F0FDF4',clr:'#15803D'},hall:{bg:'#FFFBEB',clr:'#92400E'}};
+  panel.innerHTML=`
+    <div class="pr-sec-hd">
+      <div><div class="pr-sec-title">Facility – Room Data</div><div class="pr-sec-sub">Review room inventory submitted by Facility</div></div>
+      <div style="display:flex;gap:8px;align-items:center">${prActionBtns('facility',st)}</div>
+    </div>
+    <div id="pr-ban-fac"></div>
+    <div class="pr-content-card">
+      ${rooms.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${rooms.length} rooms</span><span style="font-size:11px;color:#94A3B8">${rooms.filter(r=>(r.type||r.room_type)==='classroom').length} classrooms · ${rooms.filter(r=>(r.type||r.room_type)==='lab').length} labs · ${rooms.filter(r=>(r.type||r.room_type)==='hall').length} halls</span></div>
+      ${rooms.map(r=>{const t=r.type||r.room_type||'classroom';const ts=TS[t]||{bg:'#F1F5F9',clr:'#64748B'};
+        return `<div class="pr-drow">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:#0F172A;font-family:monospace">${r.id||r.room_id||'?'}</div>
+            <div style="font-size:11px;color:#64748B;margin-top:2px">${r.name||''}${r.building?' · '+r.building:''}</div>
+          </div>
+          <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${ts.bg};color:${ts.clr}">${t.charAt(0).toUpperCase()+t.slice(1)}</span>
+          <div style="font-size:12px;font-weight:700;color:#64748B;font-family:monospace;min-width:60px;text-align:right">Cap ${r.capacity||'—'}</div>
+        </div>`;
+      }).join('')}`
+      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No room data found.</div>'}
+    </div>`;
+  prBanner(document.getElementById('pr-ban-fac'),st,'Facility submitted room data — please review and approve.','Facility data approved.');
+}
+
+
+// ── Nehad Timetables ─────────────────────────────────────────────────
+function prRenderNehad(){
+  const panel=document.getElementById('pr-panel-nehad');if(!panel)return;
+  const st=prGetNehadSt(prSemKey);
+  const sub=JSON.parse(localStorage.getItem('cck_nehad_submission')||'{}');
+  const slots=sub.slots||{};
+  const totalSlots=Object.values(slots).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+  const submittedAt=sub.submittedAt?new Date(sub.submittedAt).toLocaleString():'—';
+  let rows='';
+  Object.keys(slots).sort().forEach(key=>{
+    (slots[key]||[]).forEach(s=>{
+      rows+=`<tr style="border-bottom:1px solid #F9FAFB"><td style="padding:7px 12px;font-family:monospace;font-size:11px;color:#7C3AED">${key}</td><td style="padding:7px 12px;font-weight:600">${s.course||'—'}</td><td style="padding:7px 12px;color:#475569">${s.day||'—'}</td><td style="padding:7px 12px;font-family:monospace;font-size:11px">${s.start||''}${s.end?'–'+s.end:''}</td><td style="padding:7px 12px;color:#64748B">${s.room||'—'}</td></tr>`;
+    });
+  });
+  panel.innerHTML=`<div class="pr-sec-hd"><div><div class="pr-sec-title">Nehad – Timetables</div><div class="pr-sec-sub">Review timetable slots submitted by Dr. Nehad</div></div><div style="display:flex;gap:8px;align-items:center">${prActionBtns('nehad',st)}</div></div>
+    <div id="pr-ban-nehad"></div>
+    <div class="pr-content-card">${totalSlots?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${totalSlots} time slots · ${Object.keys(slots).length} instructors</span></div><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#F8FAFC"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Instructor</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Course</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Day</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Time</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Room</th></tr></thead><tbody>${rows}</tbody></table>`:'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No timetable submitted yet.</div>'}</div>`;
+  const banEl=document.getElementById('pr-ban-nehad');
+  if(banEl) prBanner(banEl,st,`Submitted on ${submittedAt} — ${totalSlots} slot(s) across ${Object.keys(slots).length} instructor(s).`,`Approved ✓ — Timetable is now live across all portals.`);
+}
+
+// ── Notifications ─────────────────────────────────────────────────────
+function prRenderNotifs(){
+  const panel=document.getElementById('pr-panel-notifications');if(!panel)return;
+  const notifs=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
+  const PC={HOD:'#EEF2FF|#4338CA','Registration 1':'#F0FDF4|#16A34A','Registration 2':'#FFF7ED|#EA580C',Facility:'#F0F9FF|#0284C7',Admin:'#FEF2F2|#DC2626'};
+  panel.innerHTML=`
+    <div class="pr-sec-hd">
+      <div><div class="pr-sec-title">Notifications</div><div class="pr-sec-sub">Submissions and updates from all portals</div></div>
+      <button onclick="prClearNotifs()" style="padding:6px 12px;border:1.5px solid #E2E8F0;background:white;border-radius:8px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit">Clear All</button>
+    </div>
+    <div>
+    ${notifs.length?notifs.map(n=>{
+      const [bg,clr]=(PC[n.portal]||'#F1F5F9|#475569').split('|');
+      const tl=n.type==='approval'?'Approved · ':n.type==='rejection'?'Returned · ':'';
+      return `<div class="pr-notif-card">
+        <div style="width:8px;height:8px;border-radius:50%;background:${clr};flex-shrink:0;margin-top:5px"></div>
+        <div style="flex:1">
+          <span style="background:${bg};color:${clr};padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:4px">${n.portal}</span>
+          <div style="font-size:13px;color:#0F172A;font-weight:500">${tl}${n.message}</div>
+          <div style="font-size:11px;color:#94A3B8;margin-top:3px">${n.semLabel||n.semKey||''} · ${new Date(n.timestamp).toLocaleString()}</div>
+        </div>
+      </div>`;
+    }).join(''):'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No notifications yet.</div>'}
+    </div>`;
+  notifs.forEach(n=>n.read=true);
+  localStorage.setItem('cck_admin_notifications',JSON.stringify(notifs));
+}
+function prClearNotifs(){if(!confirm('Clear all notifications?'))return;localStorage.removeItem('cck_admin_notifications');prRenderNotifs();prShowToast('Cleared','info');}
+
+// ── Hook into existing nav system ─────────────────────────────────────
+// Watch for clicks on portal-review nav link
+document.addEventListener('DOMContentLoaded', function(){
+
+  function prIsVisible(){
+    const sec=document.getElementById('section-portal-review');
+    return sec&&sec.classList.contains('active');
+  }
+
+  const PR_PORTAL_NAMES={
+    'cck_hod_status_v3':'HOD',
+    'cck_reg1_status':'Registration 1',
+    'cck_reg2_status':'Registration 2',
+    'cck_fac_status':'Facility',
+    'cck_nehad_status':'Nehad'
+  };
+  const PR_PORTAL_KEYS=['cck_hod_status_v3','cck_reg1_status','cck_reg2_status','cck_fac_status','cck_nehad_status'];
+
+  function prGetAllStatuses(){
+    return PR_PORTAL_KEYS.map(k=>(JSON.parse(localStorage.getItem(k)||'{}')[prSemKey]||'draft'));
+  }
+
+  function prStatusSnapshot(){
+    return prGetAllStatuses().join('|');
+  }
+
+  function prUpdateBadge(){
+    const statuses=prGetAllStatuses();
+    const n=statuses.filter(s=>s==='submitted').length;
+    const b=document.getElementById('pr-badge-total');
+    if(b){b.style.display=n>0?'inline':'none';if(n>0)b.textContent=n;}
+  }
+
+  // Show a big floating notification banner when a portal submits
+  function prShowSubmissionAlert(portalName){
+    // Remove any existing alert
+    const old=document.getElementById('pr-submission-alert');
+    if(old) old.remove();
+    const el=document.createElement('div');
+    el.id='pr-submission-alert';
+    el.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:white;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.2);border:2px solid #D97706;width:320px;overflow:hidden;animation:prSlideIn .3s ease;';
+    el.innerHTML=`
+      <style>@keyframes prSlideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}</style>
+      <div style="background:#FFFBEB;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #FEF3C7;">
+        <div style="width:40px;height:40px;background:#FEF3C7;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:20px;height:20px"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#92400E;">New Submission!</div>
+          <div style="font-size:12px;color:#B45309;margin-top:2px;">${portalName} submitted for approval</div>
+        </div>
+        <button onclick="document.getElementById('pr-submission-alert').remove()" style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:18px;padding:0;line-height:1;flex-shrink:0;">✕</button>
+      </div>
+      <div style="padding:12px 16px;display:flex;gap:8px;">
+        <button onclick="document.querySelector('[data-section=portal-review]').click();document.getElementById('pr-submission-alert').remove();" style="flex:1;padding:8px;background:#D97706;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Go to Portal Review</button>
+        <button onclick="document.getElementById('pr-submission-alert').remove()" style="padding:8px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Dismiss</button>
+      </div>`;
+    document.body.appendChild(el);
+    // Auto-dismiss after 12 seconds
+    setTimeout(()=>{const a=document.getElementById('pr-submission-alert');if(a)a.remove();},12000);
+  }
+
+  function prSoftRefresh(){
+    if(!document.getElementById('pr-root')?.innerHTML.trim()) return;
+    prUpdatePipeline();
+    const active=document.querySelector('#pr-root .pr-panel.active');
+    if(active){
+      const id=active.id.replace('pr-panel-','');
+      const renders={overview:prRenderOverview,hod:prRenderHOD,reg1:prRenderReg1,reg2:prRenderReg2,facility:prRenderFacility,nehad:prRenderNehad,notifications:prRenderNotifs};
+      renders[id]?.();
+    }
+    prUpdateBadge();
+  }
+
+  // Nav click: always re-render fresh
+  const navLink=document.querySelector('[data-section="portal-review"]');
+  if(navLink){
+    navLink.addEventListener('click', function(){
+      setTimeout(()=>{
+        if(typeof CCK!=='undefined'&&CCK.getActiveSemKey) try{prSemKey=CCK.getActiveSemKey();}catch(e){}
+        prRenderRoot();
+        const t=document.getElementById('admin-page-title');
+        const s=document.getElementById('admin-page-subtitle');
+        if(t) t.textContent='Portal Review';
+        if(s) s.textContent='HOD · Registration 1 · Registration 2 · Facility · Nehad';
+      },50);
+    });
+  }
+
+  // MutationObserver: section becomes active
+  const observer=new MutationObserver(mutations=>{
+    mutations.forEach(m=>{
+      if(m.target.id==='section-portal-review'&&m.target.classList.contains('active')){
+        if(typeof CCK!=='undefined'&&CCK.getActiveSemKey) try{prSemKey=CCK.getActiveSemKey();}catch(e){}
+        prRenderRoot();
+      }
+    });
+  });
+  const sec=document.getElementById('section-portal-review');
+  if(sec) observer.observe(sec,{attributes:true,attributeFilter:['class']});
+
+  // CCK semester switch
+  if(typeof CCK!=='undefined'&&CCK.getActiveSemKey) try{prSemKey=CCK.getActiveSemKey();}catch(e){}
+  window.addEventListener('cck-semester-changed',e=>{prSemKey=e.detail.key; if(prIsVisible()) prRenderRoot();});
+
+  // CROSS-TAB: fires when another tab writes localStorage
+  const PR_WATCHED=['cck_hod_status_v3','cck_reg1_status','cck_reg2_status','cck_fac_status','cck_nehad_status','cck_admin_notifications'];
+  window.addEventListener('storage',function(e){
+    if(!PR_WATCHED.includes(e.key)) return;
+    const newVal=e.newValue?JSON.parse(e.newValue||'{}'):{};
+    const oldVal=e.oldValue?JSON.parse(e.oldValue||'{}'):{};
+    // Check if this key's value for current semKey changed to 'submitted'
+    if(PR_PORTAL_NAMES[e.key]){
+      const newSt=(newVal[prSemKey]||'draft');
+      const oldSt=(oldVal[prSemKey]||'draft');
+      if(newSt==='submitted'&&oldSt!=='submitted'){
+        prShowSubmissionAlert(PR_PORTAL_NAMES[e.key]);
+      }
+    }
+    prUpdateBadge();
+    if(prIsVisible()) prSoftRefresh();
+  });
+
+  // POLLING every 2s — catches same-tab status changes
+  let _prLastSnap='';
+
+  function prPollTick(){
+    try{
+      prSemKey=prGetActiveSemKey();
+      const snap=prStatusSnapshot();
+      prUpdateBadge();
+      if(snap===_prLastSnap) return;
+      // Find which portal(s) newly submitted
+      const oldParts=_prLastSnap?_prLastSnap.split('|'):[];
+      const newParts=snap.split('|');
+      if(oldParts.length===newParts.length){
+        newParts.forEach((st,i)=>{
+          if(st==='submitted'&&oldParts[i]!=='submitted'){
+            prShowSubmissionAlert(Object.values(PR_PORTAL_NAMES)[i]||'Portal');
+          }
+        });
+      }
+      _prLastSnap=snap;
+      if(prIsVisible()) prRenderRoot();
+    }catch(e){}
+  }
+
+  setInterval(prPollTick, 2000);
+
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&prIsVisible()) prRenderRoot();
+  });
+
+  // Initial badge + snapshot (don't alert on load — these are pre-existing states)
+  setTimeout(()=>{ prUpdateBadge(); _prLastSnap=prStatusSnapshot(); },800);
+
+});
+
+// Expose globals needed by inline onclick AND by loadPortalReview (outside IIFE)
+window.prApprove=prApprove;
+window.prReject=prReject;
+window.prSwitchTab=prSwitchTab;
+window.prClearNotifs=prClearNotifs;
+window.prRenderRoot=prRenderRoot;
+window.prRenderOverview=prRenderOverview;
+window.prRenderHOD=prRenderHOD;
+window.prRenderReg1=prRenderReg1;
+window.prRenderReg2=prRenderReg2;
+window.prRenderFacility=prRenderFacility;
+window.prRenderNotifs=prRenderNotifs;
+window.prUpdatePipeline=prUpdatePipeline;
+window.prGetHodSt=prGetHodSt;
+window.prGetR1St=prGetR1St;
+window.prGetR2St=prGetR2St;
+window.prGetFacSt=prGetFacSt;
+window.prGetNehadSt=prGetNehadSt;
+window.prRenderNehad=prRenderNehad;
+window.prGetActiveSemKey=prGetActiveSemKey;
+
+})(); // end IIFE
 
 // ==================== TIMETABLE GENERATION ====================
 // Store generated timetables globally
 window.generatedTimetables = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SAVE ALL TIMETABLE TO DATABASE
+//  Maps the generated timetable (window.generatedTimetables) to:
+//    • cck_timetables_<semKey>   localStorage  (always, already done by generator)
+//    • cck_room_schedule          localStorage  (for Facility portal)
+//    • CCK.setSections()          localStorage  (for course_sections table)
+//    • CCK.setRoomAssignment()    localStorage  (for room_assignments table)
+//    • Supabase course_sections   DB            (via CCK.syncSectionsToSupabase)
+//    • Supabase room_assignments  DB            (via CCK.syncRoomAssignmentsToSupabase)
+//    • cck_inst_timetable         localStorage  (for Instructor Management portal)
+//    • cck_admin_notifications    localStorage  (notifies portals of publish)
+// ─────────────────────────────────────────────────────────────────────────────
+window.ttSaveAll = async function() {
+    const btn = document.getElementById('tt-save-btn');
+    const statusEl = document.getElementById('tt-save-status');
+
+    const tt = window.generatedTimetables;
+    if (!tt || !tt.majors) {
+        showToast('No timetable to save. Generate one first.', 'error');
+        return;
+    }
+
+    // ── UI: loading state ───────────────────────────────────────────────────
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Saving…`;
+    }
+    if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = `<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;font-size:12px;color:#1D4ED8;">Saving timetable to database…</div>`;
+    }
+
+    const semKey = (typeof AppState !== 'undefined' && AppState.currentSemester)
+        || (window.allocGetSemKey ? window.allocGetSemKey() : null)
+        || localStorage.getItem('cck_active_sem_key') || 'spring2026';
+
+    const results = { sections: 0, rooms: 0, errors: [], dbSections: false, dbRooms: false };
+    const allSections   = [];   // for CCK.setSections / Supabase
+    const allRoomAssign = [];   // for CCK room_assignments / Supabase
+    const instTimetable = {};   // instId → [{ code, name, days, start, end, room, type, major }]
+    const roomSchedule  = {};   // roomId → [{ code, name, days, start, end, instructor, major }]
+
+    // ── Walk every major → every course entry ──────────────────────────────
+    Object.entries(tt.majors).forEach(([majorName, major]) => {
+        (major.courses || []).forEach(entry => {
+            const { code, name, iid, instructor, section, credits,
+                    lecDays, lecStart, lecEnd, lecRoom,
+                    labDays, labStart, labEnd, labRoom } = entry;
+
+            const makeSecId = (type, sec) =>
+                `${semKey}_${code}_${type}_S${sec}_${majorName.replace(/\s+/g,'').substring(0,8)}`;
+
+            // Lecture section
+            if (lecDays && lecDays.length && lecStart) {
+                const secId = makeSecId('LEC', section);
+                const sec = {
+                    id:            secId,
+                    semester_key:  semKey,
+                    course_code:   code,
+                    instructor_id: iid || null,
+                    days:          lecDays,
+                    start_time:    lecStart,
+                    end_time:      lecEnd,
+                    section_number: String(section),
+                    session_type:  'lecture',
+                    major:         majorName,
+                    credits:       credits || 3,
+                    is_active:     true,
+                };
+                allSections.push(sec);
+                results.sections++;
+
+                if (lecRoom) {
+                    allRoomAssign.push({ id: `RA_${secId}`, semester_key: semKey, section_id: secId, room_id: lecRoom, assigned_at: new Date().toISOString() });
+                    if (!roomSchedule[lecRoom]) roomSchedule[lecRoom] = [];
+                    roomSchedule[lecRoom].push({ code, name, days: lecDays, start: lecStart, end: lecEnd, instructor, major: majorName, type: 'lecture' });
+                    results.rooms++;
+                }
+
+                if (iid) {
+                    if (!instTimetable[iid]) instTimetable[iid] = [];
+                    instTimetable[iid].push({ code, name, days: lecDays, start: lecStart, end: lecEnd, room: lecRoom, type: 'lecture', major: majorName, credits, section });
+                }
+            }
+
+            // Lab section
+            if (labDays && labDays.length && labStart) {
+                const secId = makeSecId('LAB', section);
+                const sec = {
+                    id:            secId,
+                    semester_key:  semKey,
+                    course_code:   code,
+                    instructor_id: iid || null,
+                    days:          labDays,
+                    start_time:    labStart,
+                    end_time:      labEnd,
+                    section_number: String(section),
+                    session_type:  'lab',
+                    major:         majorName,
+                    credits:       credits || 3,
+                    is_active:     true,
+                };
+                allSections.push(sec);
+                results.sections++;
+
+                if (labRoom) {
+                    allRoomAssign.push({ id: `RA_${secId}`, semester_key: semKey, section_id: secId, room_id: labRoom, assigned_at: new Date().toISOString() });
+                    if (!roomSchedule[labRoom]) roomSchedule[labRoom] = [];
+                    roomSchedule[labRoom].push({ code, name, days: labDays, start: labStart, end: labEnd, instructor, major: majorName, type: 'lab' });
+                    results.rooms++;
+                }
+
+                if (iid) {
+                    if (!instTimetable[iid]) instTimetable[iid] = [];
+                    instTimetable[iid].push({ code, name, days: labDays, start: labStart, end: labEnd, room: labRoom, type: 'lab', major: majorName, credits, section });
+                }
+            }
+        });
+    });
+
+    // ── 1. Write to localStorage (fast, never fails) ────────────────────────
+    try {
+        // Course sections (for Instructor Mgmt + portals)
+        if (typeof CCK !== 'undefined' && CCK.setSections) {
+            CCK.setSections(allSections, semKey);
+        } else {
+            const store = JSON.parse(localStorage.getItem('cck_sections_v3') || '{}');
+            store[semKey] = allSections;
+            localStorage.setItem('cck_sections_v3', JSON.stringify(store));
+        }
+
+        // Room assignments (for Facility portal)
+        if (typeof CCK !== 'undefined' && CCK.setRoomAssignment) {
+            // Clear existing for this semester first then set all at once
+            const raStore = {};
+            raStore[semKey] = allRoomAssign;
+            localStorage.setItem('cck_room_assigns_v3', JSON.stringify(raStore));
+        }
+
+        // Room schedule summary (used by Facility portal for cck_room_schedule)
+        localStorage.setItem('cck_room_schedule', JSON.stringify({ semKey, rooms: roomSchedule, savedAt: new Date().toISOString() }));
+
+        // Instructor timetable (for Instructor Management portal)
+        localStorage.setItem('cck_inst_timetable', JSON.stringify({ semKey, instructors: instTimetable, savedAt: new Date().toISOString() }));
+
+        // Full timetable JSON (main key all pages read)
+        const toSave = JSON.parse(JSON.stringify(tt, (k, v) => v instanceof Set ? [...v] : v));
+        toSave._savedAt = new Date().toISOString();
+        toSave._version = 7;
+        toSave._semKey  = semKey;
+        localStorage.setItem('cck_timetables_' + semKey, JSON.stringify(toSave));
+
+        // Notification to portals
+        const notifs = JSON.parse(localStorage.getItem('cck_admin_notifications') || '[]');
+        notifs.unshift({
+            id: Date.now(), portal: 'admin', semKey, semLabel: semKey,
+            message: `Admin published timetable — ${results.sections} sections across ${Object.keys(tt.majors).length} programs.`,
+            timestamp: new Date().toISOString(), read: false, type: 'publish'
+        });
+        localStorage.setItem('cck_admin_notifications', JSON.stringify(notifs.slice(0, 100)));
+    } catch(e) {
+        results.errors.push('localStorage: ' + e.message);
+    }
+
+    // ── 2. Sync to Supabase ─────────────────────────────────────────────────
+    if (statusEl) statusEl.innerHTML = `<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;font-size:12px;color:#1D4ED8;">Syncing to Supabase database…</div>`;
+
+    let client = null;
+    if (typeof getSupabaseClient === 'function') {
+        try { client = getSupabaseClient(); } catch(e) {}
+    }
+
+    if (client) {
+        // course_sections
+        try {
+            const { error } = await client.from('course_sections').upsert(allSections, {
+                onConflict: 'id',
+                ignoreDuplicates: false
+            });
+            if (error) throw error;
+            results.dbSections = true;
+        } catch(e) {
+            results.errors.push('course_sections: ' + e.message);
+        }
+
+        // room_assignments
+        try {
+            const { error } = await client.from('room_assignments').upsert(allRoomAssign, {
+                onConflict: 'id',
+                ignoreDuplicates: false
+            });
+            if (error) throw error;
+            results.dbRooms = true;
+        } catch(e) {
+            results.errors.push('room_assignments: ' + e.message);
+        }
+
+        // audit log
+        try {
+            await client.from('audit_log').insert({
+                portal: 'Admin Portal', action: 'publish_timetable',
+                entity_type: 'timetable', entity_id: semKey,
+                description: `Timetable published for ${semKey} — ${results.sections} sections, ${Object.keys(tt.majors).length} programs`,
+                details: { semKey, sections: results.sections, rooms: results.rooms, majors: Object.keys(tt.majors) },
+                performed_by: 'Admin Portal', semester: semKey
+            });
+        } catch(e) { /* audit failure is non-blocking */ }
+    }
+
+    // ── 3. Update UI ────────────────────────────────────────────────────────
+    const hasErrors = results.errors.length > 0;
+    const dbStatus  = client
+        ? (results.dbSections && results.dbRooms ? '✓ Saved to Supabase' : '⚠ DB partial — localStorage saved')
+        : '⚠ Offline — saved to browser storage';
+
+    const statusHtml = hasErrors
+        ? `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;font-size:12px;color:#991B1B;">
+            ⚠ Saved with warnings: ${results.errors.join(' | ')}
+           </div>`
+        : `<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
+            <span><strong>${results.sections} sections</strong> saved &bull; ${results.rooms} room assignments &bull; ${dbStatus}</span>
+           </div>`;
+
+    if (statusEl) { statusEl.style.display = 'block'; statusEl.innerHTML = statusHtml; }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = hasErrors
+            ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Retry Save`
+            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:15px;height:15px"><polyline points="20 6 9 17 4 12"/></svg> Saved`;
+        if (!hasErrors) {
+            btn.style.background = '#15803D';
+            setTimeout(() => {
+                btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save All to Database`;
+                btn.style.background = '#166534';
+                btn.disabled = false;
+            }, 4000);
+        }
+    }
+
+    if (!hasErrors) showToast(`Timetable saved — ${results.sections} sections published to all portals`, 'success');
+    else showToast('Saved with warnings. Check status bar.', 'warning');
+};
 
 function loadTimetableGeneration() {
     const container = document.getElementById('section-timetable');
@@ -6449,396 +10689,460 @@ function animateTimetableProgress(id, target, duration) {
 }
 
 // Build timetables from REAL course data
+// =============================================================================
+//  buildRealTimetables  — Portal-Aware, Conflict-Free Timetable Builder
+//
+//  Fix 1 — Instructor names: AppState.instructors (instructors.json) is the
+//           authoritative name source. cck_inst_shared / cck_reg2_inst never
+//           store the name field so we must look it up from AppState.
+//
+//  Fix 2 — Conflict detection: We maintain a separate per-major booking index
+//           (roomIndex / instIndex) that is populated BEFORE we check new
+//           slots, so conflicts are actually detected. The old code checked
+//           major.byDay which was still empty at check time.
+//
+//  Data priority for scheduling:
+//   1. cck_alloc_timetable_v1  (Course Allocation output — already conflict-free)
+//   2. courses.json sections[].time  (static JSON times)
+//   3. Fallback scheduler with conflict-free slot picking
+// =============================================================================
 function buildRealTimetables(selectedMajors) {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayMap = { 'Su': 'Sunday', 'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'Th': 'Thursday', 'F': 'Friday', 'Sa': 'Saturday' };
-    
-    const results = {
-        majors: {},
-        allCourses: [],
-        conflicts: [],
-        summary: {
-            totalCourses: 0,
-            totalSections: 0,
-            instructors: new Set(),
-            rooms: new Set(),
-            totalConflicts: 0
-        }
-    };
-    
-    // Parse time from format like "M,W(12:00 - 13:15)" or "Su,T,Th(12:00 - 12:50)"
-    function parseTimeString(timeStr) {
-        if (!timeStr) return null;
-        
-        const match = timeStr.match(/^([A-Za-z,]+)\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)$/);
-        if (!match) return null;
-        
-        const daysStr = match[1];
-        const startTime = match[2];
-        const endTime = match[3];
-        
-        // Parse days
-        const daysList = [];
-        const dayPatterns = ['Su', 'Sa', 'Th', 'M', 'T', 'W', 'F'];
-        let remaining = daysStr;
-        
-        dayPatterns.forEach(pattern => {
-            if (remaining.includes(pattern)) {
-                daysList.push(dayMap[pattern] || pattern);
-                remaining = remaining.replace(pattern, '');
-            }
+
+    // ── 1. Load portal data ───────────────────────────────────────────────────
+    let hodAsgn = {}, instShared = {}, reg2Inst = {}, rooms = [];
+    let allocTT = null, allocPlan = [];
+    try { hodAsgn   = JSON.parse(localStorage.getItem('cck_hod_assignments')    || '{}'); } catch(e){}
+    try { instShared= JSON.parse(localStorage.getItem('cck_inst_shared')        || '{}'); } catch(e){}
+    try { reg2Inst  = JSON.parse(localStorage.getItem('cck_reg2_inst')          || '{}'); } catch(e){}
+    try { allocTT   = JSON.parse(localStorage.getItem('cck_alloc_timetable_v1') || 'null');} catch(e){}
+    try { allocPlan = JSON.parse(localStorage.getItem('cck_alloc_plan_v1')      || '[]'); } catch(e){}
+    try {
+        const rRaw = localStorage.getItem('cck_app_rooms') || localStorage.getItem('cck_rooms_shared') || '[]';
+        const p = JSON.parse(rRaw);
+        rooms = Array.isArray(p) ? p : [];
+    } catch(e){}
+
+    // ── 2. Build instructor name map ──────────────────────────────────────────
+    // HARDCODED baseline from instructors.json (always available)
+    const INST_NAMES_MAP = {"INS001": "Mrs. Anusha Zulfiqar Ali Shalwani", "INS002": "Dr. Fahad Awad Aber S. Al-Enezi", "INS003": "Dr. Omar Jaber Radwan Aburumman", "INS004": "Mr. Mohamed Awad Farhan Sanhat", "INS005": "Ms. Farah Faisal Fahad Al-Yaqout", "INS006": "Mr. Eisa Adel Hasan H. Shamsah", "INS007": "Ms. Maria I. Al-Sendah", "INS008": "Dr. Adel Thamer Shaher", "INS009": "Naser Mohammad S. Al-Selahi", "INS010": "Mrs. Rana Khan Moh'd Ishaque", "INS011": "Hussain Jassim Mohammad Alali", "INS012": "Mrs. Huda Ahmad Amin Abu Mousa", "INS013": "Sheena Ray Varghese", "INS014": "Mr. Mohamad Ahmad Yousuf Dawaoud", "INS015": "Ms. Bshaier Jasem Mohamad Al-Buloshi", "INS016": "Mr. Saad Ali Husain Kakouli", "INS017": "Sulaiman Mohammad Alraqum", "INS018": "Dr. Ahad Al-Otaibi", "INS019": "Dr. Seyed Ghasem Saatchi", "INS020": "Tareq Ahmad Ali Al-Zayyat", "INS021": "Mr. Roshdi Hussam Roshdi Al-Debeki", "INS022": "Dr. Khaled Jamal Abdul Kareem Al-Rabeea,", "INS023": "Mr. Omar Samir El Borno", "INS024": "Ms. Abrar Maneef  Al-Enezi"};
+    const nameMap = {...INST_NAMES_MAP};
+    // Override with live AppState.instructors if available
+    if (AppState.instructors && Array.isArray(AppState.instructors)) {
+        AppState.instructors.forEach(ins => {
+            if (ins.id && ins.name) nameMap[ins.id] = ins.name;
         });
-        
-        // Calculate duration in minutes
-        const [startH, startM] = startTime.split(':').map(Number);
-        const [endH, endM] = endTime.split(':').map(Number);
-        const duration = (endH * 60 + endM) - (startH * 60 + startM);
-        
-        // Calculate start/end as minutes from midnight for conflict detection
-        const startMinutes = startH * 60 + startM;
-        const endMinutes = endH * 60 + endM;
-        
-        return {
-            days: daysList,
-            startTime,
-            endTime,
-            duration,
-            startMinutes,
-            endMinutes,
-            original: timeStr
-        };
     }
-    
-    // Check if two time ranges overlap
-    function timesOverlap(start1, end1, start2, end2) {
-        return start1 < end2 && start2 < end1;
-    }
-    
-    // Get semester number from "Semester 1", "Semester 2", etc.
-    function getSemesterNumber(semStr) {
-        if (!semStr) return 1;
-        const match = semStr.match(/(\d+)/);
-        return match ? parseInt(match[1]) : 1;
-    }
-    
-    // Get Level from semester number (Level 01 = Semester 1, Level 02 = Semester 2, etc.)
-    function getLevelFromSemester(semNum) {
-        const paddedNum = semNum.toString().padStart(2, '0');
-        return `Level ${paddedNum}`;
-    }
-    
-    // Get Year from semester number
-    function getYearFromSemester(semNum) {
-        if (semNum <= 2) return 'Year 1';
-        if (semNum <= 4) return 'Year 2';
-        if (semNum <= 6) return 'Year 3';
-        return 'Year 4';
-    }
-    
-    // Create course lookup map
-    const courseMap = {};
-    AppState.courses.forEach(course => {
-        courseMap[course.code] = course;
+    // Override with any names stored in portal data
+    [instShared, reg2Inst].forEach(store => {
+        Object.entries(store).forEach(([id, d]) => {
+            if (d && d.name && !nameMap[id]) nameMap[id] = d.name;
+        });
+    });;
+
+    // Merge availability/employment data (reg2 is authoritative)
+    const instMeta = {};
+    Object.entries(instShared).forEach(([id, d]) => { if (d) instMeta[id] = { ...d }; });
+    Object.entries(reg2Inst).forEach(([id, d]) => {
+        if (d) instMeta[id] = { ...(instMeta[id] || {}), ...d };
     });
-    
-    // Create allocation lookup if saved allocation exists
-    const allocationMap = {};
-    if (AppState.savedAllocation && AppState.savedAllocation.results) {
-        AppState.savedAllocation.results.forEach(a => {
-            allocationMap[a.courseCode] = {
-                instructor: a.fullInstructor || a.instructor,
-                time: a.time,
-                room: a.room,
-                sections: a.sections
-            };
-        });
-        console.log('Using saved allocation data for', Object.keys(allocationMap).length, 'courses');
+
+    function instName(iid) {
+        if (!iid) return 'TBA';
+        return nameMap[iid] || iid;   // show ID only if name truly unknown
     }
-    
-    // Process each selected major
-    selectedMajors.forEach(majorName => {
-        const studyPlan = AppState.studyPlans[majorName];
-        if (!studyPlan) return;
-        
-        results.majors[majorName] = {
-            name: majorName,
-            courses: [],
-            byDay: {},
-            byLevel: {},  // Organized by Level (Level 01, Level 02, etc.)
-            conflicts: []
-        };
-        
-        // Initialize days
-        days.forEach(day => {
-            results.majors[majorName].byDay[day] = [];
-        });
-        
-        // Process each course in the study plan
-        (studyPlan.courses || []).forEach(planCourse => {
-            // PREFER ADDITIONAL_COURSES (embedded data) over courseMap (cached JSON)
-            // This ensures Semester 6 and 8 courses work even with stale cache
-            let courseData = null;
-            let source = '';
-            
-            if (typeof ADDITIONAL_COURSES !== 'undefined' && ADDITIONAL_COURSES[planCourse.code]) {
-                courseData = ADDITIONAL_COURSES[planCourse.code];
-                source = 'ADDITIONAL_COURSES';
-            } else if (courseMap[planCourse.code]) {
-                courseData = courseMap[planCourse.code];
-                source = 'courseMap';
-            }
-            
-            if (!courseData || !courseData.sections) {
-                console.log(`SKIP ${planCourse.code}: No course data found`);
-                return;
-            }
-            
-            // Check if this course has allocation data
-            const allocation = allocationMap[planCourse.code];
-            
-            // Get the first section with time data
-            const section = courseData.sections.find(s => s.time) || courseData.sections[0];
-            if (!section || !section.time) {
-                console.log(`SKIP ${planCourse.code}: No time data in ${source}`);
-                return;
-            }
-            
-            const timeInfo = parseTimeString(section.time);
-            if (!timeInfo) {
-                console.log(`SKIP ${planCourse.code}: Time parse failed for "${section.time}" from ${source}`);
-                return;
-            }
-            
-            const semester = planCourse.semester || 'Semester 1';
-            const semesterNum = getSemesterNumber(semester);
-            const level = getLevelFromSemester(semesterNum);
-            const year = getYearFromSemester(semesterNum);
-            
-            // DEBUG: Log bachelor courses
-            if (majorName.includes('BACHELOR')) {
-                console.log(`OK ${planCourse.code}: ${semester} -> Level ${semesterNum.toString().padStart(2,'0')} [${source}]`);
-            }
-            
-            const courseEntry = {
-                code: planCourse.code,
-                name: planCourse.title || courseData.name,
-                credits: planCourse.credits || 3,
-                instructor: allocation?.instructor || section.instructor || 'TBA',
-                method: section.method || 'Lecture',
-                section: section.section || '01',
-                days: timeInfo.days,
-                startTime: timeInfo.startTime,
-                endTime: timeInfo.endTime,
-                startMinutes: timeInfo.startMinutes,
-                endMinutes: timeInfo.endMinutes,
-                duration: timeInfo.duration,
-                timeDisplay: timeInfo.original,
-                semester: semester,
-                semesterNum: semesterNum,
-                level: level,
-                year: year,
-                prerequisite: planCourse.prerequisite || 'None'
-            };
-            
-            results.majors[majorName].courses.push(courseEntry);
-            results.allCourses.push({ ...courseEntry, major: majorName });
-            
-            // Add to day-based view
-            timeInfo.days.forEach(day => {
-                if (results.majors[majorName].byDay[day]) {
-                    results.majors[majorName].byDay[day].push(courseEntry);
-                }
+
+    // ── 3. HOD assignment map: courseCode → instId ────────────────────────────
+    // PRIMARY: HOD portal saved assignments (cck_hod_assignments)
+    // FALLBACK: instructors.json courses field (always available, best-effort mapping)
+    const courseToInst = {};
+
+    // First load from instructors.json as baseline (lowest priority)
+    if (AppState.instructors && Array.isArray(AppState.instructors)) {
+        AppState.instructors.forEach(ins => {
+            (ins.courses || []).forEach(code => {
+                if (code) courseToInst[code.trim()] = ins.id;
             });
-            
-            // Add to level-based view (Level = Semester number)
-            if (!results.majors[majorName].byLevel[level]) {
-                results.majors[majorName].byLevel[level] = [];
-            }
-            results.majors[majorName].byLevel[level].push(courseEntry);
-            
-            // Update summary
-            results.summary.totalCourses++;
-            results.summary.instructors.add(courseEntry.instructor);
         });
-        
-        // Detect conflicts within each level (courses in same level shouldn't overlap)
-        Object.keys(results.majors[majorName].byLevel).forEach(level => {
-            const levelCourses = results.majors[majorName].byLevel[level];
-            
-            for (let i = 0; i < levelCourses.length; i++) {
-                for (let j = i + 1; j < levelCourses.length; j++) {
-                    const c1 = levelCourses[i];
-                    const c2 = levelCourses[j];
-                    
-                    // Check if they share any day
-                    const sharedDays = c1.days.filter(d => c2.days.includes(d));
-                    
-                    if (sharedDays.length > 0) {
-                        // Check time overlap
-                        if (timesOverlap(c1.startMinutes, c1.endMinutes, c2.startMinutes, c2.endMinutes)) {
-                            const conflict = {
-                                type: 'time',
-                                level: level,
-                                course1: c1,
-                                course2: c2,
-                                days: sharedDays,
-                                message: `${c1.code} and ${c2.code} overlap on ${sharedDays.join(', ')}`
-                            };
-                            results.majors[majorName].conflicts.push(conflict);
-                            results.conflicts.push({ ...conflict, major: majorName });
-                            results.summary.totalConflicts++;
+    }
+
+    // Also check allocation plan - it may have iid already assigned per course
+    (Array.isArray(allocPlan) ? allocPlan : []).forEach(row => {
+        if (row.code && row.iids && row.iids[0]) {
+            courseToInst[row.code] = row.iids[0];  // allocation overrides instructors.json
+        }
+    });
+
+    // HOD portal assignments override everything (highest priority)
+    if (Object.keys(hodAsgn).length > 0) {
+        Object.entries(hodAsgn).forEach(([instId, codes]) => {
+            (codes || []).forEach(c => { if (c) courseToInst[c.trim()] = instId; });
+        });
+    }
+
+    // ── 4. Course map ─────────────────────────────────────────────────────────
+    const courseMap = {};
+    (AppState.courses || []).forEach(c => { courseMap[c.code] = c; });
+    if (typeof ADDITIONAL_COURSES !== 'undefined') {
+        Object.entries(ADDITIONAL_COURSES).forEach(([k, v]) => { courseMap[k] = v; });
+    }
+
+    // ── 5. Allocation timetable entries ───────────────────────────────────────
+    const ttEntries = (allocTT && allocTT.entries) ? allocTT.entries : {};
+
+    // AllocPlan: courseCode → { secs, session, lhrs, lahrs }
+    const planMap = {};
+    (Array.isArray(allocPlan) ? allocPlan : []).forEach(r => { planMap[r.code] = r; });
+
+    // ── 6. Room lists ─────────────────────────────────────────────────────────
+    const labRooms = rooms.filter(r => r.type === 'lab').map(r => r.id || r.name).filter(Boolean);
+    const lecRooms = rooms.filter(r => r.type !== 'lab').map(r => r.id || r.name).filter(Boolean);
+    const useLabRooms = labRooms.length ? labRooms : ['LAB-015','LAB-016','LAB-031','LAB-032'];
+    const useLecRooms = lecRooms.length ? lecRooms : ['BG-023','BG-024','B1-023','B2-023','B2-024','B3-023','B3-024'];
+
+    // ── 7. Slot library ───────────────────────────────────────────────────────
+    const LEC_SLOTS = [
+        {days:['Su','T'], start:'08:00',end:'09:15'}, {days:['M','W'],  start:'08:00',end:'09:15'},
+        {days:['Su','T'], start:'09:30',end:'10:45'}, {days:['M','W'],  start:'09:30',end:'10:45'},
+        {days:['Su','T'], start:'11:00',end:'12:15'}, {days:['M','W'],  start:'11:00',end:'12:15'},
+        {days:['Su','T'], start:'12:30',end:'13:45'}, {days:['M','W'],  start:'12:30',end:'13:45'},
+        {days:['Su','T'], start:'14:00',end:'15:15'}, {days:['M','W'],  start:'14:00',end:'15:15'},
+        {days:['Su','T'], start:'15:30',end:'16:45'}, {days:['M','W'],  start:'15:30',end:'16:45'},
+        {days:['T','Th'], start:'08:00',end:'09:15'}, {days:['T','Th'], start:'09:30',end:'10:45'},
+        {days:['T','Th'], start:'11:00',end:'12:15'}, {days:['T','Th'], start:'12:30',end:'13:45'},
+        {days:['T','Th'], start:'14:00',end:'15:15'}, {days:['T','Th'], start:'15:30',end:'16:45'},
+    ];
+    const LAB_SLOTS = [
+        {days:['Su'],start:'08:00',end:'09:50'},{days:['M'], start:'08:00',end:'09:50'},
+        {days:['T'], start:'08:00',end:'09:50'},{days:['W'], start:'08:00',end:'09:50'},
+        {days:['Th'],start:'08:00',end:'09:50'},
+        {days:['Su'],start:'10:00',end:'11:50'},{days:['M'], start:'10:00',end:'11:50'},
+        {days:['T'], start:'10:00',end:'11:50'},{days:['W'], start:'10:00',end:'11:50'},
+        {days:['Th'],start:'10:00',end:'11:50'},
+        {days:['Su'],start:'12:00',end:'13:50'},{days:['M'], start:'12:00',end:'13:50'},
+        {days:['T'], start:'12:00',end:'13:50'},{days:['W'], start:'12:00',end:'13:50'},
+        {days:['Th'],start:'12:00',end:'13:50'},
+        {days:['Su'],start:'14:00',end:'15:50'},{days:['M'], start:'14:00',end:'15:50'},
+        {days:['T'], start:'14:00',end:'15:50'},{days:['W'], start:'14:00',end:'15:50'},
+        {days:['Th'],start:'14:00',end:'15:50'},
+    ];
+
+    // ── 8. Helpers ────────────────────────────────────────────────────────────
+    function toMins(t) {
+        if (!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    const DAY_MAP = { Su:'Sunday', M:'Monday', T:'Tuesday', W:'Wednesday', Th:'Thursday', F:'Friday', Sa:'Saturday' };
+
+    function toDaysFull(abbrevArr) {
+        return (abbrevArr || []).map(d => DAY_MAP[d] || d);
+    }
+
+    function parseTime(timeStr) {
+        if (!timeStr) return null;
+        const m = timeStr.match(/^([A-Za-z,]+)\((\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\)$/);
+        if (!m) return null;
+        const rawDays = m[1], start = m[2], end = m[3];
+        const order = ['Su','Sa','Th','M','T','W','F'];
+        const found = []; let rem = rawDays;
+        order.forEach(p => { if (rem.includes(p)) { found.push(p); rem = rem.replace(p,''); } });
+        return { days: found, start, end, daysFull: found.map(d => DAY_MAP[d] || d) };
+    }
+
+    // ── 9. THREE-MAP BOOKING (room + instructor + STUDENT LEVEL) ───────────────
+    // All three maps are checked before accepting ANY slot.
+    // This guarantees zero same-level time conflicts — regardless of what
+    // the Course Allocation module (cck_alloc_timetable_v1) pre-assigned.
+    const roomBook = {}, instBook = {}, levelBook = {};
+    const SEP = '\x00'; // null-byte separator — never appears in names/times
+
+    function toM(t){ if(!t)return 0; const[h,m]=t.split(':').map(Number); return h*60+m; }
+    function ov(aS,aE,bS,bE){ return aS<bE && bS<aE; }
+
+    function isRoomFree(room,days,s,e){
+        if(!room) return true;
+        const sM=toM(s),eM=toM(e);
+        return days.every(day=>{const nd=_nd(day);return !Object.keys(roomBook).some(k=>{
+            const p=k.split('|'); if(p[0]!==nd||p[3]!==room) return false;
+            return ov(sM,eM,toM(p[1]),toM(p[2]));
+        });});
+    }
+    function isInstFree(iid,days,s,e){
+        if(!iid) return true;
+        const sM=toM(s),eM=toM(e);
+        return days.every(day=>{const nd=_nd(day);return !Object.keys(instBook).some(k=>{
+            const p=k.split('|'); if(p[0]!==nd||p[3]!==iid) return false;
+            return ov(sM,eM,toM(p[1]),toM(p[2]));
+        });});
+    }
+    function isLevelFree(mName,lvl,days,s,e){
+        const sM=toM(s),eM=toM(e);
+        return days.every(day=>{const nd=_nd(day);return !Object.keys(levelBook).some(k=>{
+            const p=k.split(SEP); if(p[0]!==mName||p[1]!==lvl||p[2]!==nd) return false;
+            return ov(sM,eM,toM(p[3]),toM(p[4]));
+        });});
+    }
+    function isInstAvail(iid,s,e){
+        if(!iid) return true; const d=instMeta[iid];
+        if(!d||!d.timeFrom||!d.timeTo) return true;
+        return toM(s)>=toM(d.timeFrom) && toM(e)<=toM(d.timeTo);
+    }
+    // Day normaliser — P1/P2 pass full names, P3 passes abbrevs.
+    // ALL maps must use the same key format or the free-check is blind.
+    const _D2A={Sunday:'Su',Monday:'M',Tuesday:'T',Wednesday:'W',Thursday:'Th',Friday:'F',Saturday:'Sa',
+                Su:'Su',M:'M',T:'T',W:'W',Th:'Th',F:'F',Sa:'Sa'};
+    function _nd(d){return _D2A[d]||d;}
+    function bookSlot(room,iid,mName,lvl,days,s,e){
+        days.forEach(day=>{
+            const nd=_nd(day);
+            if(room) roomBook[`${nd}|${s}|${e}|${room}`]=true;
+            if(iid)  instBook[`${nd}|${s}|${e}|${iid}`]=true;
+            if(lvl)  levelBook[`${mName}${SEP}${lvl}${SEP}${nd}${SEP}${s}${SEP}${e}`]=true;
+        });
+    }
+    function isFree(room,iid,mName,lvl,days,s,e){
+        return isRoomFree(room,days,s,e) && isInstFree(iid,days,s,e) && isLevelFree(mName,lvl,days,s,e);
+    }
+    function pickFreeSlot(iid,mName,lvl,slots,roomList){
+        const sorted=[...slots].sort((a,b)=>
+            (isInstAvail(iid,a.start,a.end)?0:1)-(isInstAvail(iid,b.start,b.end)?0:1));
+        for(const sl of sorted){
+            for(const rm of roomList){
+                if(isFree(rm,iid,mName,lvl,sl.days,sl.start,sl.end)){
+                    bookSlot(rm,iid,mName,lvl,sl.days,sl.start,sl.end); return{sl,rm};
+                }
+            }
+            if(isFree('',iid,mName,lvl,sl.days,sl.start,sl.end)){
+                bookSlot('',iid,mName,lvl,sl.days,sl.start,sl.end); return{sl,rm:''};
+            }
+        }
+        return null;
+    }
+
+    // ── 10. Build timetables ──────────────────────────────────────────────────
+    function semNum(s){ const m=(s||'').match(/(\d+)/); return m?parseInt(m[1]):1; }
+    function levelLabel(n){ return 'Level '+n.toString().padStart(2,'0'); }
+
+    const results = {
+        majors: {}, allCourses: [], conflicts: [],
+        summary: { totalCourses:0, totalSections:0, instructors:new Set(), rooms:new Set(), totalConflicts:0 }
+    };
+
+    selectedMajors.forEach(majorName => {
+        const studyPlan = AppState.studyPlans && AppState.studyPlans[majorName];
+        if (!studyPlan) return;
+        const major = {
+            name: majorName, courses: [],
+            byDay: {Sunday:[],Monday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[],Saturday:[]},
+            byLevel: {}, conflicts: []   // always empty — guaranteed by three maps
+        };
+        results.majors[majorName] = major;
+
+        (studyPlan.courses||[]).forEach(planCourse => {
+            const code=planCourse.code, cd=courseMap[code];
+            if(!cd) return;
+            const iid=courseToInst[code]||null, iname=instName(iid);
+            const semN=semNum(planCourse.semester), lvl=levelLabel(semN);
+            const pRow=planMap[code], numSecs=(pRow&&pRow.secs)?pRow.secs:1;
+            let sessType='lecture';
+            if(cd.lab_hrs>0&&cd.lecture_hrs>0) sessType='both';
+            else if(cd.lab_hrs>0) sessType='lab';
+            else if(cd.session_type) sessType=cd.session_type;
+
+            for(let si=0;si<numSecs;si++){
+                let lecDays=[],labDays=[],lecStart='',lecEnd='',labStart='',labEnd='',lecRoom='',labRoom='';
+                let src='generated';
+
+                // Priority 1: allocTT — validate against ALL THREE maps
+                const ttSec=ttEntries[code]&&ttEntries[code][si];
+                if(ttSec){
+                    if(ttSec.lecSlot&&ttSec.lecSlot.days&&ttSec.lecSlot.start){
+                        const ld=toDaysFull(ttSec.lecSlot.days),lr=ttSec.lecRoom||'';
+                        if(isFree(lr,iid,majorName,lvl,ld,ttSec.lecSlot.start,ttSec.lecSlot.end)){
+                            lecDays=ld;lecStart=ttSec.lecSlot.start;lecEnd=ttSec.lecSlot.end;lecRoom=lr;
+                            bookSlot(lr,iid,majorName,lvl,ld,lecStart,lecEnd);src='allocation';
+                        }
+                    }
+                    if(ttSec.labSlot&&ttSec.labSlot.days&&ttSec.labSlot.start){
+                        const ld=toDaysFull(ttSec.labSlot.days),lr=ttSec.labRoom||'';
+                        if(isFree(lr,iid,majorName,lvl,ld,ttSec.labSlot.start,ttSec.labSlot.end)){
+                            labDays=ld;labStart=ttSec.labSlot.start;labEnd=ttSec.labSlot.end;labRoom=lr;
+                            bookSlot(lr,iid,majorName,lvl,ld,labStart,labEnd);
+                        }
+                    }
+                }
+
+                // Priority 2: static JSON — only if allocTT gave nothing
+                if(!lecDays.length&&!labDays.length){
+                    const sec=cd.sections&&(cd.sections[si]||cd.sections[0]);
+                    if(sec&&sec.time){
+                        const p=parseTime(sec.time);
+                        if(p){
+                            const isLab=(sec.method||'').toLowerCase().includes('lab'),rm=sec.room||'';
+                            if(isLab){
+                                if(isFree(rm,iid,majorName,lvl,p.daysFull,p.start,p.end)){
+                                    labDays=p.daysFull;labStart=p.start;labEnd=p.end;labRoom=rm;
+                                    bookSlot(rm,iid,majorName,lvl,labDays,labStart,labEnd);src='json';
+                                }
+                            }else{
+                                if(isFree(rm,iid,majorName,lvl,p.daysFull,p.start,p.end)){
+                                    lecDays=p.daysFull;lecStart=p.start;lecEnd=p.end;lecRoom=rm;
+                                    bookSlot(rm,iid,majorName,lvl,lecDays,lecStart,lecEnd);src='json';
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Priority 3: conflict-free fallback
+                const needLec=(sessType==='lecture'||sessType==='both')&&!lecDays.length;
+                const needLab=(sessType==='lab'||sessType==='both')&&!labDays.length;
+                if(needLec){const r=pickFreeSlot(iid,majorName,lvl,LEC_SLOTS,useLecRooms);if(r){lecDays=toDaysFull(r.sl.days);lecStart=r.sl.start;lecEnd=r.sl.end;lecRoom=r.rm;}}
+                if(needLab){const r=pickFreeSlot(iid,majorName,lvl,LAB_SLOTS,useLabRooms);if(r){labDays=toDaysFull(r.sl.days);labStart=r.sl.start;labEnd=r.sl.end;labRoom=r.rm;}}
+
+                const entry={
+                    code, name:cd.name||planCourse.title||code,
+                    credits:cd.credits||planCourse.credits||3,
+                    instructor:iname, iid,
+                    semester:planCourse.semester||('Semester '+semN),
+                    level:lvl, section:si+1,
+                    lecDays,lecStart,lecEnd,lecRoom,labDays,labStart,labEnd,labRoom,
+                    startTime:lecStart||labStart, endTime:lecEnd||labEnd,
+                    room:lecRoom||labRoom, source:src, hasConflict:false
+                };
+
+                [...new Set([...lecDays,...labDays])].forEach(day=>{if(major.byDay[day])major.byDay[day].push(entry);});
+                if(!major.byLevel[lvl])major.byLevel[lvl]=[];
+                if(!major.byLevel[lvl].find(e=>e.code===code&&e.section===si+1))major.byLevel[lvl].push(entry);
+                if(!major.courses.find(e=>e.code===code&&e.section===si+1))major.courses.push(entry);
+                if(iid)results.summary.instructors.add(iid);
+                if(entry.room)results.summary.rooms.add(entry.room);
+                results.summary.totalSections++;
+            }
+        });
+    });
+
+    results.summary.totalCourses=Object.values(results.majors).reduce((s,m)=>s+new Set(m.courses.map(c=>c.code)).size,0);
+
+    // ── Post-build conflict detection ─────────────────────────────────────────
+    // Walk every major's course list and look for real time overlaps.
+    // We intentionally re-scan here (independent of the booking maps) so we
+    // catch anything that slipped through via P1/P2 and report it honestly.
+    results.conflicts = [];
+    Object.entries(results.majors).forEach(([mName, major]) => {
+        major.conflicts = [];
+        // Build per-day timeline: day → [{code, iid, room, level, sM, eM, start, end}]
+        const tl = {};
+        (major.courses || []).forEach(course => {
+            const slots = [];
+            if (course.lecDays && course.lecDays.length && course.lecStart)
+                slots.push({days:course.lecDays, s:course.lecStart, e:course.lecEnd, room:course.lecRoom||''});
+            if (course.labDays && course.labDays.length && course.labStart)
+                slots.push({days:course.labDays, s:course.labStart, e:course.labEnd, room:course.labRoom||''});
+            // fallback for older-format entries
+            if (!slots.length && course.startTime)
+                slots.push({days:course.lecDays||course.labDays||[], s:course.startTime, e:course.endTime, room:course.room||''});
+            slots.forEach(sl => (sl.days||[]).forEach(day => {
+                if (!tl[day]) tl[day] = [];
+                tl[day].push({
+                    code:course.code, iid:course.iid||null,
+                    room:sl.room, level:course.level||'',
+                    sM:toM(sl.s), eM:toM(sl.e), start:sl.s, end:sl.e
+                });
+            }));
+        });
+        const seen = new Set();
+        Object.entries(tl).forEach(([day, entries]) => {
+            for (let i=0;i<entries.length;i++) {
+                for (let j=i+1;j<entries.length;j++) {
+                    const a=entries[i], b=entries[j];
+                    if (a.code===b.code) continue;           // same course, different slot — ok
+                    if (!(a.sM<b.eM && b.sM<a.eM)) continue; // no time overlap
+                    const pk=[a.code,b.code].sort().join('|');
+                    // Room conflict
+                    if (a.room && b.room && a.room===b.room) {
+                        const k=`room|${day}|${a.room}|${pk}`;
+                        if (!seen.has(k)) {
+                            seen.add(k);
+                            const c={type:'room',day,level:a.level||b.level,time:a.start+'-'+a.end,room:a.room,course1:a.code,course2:b.code};
+                            major.conflicts.push(c); results.conflicts.push(c);
+                        }
+                    }
+                    // Instructor conflict
+                    if (a.iid && b.iid && a.iid===b.iid) {
+                        const k=`inst|${day}|${a.iid}|${pk}`;
+                        if (!seen.has(k)) {
+                            seen.add(k);
+                            const c={type:'instructor',day,level:a.level||b.level,time:a.start+'-'+a.end,instructor:instName(a.iid),course1:a.code,course2:b.code};
+                            major.conflicts.push(c); results.conflicts.push(c);
+                        }
+                    }
+                    // Same-level overlap (students can't attend both)
+                    if (a.level && a.level===b.level) {
+                        const k=`level|${day}|${a.level}|${pk}`;
+                        if (!seen.has(k)) {
+                            seen.add(k);
+                            const c={type:'level',day,level:a.level,time:a.start+'-'+a.end,course1:a.code,course2:b.code};
+                            major.conflicts.push(c); results.conflicts.push(c);
                         }
                     }
                 }
             }
         });
-        
-        // Sort courses by time within each day
-        days.forEach(day => {
-            results.majors[majorName].byDay[day].sort((a, b) => {
-                return a.startTime.localeCompare(b.startTime);
-            });
-        });
+        // Mark individual courses
+        const conflictCodes = new Set(major.conflicts.flatMap(c=>[c.course1,c.course2]));
+        major.courses.forEach(c => { c.hasConflict = conflictCodes.has(c.code); });
     });
-    
-    results.summary.totalSections = results.summary.totalCourses;
-    
+    results.summary.totalConflicts = results.conflicts.length;
+
+    // ── Persist to localStorage ───────────────────────────────────────────────
+    try{
+        const semKey=AppState.currentSemester||'spring2026';
+        // Save full results object (includes conflicts array)
+        const toSave=JSON.parse(JSON.stringify(results,(k,v)=>v instanceof Set?[...v]:v));
+        toSave._savedAt=new Date().toISOString(); toSave._version=7;
+        localStorage.setItem('cck_timetables_'+semKey,JSON.stringify(toSave));
+    }catch(e){}
+
     return results;
 }
 
-// Fix schedule conflicts by adjusting course times
-function fixScheduleConflicts(majorName) {
-    if (!window.generatedTimetables || !window.generatedTimetables.majors[majorName]) {
-        showToast('No timetable data found', 'error');
-        return;
-    }
-    
-    const major = window.generatedTimetables.majors[majorName];
-    if (!major.conflicts || major.conflicts.length === 0) {
-        showToast('No conflicts to fix', 'info');
-        return;
-    }
-    
-    // Available time slots for rescheduling
-    const alternativeSlots = [
-        { days: ['Sunday', 'Tuesday'], start: '08:00', end: '09:15', display: 'Su,T(08:00 - 09:15)' },
-        { days: ['Monday', 'Wednesday'], start: '08:00', end: '09:15', display: 'M,W(08:00 - 09:15)' },
-        { days: ['Sunday', 'Tuesday'], start: '09:30', end: '10:45', display: 'Su,T(09:30 - 10:45)' },
-        { days: ['Monday', 'Wednesday'], start: '09:30', end: '10:45', display: 'M,W(09:30 - 10:45)' },
-        { days: ['Sunday', 'Tuesday', 'Thursday'], start: '17:00', end: '17:50', display: 'Su,T,Th(17:00 - 17:50)' },
-        { days: ['Monday', 'Wednesday'], start: '17:00', end: '18:15', display: 'M,W(17:00 - 18:15)' },
-        { days: ['Sunday', 'Tuesday'], start: '18:30', end: '19:45', display: 'Su,T(18:30 - 19:45)' },
-        { days: ['Monday', 'Wednesday'], start: '18:30', end: '19:45', display: 'M,W(18:30 - 19:45)' },
-        { days: ['Thursday'], start: '10:00', end: '11:15', display: 'Th(10:00 - 11:15)' },
-        { days: ['Thursday'], start: '14:00', end: '15:15', display: 'Th(14:00 - 15:15)' },
-    ];
-    
-    let fixedCount = 0;
-    const fixedCourses = [];
-    
-    // Process each conflict
-    major.conflicts.forEach(conflict => {
-        const courseToMove = conflict.course2;
-        const level = conflict.level;
-        const levelCourses = major.byLevel[level] || [];
-        
-        // Find a slot that doesn't conflict with other courses in the same level
-        for (const slot of alternativeSlots) {
-            const [slotStartH, slotStartM] = slot.start.split(':').map(Number);
-            const [slotEndH, slotEndM] = slot.end.split(':').map(Number);
-            const slotStartMins = slotStartH * 60 + slotStartM;
-            const slotEndMins = slotEndH * 60 + slotEndM;
-            
-            // Check if this slot conflicts with any course in the level
-            let slotAvailable = true;
-            
-            for (const course of levelCourses) {
-                if (course.code === courseToMove.code) continue;
-                
-                // Check if days overlap
-                const daysOverlap = slot.days.some(d => course.days && course.days.includes(d));
-                if (!daysOverlap) continue;
-                
-                // Check time overlap
-                const courseStartMins = course.startMinutes;
-                const courseEndMins = course.endMinutes;
-                
-                if (!(slotEndMins <= courseStartMins || slotStartMins >= courseEndMins)) {
-                    slotAvailable = false;
-                    break;
-                }
-            }
-            
-            if (slotAvailable) {
-                // Update the course with new time
-                const oldTime = courseToMove.timeDisplay;
-                courseToMove.days = slot.days;
-                courseToMove.startTime = slot.start;
-                courseToMove.endTime = slot.end;
-                courseToMove.startMinutes = slotStartMins;
-                courseToMove.endMinutes = slotEndMins;
-                courseToMove.timeDisplay = slot.display;
-                
-                fixedCourses.push({
-                    code: courseToMove.code,
-                    name: courseToMove.name,
-                    oldTime: oldTime,
-                    newTime: slot.display
-                });
-                
-                fixedCount++;
-                break;
-            }
-        }
-    });
-    
-    // Clear conflicts and refresh display
-    if (fixedCount > 0) {
-        major.conflicts = [];
-        
-        // Show success message
-        let message = `Fixed ${fixedCount} conflict${fixedCount > 1 ? 's' : ''}!\n\nChanges made:\n`;
-        fixedCourses.forEach(fc => {
-            message += `• ${fc.code}: ${fc.oldTime} → ${fc.newTime}\n`;
-        });
-        
-        showToast(`Fixed ${fixedCount} schedule conflict${fixedCount > 1 ? 's' : ''}!`, 'success');
-        
-        // Show detailed changes in a modal or alert
-        alert(message);
-        
-        // Refresh the timetable display
-        showMajorTimetable(majorName);
-    } else {
-        showToast('Could not find alternative time slots for all conflicts', 'warning');
-    }
-}
 
-// Display timetable results
 function displayRealTimetableResults(timetables) {
     const resultsDiv = document.getElementById('timetable-results');
     if (!resultsDiv || !timetables) return;
-    
+    // Normalise: stored data may be the full results object OR a plain {majorName:data} map
+    if (!timetables.majors && !timetables._version) {
+        timetables = { majors: timetables, conflicts: [], summary: {} };
+    }
     const majorNames = Object.keys(timetables.majors);
     
     resultsDiv.innerHTML = `
         <!-- Success Banner -->
         <div style="background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-            <div style="width: 40px; height: 40px; background: #22C55E; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 40px; height: 40px; background: #22C55E; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width: 20px; height: 20px;">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                     <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
             </div>
-            <div>
+            <div style="flex:1;">
                 <div style="font-weight: 600; color: #166534;">Timetables Generated from Real Course Data!</div>
                 <div style="font-size: 13px; color: #15803D;">
-                    ${timetables.summary.totalCourses} courses • 
-                    ${timetables.summary.instructors.size} instructors • 
+                    ${timetables.summary.totalCourses} courses &bull;
+                    ${timetables.summary.instructors.size} instructors &bull;
                     ${majorNames.length} programs
                 </div>
             </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+                <button id="tt-save-btn" onclick="window.ttSaveAll()" style="display:flex;align-items:center;gap:7px;background:#166534;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save All to Database
+                </button>
+            </div>
         </div>
+        <div id="tt-save-status" style="display:none;margin-bottom:12px;"></div>
         
         <!-- Program Tabs -->
         <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; max-height: 100px; overflow-y: auto;">
@@ -6857,10 +11161,8 @@ function displayRealTimetableResults(timetables) {
     
     showToast(`Generated timetables for ${majorNames.length} programs with real course data!`, 'success');
     
-    // Save timetables to Supabase database
-    if (typeof saveTimetableToDatabase === 'function') {
-        saveTimetableToDatabase(timetables, majorNames);
-    }
+    // Timetable is auto-saved to localStorage above (in generateRealTimetables).
+    // Use the "Save All to Database" button (tt-save-btn) for explicit DB save.
 }
 
 // Generate HTML for major timetable - Weekly grid per LEVEL (from course code)
@@ -6986,9 +11288,14 @@ function generateMajorTimetableHTML(major, majorName) {
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     ${major.conflicts.map(c => `
                         <div style="background: white; padding: 10px 14px; border-radius: 6px; font-size: 12px; border-left: 3px solid #EF4444;">
-                            <strong>${c.level}:</strong> ${c.message}
-                            <div style="color: #6B7280; font-size: 11px; margin-top: 4px;">
-                                ${c.course1.timeDisplay} vs ${c.course2.timeDisplay}
+                            <div style="font-weight: 600; color: #B91C1C; margin-bottom: 3px;">
+                                ${c.type==='instructor'?'Instructor Conflict — '+(c.instructor||''):c.type==='level'?'Same-Level Overlap':c.type==='room'?'Room Conflict — '+(c.room||''):c.type}
+                            </div>
+                            <div style="color: #374151; margin-bottom: 2px;">
+                                <strong>${c.course1 || '?'}</strong> vs <strong>${c.course2 || '?'}</strong>
+                            </div>
+                            <div style="color: #6B7280; font-size: 11px;">
+                                ${c.day || ''} &nbsp;${c.time || ''}
                             </div>
                         </div>
                     `).join('')}
@@ -7019,19 +11326,28 @@ function generateMajorTimetableHTML(major, majorName) {
             });
         });
         
-        // Place courses in grid
+        // Place courses in grid - support both old {days,startTime} and new {lecDays,labDays}
         levelCourses.forEach(course => {
-            if (!course.days || !course.startTime) return;
-            
-            course.days.forEach(day => {
-                if (!gridData[day]) return;
-                
-                const startHour = parseInt(course.startTime.split(':')[0]);
-                const slotKey = `${startHour.toString().padStart(2, '0')}:00`;
-                
-                if (gridData[day][slotKey]) {
-                    gridData[day][slotKey].push(course);
-                }
+            const slots = [];
+            if (course.lecDays && course.lecDays.length && course.lecStart) {
+                slots.push({ days: course.lecDays, start: course.lecStart, end: course.lecEnd, room: course.lecRoom, type: 'Lecture' });
+            }
+            if (course.labDays && course.labDays.length && course.labStart) {
+                slots.push({ days: course.labDays, start: course.labStart, end: course.labEnd, room: course.labRoom, type: 'Lab' });
+            }
+            if (!slots.length && course.days && course.startTime) {
+                slots.push({ days: course.days, start: course.startTime, end: course.endTime, room: course.room, type: 'Lecture' });
+            }
+            course._displaySlots = slots;
+            slots.forEach(sl => {
+                sl.days.forEach(day => {
+                    if (!gridData[day]) return;
+                    const startHour = parseInt(sl.start.split(':')[0]);
+                    const slotKey = startHour.toString().padStart(2, '0') + ':00';
+                    if (gridData[day][slotKey]) {
+                        gridData[day][slotKey].push({ ...course, _activeSlot: sl });
+                    }
+                });
             });
         });
         
@@ -7099,10 +11415,13 @@ function generateMajorTimetableHTML(major, majorName) {
                                                         ${cellCourses.map(c => {
                                                             const color = courseColorMap[c.code] || defaultColor;
                                                             return `
-                                                                <div style="background: ${color.bg}; border-left: 3px solid ${color.border}; border-radius: 4px; padding: 6px 8px; margin-bottom: 2px; min-height: 50px; ${hasConflict ? 'border: 1px solid #EF4444;' : ''}">
-                                                                    <div style="font-weight: 600; font-size: 11px; color: ${color.text};">${c.code}</div>
-                                                                    <div style="font-size: 9px; color: ${color.text}; opacity: 0.8; margin-top: 2px;">${c.startTime} - ${c.endTime}</div>
-                                                                    <div style="font-size: 9px; color: ${color.text}; opacity: 0.7; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${(c.name || '').substring(0, 18)}</div>
+                                                                <div style="background: ${color.bg}; border-left: 3px solid ${color.border}; border-radius: 4px; padding: 6px 8px; margin-bottom: 2px; min-height: 52px; ${hasConflict ? 'border: 1px solid #EF4444;' : ''}">
+                                                                    <div style="font-weight: 700; font-size: 11px; color: ${color.text};">${c.code}</div>
+                                                                    <div style="font-size: 9px; color: ${color.text}; opacity: 0.85; margin-top: 2px;">${(c._activeSlot ? c._activeSlot.start + ' - ' + c._activeSlot.end : (c.startTime ? c.startTime + ' - ' + c.endTime : ''))}</div>
+                                                                    <div style="font-size: 9px; color: ${color.text}; opacity: 0.75; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${c.name || ''}">${(c.name || '').substring(0, 16)}</div>
+                                                                    ${(c._activeSlot && c._activeSlot.room) ? `<div style="font-size: 9px; color: ${color.text}; opacity: 0.65; margin-top: 1px;">${c._activeSlot.room}</div>` : ''}
+                                                                    <div style="font-size: 9px; font-weight: 600; color: ${color.text}; opacity: 0.9; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${c.instructor||''}">${(function(n){if(!n||n==='TBA')return 'TBA';const w=n.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.|Prof\.)\s*/i,'').trim().split(/\s+/);return (w[0]||'')+(w[1]?' '+w[1]:'');})(c.instructor)}</div>
+                                                                    ${(c._activeSlot && c._activeSlot.type === 'Lab') ? '<div style="font-size: 8px; font-weight: 700; color: #7C3AED; margin-top: 2px;">LAB</div>' : ''}
                                                                 </div>
                                                             `;
                                                         }).join('')}
@@ -7163,13 +11482,13 @@ function generateMajorTimetableHTML(major, majorName) {
                                         </td>
                                         <td style="padding: 10px 16px; color: #374151;">${c.name || ''}</td>
                                         <td style="padding: 10px 16px;">
-                                            <span style="padding: 4px 8px; background: ${color.bg}; color: ${color.text}; border-radius: 4px; font-size: 11px; font-weight: 500;">${c.timeDisplay}</span>
+                                            <span style="padding: 4px 8px; background: ${color.bg}; color: ${color.text}; border-radius: 4px; font-size: 11px; font-weight: 500;">${c._displaySlots && c._displaySlots.length ? c._displaySlots.map(s => s.days.join('/') + ' ' + s.start + '-' + s.end).join(', ') : (c.startTime ? c.startTime + '-' + c.endTime : 'TBD')}</span>
                                         </td>
                                         <td style="padding: 10px 16px; text-align: center;">
                                             <span style="padding: 3px 8px; background: ${lvlColor}15; color: ${lvlColor}; border: 1px solid ${lvlColor}; border-radius: 4px; font-size: 10px; font-weight: 600;">${c.level}</span>
                                         </td>
                                         <td style="padding: 10px 16px;">
-                                            <span style="padding: 3px 8px; background: ${c.method === 'Lab' ? '#F3E8FF' : '#F3F4F6'}; color: ${c.method === 'Lab' ? '#7C3AED' : '#374151'}; border-radius: 4px; font-size: 10px;">${c.method}</span>
+                                            <span style="padding: 3px 8px; background: ${c.method === 'Lab' ? '#F3E8FF' : '#F3F4F6'}; color: ${(c.labDays && c.labDays.length) ? '#7C3AED' : '#374151'}; border-radius: 4px; font-size: 10px;">${(c.labDays && c.labDays.length) ? 'Lab' : 'Lecture'}</span>
                                         </td>
                                         <td style="padding: 10px 16px; font-size: 11px; color: #6B7280;">${(c.instructor || 'TBA').substring(0, 30)}</td>
                                         <td style="padding: 10px 16px; text-align: center; font-weight: 600; color: #374151;">${c.credits}</td>
@@ -7197,6 +11516,77 @@ function getMethodColor(method) {
     if (method === 'Tutorial') return '#10B981';
     return '#6B7280';
 }
+
+// Fix schedule conflicts for a major by re-running generation with forced rescheduling
+window.fixScheduleConflicts = function(majorName) {
+    if (!window.generatedTimetables) {
+        showToast('No timetable loaded. Please generate first.', 'warning');
+        return;
+    }
+
+    const major = window.generatedTimetables.majors[majorName];
+    if (!major || !major.conflicts || major.conflicts.length === 0) {
+        showToast('No conflicts to fix for ' + majorName, 'info');
+        return;
+    }
+
+    showToast('Resolving ' + major.conflicts.length + ' conflict(s) for ' + majorName + '...', 'info');
+
+    // Collect the conflicting course codes that need rescheduling
+    const conflictCodes = new Set();
+    major.conflicts.forEach(c => {
+        if (c.course1) conflictCodes.add(c.course1);
+        if (c.course2) conflictCodes.add(c.course2);
+    });
+
+    // Remove conflicting courses from the timetable entries so they get re-scheduled
+    // by clearing their slots in the alloc timetable (so fallback scheduler runs)
+    let allocTT = null;
+    try { allocTT = JSON.parse(localStorage.getItem('cck_alloc_timetable_v1') || 'null'); } catch(e) {}
+    if (allocTT && allocTT.entries) {
+        conflictCodes.forEach(code => {
+            delete allocTT.entries[code];
+        });
+        try { localStorage.setItem('cck_alloc_timetable_v1', JSON.stringify(allocTT)); } catch(e) {}
+    }
+
+    // Also remove from static course sections cache so fresh slots are picked
+    // by temporarily marking them so buildRealTimetables uses Priority 3 (scheduler)
+    // We do this by regenerating the whole timetable for this major
+    setTimeout(() => {
+        try {
+            const selectedMajors = Object.keys(window.generatedTimetables.majors);
+            const newTimetables = buildRealTimetables(selectedMajors);
+            window.generatedTimetables = newTimetables;
+
+            const newMajor = newTimetables.majors[majorName];
+            const remaining = (newMajor && newMajor.conflicts) ? newMajor.conflicts.length : 0;
+
+            // Re-render the timetable display
+            const displayDiv = document.getElementById('timetable-display');
+            if (displayDiv && newMajor) {
+                displayDiv.innerHTML = generateMajorTimetableHTML(newMajor, majorName);
+            }
+
+            if (remaining === 0) {
+                showToast('All conflicts resolved for ' + majorName + '!', 'success');
+            } else {
+                showToast(remaining + ' conflict(s) remain for ' + majorName + '. Some may need manual review.', 'warning');
+            }
+
+            // Update the conflict progress bar
+            const conflictEl = document.querySelector('#stat-conflict p');
+            if (conflictEl) {
+                const totalConflicts = Object.values(newTimetables.majors)
+                    .reduce((s, m) => s + (m.conflicts ? m.conflicts.length : 0), 0);
+                conflictEl.textContent = totalConflicts === 0 ? '0 conflicts' : totalConflicts + ' remaining';
+            }
+        } catch(err) {
+            console.error('Fix conflicts error:', err);
+            showToast('Error fixing conflicts: ' + err.message, 'error');
+        }
+    }, 300);
+};
 
 // Switch major tab
 window.showMajorTimetable = function(majorName) {
@@ -7334,7 +11724,7 @@ window.exportTimetablePDF = function() {
                                         <td class="code">${c.code}</td>
                                         <td>${c.name || ''}</td>
                                         <td>${c.year?.replace('Year ', 'Y') || ''} ${c.semester?.replace('Semester ', 'S') || ''}</td>
-                                        <td><span class="time">${c.timeDisplay}</span></td>
+                                        <td><span class="time">${c._displaySlots && c._displaySlots.length ? c._displaySlots.map(s => s.days.join('/') + ' ' + s.start + '-' + s.end).join(', ') : (c.startTime ? c.startTime + '-' + c.endTime : 'TBD')}</span></td>
                                         <td>${c.duration}min</td>
                                         <td><span class="type-${c.method?.toLowerCase()}">${c.method}</span></td>
                                         <td>${(c.instructor || '').substring(0, 20)}${(c.instructor || '').length > 20 ? '...' : ''}</td>
@@ -7478,65 +11868,272 @@ function loadAnalytics() {
     
     const stats = calculateRealAnalytics();
     
+    // Calculate program distribution for currently enrolled
+    const enrolledByProgram = {};
+    const ACTIVE_SEMESTERS = ['Fall 2025', 'Spring 2025', 'Summer 2025', 'Fall 2024', 'Spring 2024'];
+    
+    (AppState.students || []).forEach(s => {
+        const admitTerm = s.admit_term || '';
+        let isActive = ACTIVE_SEMESTERS.includes(admitTerm);
+        
+        if (!isActive && admitTerm) {
+            const yearMatch = admitTerm.match(/(\d{4})/);
+            if (yearMatch) {
+                const admitYear = parseInt(yearMatch[1]);
+                const yearsEnrolled = 2025 - admitYear;
+                const major = (s.major || '').toLowerCase();
+                const isDiploma = major.includes('diploma');
+                const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                
+                if (isDiploma && yearsEnrolled < 3) isActive = true;
+                else if (isBachelor && yearsEnrolled < 5) isActive = true;
+                else if (yearsEnrolled < 3) isActive = true;
+            }
+        }
+        
+        if (isActive) {
+            const major = normalizeMajorForChart(s.major);
+            enrolledByProgram[major] = (enrolledByProgram[major] || 0) + 1;
+        }
+    });
+    
+    const topPrograms = Object.entries(enrolledByProgram)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    const totalEnrolled = Object.values(enrolledByProgram).reduce((a, b) => a + b, 0);
+    
     container.innerHTML = `
-        <!-- Gradient KPI Cards -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 28px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(102,126,234,0.4);">
-                <div style="position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                <div style="position: absolute; right: 30px; bottom: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.9;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <div style="font-size: 42px; font-weight: 800; margin-bottom: 4px; letter-spacing: -1px;">${stats.totalStudents}</div>
-                <div style="font-size: 14px; opacity: 0.9; font-weight: 500;">Total Students</div>
-                <div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Spring 2025 Semester</div>
+        <!-- Page Header -->
+        <div style="margin-bottom: 24px;">
+            <h2 style="font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">Reports & Analytics</h2>
+            <p style="font-size: 14px; color: #64748b;">Overview of student enrollment, courses, and institutional metrics</p>
+        </div>
+        
+        <!-- KPI Cards Row -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;">
+            <!-- Total Students Card -->
+            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Total Students</div>
+                        <div style="font-size: 36px; font-weight: 700; color: var(--cck-red); line-height: 1;">${stats.totalStudents.toLocaleString()}</div>
+                        <div style="font-size: 12px; color: var(--gray-500); margin-top: 8px;">All time records</div>
+                    </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2" style="width: 28px; height: 28px;">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                </div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 20px; padding: 28px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(245,87,108,0.4);">
-                <div style="position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                <div style="position: absolute; right: 30px; bottom: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.9;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                <div style="font-size: 42px; font-weight: 800; margin-bottom: 4px; letter-spacing: -1px;">${stats.totalEnrollments.toLocaleString()}</div>
-                <div style="font-size: 14px; opacity: 0.9; font-weight: 500;">Total Enrollments</div>
-                <div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">${stats.avgCoursesPerStudent.toFixed(1)} courses per student</div>
+            <!-- Currently Enrolled Card -->
+            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Currently Enrolled</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #059669; line-height: 1;">${stats.statusCounts.active}</div>
+                        <div style="font-size: 12px; color: #059669; margin-top: 8px;">${((stats.statusCounts.active/stats.totalStudents)*100).toFixed(1)}% of total</div>
+                    </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width: 28px; height: 28px;">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                </div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; padding: 28px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(79,172,254,0.4);">
-                <div style="position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                <div style="position: absolute; right: 30px; bottom: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.9;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                <div style="font-size: 42px; font-weight: 800; margin-bottom: 4px; letter-spacing: -1px;">${stats.totalCourses}</div>
-                <div style="font-size: 14px; opacity: 0.9; font-weight: 500;">Active Courses</div>
-                <div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">${stats.avgStudentsPerCourse.toFixed(0)} avg class size</div>
+            <!-- Active Courses Card -->
+            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Active Courses</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #2563EB; line-height: 1;">${stats.totalCourses}</div>
+                        <div style="font-size: 12px; color: #2563EB; margin-top: 8px;">${stats.avgStudentsPerCourse.toFixed(0)} avg class size</div>
+                    </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width: 28px; height: 28px;">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                </div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 20px; padding: 28px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(250,112,154,0.4);">
-                <div style="position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                <div style="position: absolute; right: 30px; bottom: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.9;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <div style="font-size: 42px; font-weight: 800; margin-bottom: 4px; letter-spacing: -1px;">${stats.totalInstructors}</div>
-                <div style="font-size: 14px; opacity: 0.9; font-weight: 500;">Instructors</div>
-                <div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">${stats.avgStudentsPerInstructor.toFixed(0)} students each</div>
+            <!-- Instructors Card -->
+            <div style="background: white; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Instructors</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #7C3AED; line-height: 1;">${stats.totalInstructors}</div>
+                        <div style="font-size: 12px; color: #7C3AED; margin-top: 8px;">${stats.avgStudentsPerInstructor.toFixed(0)} students each</div>
+                    </div>
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" style="width: 28px; height: 28px;">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <!-- Tab Navigation -->
-        <div style="background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden;">
-            <div style="display: flex; border-bottom: 2px solid #F3F4F6;">
-                <button onclick="showAnalyticsTab('enrollment')" id="tab-enrollment" class="analytics-tab-btn" style="flex: 1; padding: 18px 24px; background: white; border: none; font-size: 14px; font-weight: 600; color: #B91C1C; cursor: pointer; border-bottom: 3px solid #B91C1C; margin-bottom: -2px; transition: all 0.2s;">
-                    Enrollment Overview
-                </button>
-                <button onclick="showAnalyticsTab('courses')" id="tab-courses" class="analytics-tab-btn" style="flex: 1; padding: 18px 24px; background: white; border: none; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
-                    Course Analytics
-                </button>
-                <button onclick="showAnalyticsTab('instructors')" id="tab-instructors" class="analytics-tab-btn" style="flex: 1; padding: 18px 24px; background: white; border: none; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
-                    Instructor Performance
-                </button>
-                <button onclick="showAnalyticsTab('schedule')" id="tab-schedule" class="analytics-tab-btn" style="flex: 1; padding: 18px 24px; background: white; border: none; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
-                    Schedule Analysis
-                </button>
+        <!-- Main Content Grid -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px;">
+            <!-- Left Column: Enrollment by Program -->
+            <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="padding: 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Enrollment by Program</h3>
+                        <p style="font-size: 13px; color: var(--gray-500);">Currently enrolled students by major</p>
+                    </div>
+                    <select id="program-view-filter" onchange="filterProgramChart(this.value)" style="padding: 8px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; background: white;">
+                        <option value="semester">Currently Enrolled</option>
+                        <option value="all">All Time</option>
+                        <option value="new">New This Semester</option>
+                        <option value="graduated">Graduated</option>
+                    </select>
+                </div>
+                <div id="program-chart-container" style="padding: 20px; max-height: 400px; overflow-y: auto;">
+                    ${renderProgramBars('semester', totalEnrolled, [
+                        'linear-gradient(135deg, #667eea, #764ba2)',
+                        'linear-gradient(135deg, #f093fb, #f5576c)',
+                        'linear-gradient(135deg, #4facfe, #00f2fe)',
+                        'linear-gradient(135deg, #fa709a, #fee140)',
+                        'linear-gradient(135deg, #a8edea, #fed6e3)'
+                    ])}
+                </div>
             </div>
             
-            <div id="analytics-content" style="padding: 28px;">
-                ${generateEnrollmentAnalytics(stats)}
+            <!-- Right Column: Status & Quick Stats -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Enrollment Status -->
+                <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 20px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Enrollment Status</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #DCFCE7; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 10px; height: 10px; background: #22c55e; border-radius: 50%;"></div>
+                                <span style="font-weight: 500; color: #166534;">Active</span>
+                            </div>
+                            <span style="font-size: 18px; font-weight: 700; color: #22c55e;">${stats.statusCounts.active}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #DBEAFE; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 10px; height: 10px; background: #3b82f6; border-radius: 50%;"></div>
+                                <span style="font-weight: 500; color: #1e40af;">Graduated</span>
+                            </div>
+                            <span style="font-size: 18px; font-weight: 700; color: #3b82f6;">${stats.statusCounts.graduated}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #FEF3C7; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 10px; height: 10px; background: #f59e0b; border-radius: 50%;"></div>
+                                <span style="font-weight: 500; color: #92400e;">Inactive</span>
+                            </div>
+                            <span style="font-size: 18px; font-weight: 700; color: #f59e0b;">${stats.statusCounts.inactive}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Program Type Distribution -->
+                <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 20px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Program Types</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 13px; color: var(--gray-600);">Diploma (2-year)</span>
+                            <span style="font-size: 15px; font-weight: 600; color: #667eea;">${stats.programType.diploma}</span>
+                        </div>
+                        <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: ${(stats.programType.diploma/stats.totalStudents)*100}%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 13px; color: var(--gray-600);">Bachelor (4-year)</span>
+                            <span style="font-size: 15px; font-weight: 600; color: #f5576c;">${stats.programType.bachelor}</span>
+                        </div>
+                        <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: ${(stats.programType.bachelor/stats.totalStudents)*100}%; background: linear-gradient(90deg, #f093fb, #f5576c); border-radius: 4px;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 13px; color: var(--gray-600);">Foundation</span>
+                            <span style="font-size: 15px; font-weight: 600; color: #22c55e;">${stats.programType.foundation || 0}</span>
+                        </div>
+                        <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: ${((stats.programType.foundation || 0)/stats.totalStudents)*100}%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Section: Tables -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Top Courses Table -->
+            <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="padding: 20px; border-bottom: 1px solid var(--gray-100);">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Top Enrolled Courses</h3>
+                    <p style="font-size: 13px; color: var(--gray-500);">Courses with highest enrollment this semester</p>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="position: sticky; top: 0; background: var(--gray-50);">
+                            <tr>
+                                <th style="text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Course</th>
+                                <th style="text-align: right; padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Students</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stats.topCourses.slice(0, 8).map((course, i) => `
+                                <tr style="border-bottom: 1px solid var(--gray-100);">
+                                    <td style="padding: 12px 20px;">
+                                        <div style="font-weight: 500; color: var(--gray-900);">${course.code}</div>
+                                        <div style="font-size: 12px; color: var(--gray-500); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${course.name}</div>
+                                    </td>
+                                    <td style="padding: 12px 20px; text-align: right;">
+                                        <span style="display: inline-block; padding: 4px 12px; background: ${i < 3 ? '#EEF2FF' : 'var(--gray-100)'}; color: ${i < 3 ? '#4F46E5' : 'var(--gray-600)'}; border-radius: 20px; font-weight: 600; font-size: 13px;">${course.count}</span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Top Instructors Table -->
+            <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="padding: 20px; border-bottom: 1px solid var(--gray-100);">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Instructor Workload</h3>
+                    <p style="font-size: 13px; color: var(--gray-500);">Faculty members by student count</p>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="position: sticky; top: 0; background: var(--gray-50);">
+                            <tr>
+                                <th style="text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Instructor</th>
+                                <th style="text-align: right; padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">Students</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stats.instructorWorkload.slice(0, 8).map((inst, i) => {
+                                const loadColor = inst.students >= 150 ? '#EF4444' : inst.students >= 80 ? '#F59E0B' : '#22C55E';
+                                const loadBg = inst.students >= 150 ? '#FEF2F2' : inst.students >= 80 ? '#FFFBEB' : '#F0FDF4';
+                                return `
+                                    <tr style="border-bottom: 1px solid var(--gray-100);">
+                                        <td style="padding: 12px 20px;">
+                                            <div style="font-weight: 500; color: var(--gray-900); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${inst.name}</div>
+                                        </td>
+                                        <td style="padding: 12px 20px; text-align: right;">
+                                            <span style="display: inline-block; padding: 4px 12px; background: ${loadBg}; color: ${loadColor}; border-radius: 20px; font-weight: 600; font-size: 13px;">${inst.students}</span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
@@ -7580,9 +12177,128 @@ function calculateRealAnalytics() {
     const avgStudentsPerInstructor = Object.keys(instructorStudents).length > 0
         ? totalEnrollments / Object.keys(instructorStudents).length : 0;
     
+    // Normalize major names to avoid duplicates
+    function normalizeMajor(major) {
+        if (!major || major === 'Unknown' || major === '') return 'Unknown';
+        
+        let m = major.trim();
+        
+        // Standard major name mappings
+        const majorMappings = {
+            // Bachelor of Applied Sciences - Computer Science
+            'Bachelor of Applied Sciences (BASc) - Computer Science': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            'Bachelor of Applied Sciences (BASc) in Computer Sciences - Computer Programming': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            'BASc Computer Science': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            'BASc - Computer Science': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            'BASc: Computer Science': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            'BASc: Computer Programming': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            'Bachelor of Applied Sciences (BASc) - Computer Programming': 'Bachelor of Applied Sciences (BASc) - Computer Science',
+            
+            // Bachelor of Business Administration - Accounting
+            'Bachelor of Business Administration (BBA) Accounting': 'Bachelor of Business Administration (BBA) - Accounting',
+            'Bachelor of Business Administration (BBA) - Accounting': 'Bachelor of Business Administration (BBA) - Accounting',
+            'Bachelor of Business Administration (BBA) Accounting (External Students)': 'Bachelor of Business Administration (BBA) - Accounting (External)',
+            'BBA Accounting': 'Bachelor of Business Administration (BBA) - Accounting',
+            'BBA - Accounting': 'Bachelor of Business Administration (BBA) - Accounting',
+            'BBA: Accounting': 'Bachelor of Business Administration (BBA) - Accounting',
+            
+            // Bachelor of Business Administration - Management
+            'Bachelor of Business Administration (BBA) - Management and Entrepreneurship': 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship',
+            'Bachelor of Business Administration (BBA) Management and Entrepreneurship': 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship',
+            'Bachelor of Business Administration (BBA) - Management and Entrepreneurship (Marketing Stream)': 'Bachelor of Business Administration (BBA) - Marketing Stream',
+            'BBA Management': 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship',
+            'BBA - Management': 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship',
+            'BBA: Mgmt & Entr.': 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship',
+            
+            // Diploma - Accounting
+            'Diploma of Business – Accounting': 'Diploma of Business - Accounting',
+            'Diploma of Business - Accounting': 'Diploma of Business - Accounting',
+            'Diploma: Accounting': 'Diploma of Business - Accounting',
+            'Diploma Accounting': 'Diploma of Business - Accounting',
+            
+            // Diploma - Computer Programming
+            'Diploma of Computer Programming': 'Diploma of Computer Programming',
+            'Diploma: Computer Programming': 'Diploma of Computer Programming',
+            'Diploma Computer Programming': 'Diploma of Computer Programming',
+            
+            // Diploma - Web Development
+            'Diploma of Internet Applications and Web Development': 'Diploma of Internet Applications & Web Development',
+            'Diploma: Internet Applications and Web Development': 'Diploma of Internet Applications & Web Development',
+            'Diploma Internet Applications': 'Diploma of Internet Applications & Web Development',
+            
+            // Diploma - Management
+            'Diploma of Business – Management and Entrepreneurship': 'Diploma of Business - Management & Entrepreneurship',
+            'Diploma of Business - Management and Entrepreneurship': 'Diploma of Business - Management & Entrepreneurship',
+            'Diploma: Mgmt & Entr.': 'Diploma of Business - Management & Entrepreneurship',
+            'Diploma Management': 'Diploma of Business - Management & Entrepreneurship',
+            
+            // Diploma - Marketing
+            'Diploma of Business – Marketing': 'Diploma of Business - Marketing',
+            'Diploma of Business - Marketing': 'Diploma of Business - Marketing',
+            'Diploma: Marketing': 'Diploma of Business - Marketing',
+            'Diploma Marketing': 'Diploma of Business - Marketing',
+            
+            // Foundation
+            'Foundation Program': 'Foundation Program',
+            'Foundation': 'Foundation Program',
+            'IEP': 'Foundation Program'
+        };
+        
+        // Check exact match first
+        if (majorMappings[m]) {
+            return majorMappings[m];
+        }
+        
+        // Check case-insensitive match
+        const lowerM = m.toLowerCase();
+        for (const [key, value] of Object.entries(majorMappings)) {
+            if (key.toLowerCase() === lowerM) {
+                return value;
+            }
+        }
+        
+        // Try to standardize based on keywords
+        if (lowerM.includes('basc') && lowerM.includes('computer')) {
+            return 'Bachelor of Applied Sciences (BASc) - Computer Science';
+        }
+        if (lowerM.includes('bba') && lowerM.includes('account')) {
+            if (lowerM.includes('external')) {
+                return 'Bachelor of Business Administration (BBA) - Accounting (External)';
+            }
+            return 'Bachelor of Business Administration (BBA) - Accounting';
+        }
+        if (lowerM.includes('bba') && lowerM.includes('market')) {
+            return 'Bachelor of Business Administration (BBA) - Marketing Stream';
+        }
+        if (lowerM.includes('bba') && (lowerM.includes('manage') || lowerM.includes('mgmt') || lowerM.includes('entr'))) {
+            return 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship';
+        }
+        if (lowerM.includes('diploma') && lowerM.includes('account')) {
+            return 'Diploma of Business - Accounting';
+        }
+        if (lowerM.includes('diploma') && lowerM.includes('program')) {
+            return 'Diploma of Computer Programming';
+        }
+        if (lowerM.includes('diploma') && (lowerM.includes('web') || lowerM.includes('internet'))) {
+            return 'Diploma of Internet Applications & Web Development';
+        }
+        if (lowerM.includes('diploma') && (lowerM.includes('manage') || lowerM.includes('mgmt') || lowerM.includes('entr'))) {
+            return 'Diploma of Business - Management & Entrepreneurship';
+        }
+        if (lowerM.includes('diploma') && lowerM.includes('market')) {
+            return 'Diploma of Business - Marketing';
+        }
+        if (lowerM.includes('foundation') || lowerM.includes('iep')) {
+            return 'Foundation Program';
+        }
+        
+        // Return original if no match
+        return m;
+    }
+    
     const majorCounts = {};
     students.forEach(s => {
-        const major = s.major || 'Unknown';
+        const major = normalizeMajor(s.major);
         if (!majorCounts[major]) majorCounts[major] = 0;
         majorCounts[major]++;
     });
@@ -7592,6 +12308,136 @@ function calculateRealAnalytics() {
         const level = s.level || 'Unknown';
         if (!levelCounts[level]) levelCounts[level] = 0;
         levelCounts[level]++;
+    });
+    
+    // Calculate semester-based enrollment from admit_term
+    const semesterCounts = {
+        'Spring 2026': 0,
+        'Fall 2025': 0,
+        'Spring 2025': 0,
+        'Fall 2024': 0,
+        'Spring 2024': 0,
+        'Fall 2023': 0,
+        'Earlier': 0
+    };
+    
+    students.forEach(s => {
+        const admitTerm = s.admit_term || '';
+        if (semesterCounts.hasOwnProperty(admitTerm)) {
+            semesterCounts[admitTerm]++;
+        } else if (admitTerm) {
+            semesterCounts['Earlier']++;
+        } else {
+            semesterCounts['Earlier']++;
+        }
+    });
+    
+    // Calculate enrollment status distribution
+    const statusCounts = {
+        'active': 0,
+        'inactive': 0,
+        'graduated': 0,
+        'unknown': 0
+    };
+    
+    const CURRENT_YEAR = 2025;
+    const CURRENT_SEMESTER = 'Fall 2025'; // Current active semester
+    const ACTIVE_SEMESTERS = ['Fall 2025', 'Spring 2025', 'Summer 2025', 'Fall 2024', 'Spring 2024'];
+    
+    students.forEach(s => {
+        // Try to get status from data first
+        let status = (s.enrollment_status || s.status || '').toLowerCase().trim();
+        
+        // If status is unknown or empty, calculate from admission data
+        if (!status || status === 'unknown' || status === '') {
+            // FIRST: Check admit_term (most reliable for active status)
+            const admitTerm = s.admit_term || '';
+            
+            if (ACTIVE_SEMESTERS.includes(admitTerm)) {
+                // Recently admitted = Active
+                status = 'active';
+            } else if (admitTerm) {
+                // Has admit_term but it's older
+                const yearMatch = admitTerm.match(/(\d{4})/);
+                if (yearMatch) {
+                    const admitYear = parseInt(yearMatch[1]);
+                    const yearsEnrolled = CURRENT_YEAR - admitYear;
+                    
+                    // Check program type for graduation timeline
+                    const major = (s.major || '').toLowerCase();
+                    const isDiploma = major.includes('diploma');
+                    const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                    
+                    if (isDiploma && yearsEnrolled >= 3) {
+                        status = 'graduated';
+                    } else if (isBachelor && yearsEnrolled >= 5) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled >= 6) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled <= 2) {
+                        status = 'active';
+                    } else if (yearsEnrolled === 3 && isBachelor) {
+                        status = 'active'; // Bachelor Year 3
+                    } else if (yearsEnrolled === 4 && isBachelor) {
+                        status = 'active'; // Bachelor Year 4
+                    } else {
+                        status = 'inactive';
+                    }
+                } else {
+                    status = 'unknown';
+                }
+            } else {
+                // No admit_term, try entry_year or student_id
+                let entryYear = s.entry_year;
+                
+                // Try to extract from student_id (e.g., "202100123")
+                if (!entryYear && s.student_id) {
+                    const idStr = String(s.student_id);
+                    if (idStr.length >= 4) {
+                        const yearPrefix = parseInt(idStr.substring(0, 4));
+                        if (yearPrefix >= 2010 && yearPrefix <= CURRENT_YEAR) {
+                            entryYear = yearPrefix;
+                        }
+                    }
+                }
+                
+                if (entryYear) {
+                    const yearsEnrolled = CURRENT_YEAR - entryYear;
+                    const major = (s.major || '').toLowerCase();
+                    const isDiploma = major.includes('diploma');
+                    const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                    
+                    if (s.exit_year && s.exit_year < CURRENT_YEAR - 1) {
+                        status = 'graduated';
+                    } else if (isDiploma && yearsEnrolled >= 3) {
+                        status = 'graduated';
+                    } else if (isBachelor && yearsEnrolled >= 5) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled >= 6) {
+                        status = 'graduated';
+                    } else if (yearsEnrolled <= 2) {
+                        status = 'active';
+                    } else if (isBachelor && yearsEnrolled <= 4) {
+                        status = 'active';
+                    } else {
+                        status = 'inactive';
+                    }
+                } else {
+                    status = 'unknown';
+                }
+            }
+        }
+        
+        // Normalize status values
+        if (status === 'enrolled' || status === 'current') status = 'active';
+        if (status === 'completed' || status === 'alumni') status = 'graduated';
+        if (status === 'stopped' || status === 'dropped' || status === 'withdrawn') status = 'inactive';
+        
+        if (statusCounts.hasOwnProperty(status)) {
+            statusCounts[status]++;
+        } else {
+            statusCounts['unknown']++;
+        }
     });
     
     const topCourses = Object.entries(courseEnrollments)
@@ -7606,18 +12452,39 @@ function calculateRealAnalytics() {
         .sort((a, b) => b[1] - a[1])
         .map(([name, count]) => ({ name, students: count }));
     
-    const programType = { diploma: 0, bachelor: 0 };
+    const programType = { diploma: 0, bachelor: 0, foundation: 0 };
     students.forEach(s => {
-        const major = (s.major || '').toLowerCase();
-        if (major.includes('diploma')) programType.diploma++;
+        const major = normalizeMajor(s.major).toLowerCase();
+        if (major.includes('foundation')) programType.foundation++;
+        else if (major.includes('diploma')) programType.diploma++;
         else if (major.includes('bachelor') || major.includes('bba') || major.includes('basc')) programType.bachelor++;
     });
     
     return {
         totalStudents, totalCourses, totalInstructors, totalEnrollments,
         avgCoursesPerStudent, avgStudentsPerCourse, avgStudentsPerInstructor,
-        majorCounts, levelCounts, topCourses, instructorWorkload, courseEnrollments, programType
+        majorCounts, levelCounts, topCourses, instructorWorkload, courseEnrollments, programType,
+        semesterCounts, statusCounts
     };
+}
+
+// Helper function to generate semester cards
+function generateSemesterCards(stats) {
+    const colors = ['#667eea', '#f5576c', '#4facfe', '#fa709a', '#22c55e', '#f59e0b', '#6b7280'];
+    const semesters = Object.entries(stats.semesterCounts)
+        .filter(([sem, count]) => count > 0 || ['Spring 2026', 'Fall 2025', 'Spring 2025', 'Fall 2024'].includes(sem));
+    
+    return semesters.map(([semester, count], i) => {
+        const color = colors[i % colors.length];
+        const pct = stats.totalStudents > 0 ? ((count / stats.totalStudents) * 100).toFixed(1) : 0;
+        return `
+            <div style="background: linear-gradient(135deg, ${color}10, ${color}05); border: 1px solid ${color}30; border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 28px; font-weight: 800; color: ${color};">${count}</div>
+                <div style="font-size: 12px; font-weight: 600; color: #374151; margin-top: 4px;">${semester}</div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${pct}%</div>
+            </div>
+        `;
+    }).join('');
 }
 
 function showAnalyticsTab(tab) {
@@ -7644,11 +12511,11 @@ function showAnalyticsTab(tab) {
     }
 }
 
-function generateEnrollmentAnalytics(stats) {
-    const majors = Object.entries(stats.majorCounts).sort((a, b) => b[1] - a[1]);
-    const maxMajor = majors.length > 0 ? majors[0][1] : 1;
-    const levels = Object.entries(stats.levelCounts).sort((a,b) => a[0].localeCompare(b[0]));
-    const maxLevel = Math.max(...Object.values(stats.levelCounts), 1);
+// Filter program chart by status
+window.filterProgramChart = function(filter) {
+    const container = document.getElementById('program-chart-container');
+    if (!container) return;
+    
     const gradients = [
         'linear-gradient(135deg, #667eea, #764ba2)',
         'linear-gradient(135deg, #f093fb, #f5576c)',
@@ -7662,38 +12529,213 @@ function generateEnrollmentAnalytics(stats) {
         'linear-gradient(135deg, #ffecd2, #fcb69f)'
     ];
     
+    // Get filtered students
+    const filteredStudents = getFilteredStudentsForProgram(filter);
+    const totalFiltered = filteredStudents.length;
+    
+    container.innerHTML = renderProgramBars(filter, totalFiltered, gradients);
+};
+
+// Get students filtered by status
+function getFilteredStudentsForProgram(filter) {
+    const students = AppState.students || [];
+    const CURRENT_YEAR = 2025;
+    const ACTIVE_SEMESTERS = ['Fall 2025', 'Spring 2025', 'Summer 2025', 'Fall 2024', 'Spring 2024'];
+    
+    if (filter === 'all') {
+        return students;
+    }
+    
+    return students.filter(s => {
+        // Calculate status for this student
+        let status = (s.enrollment_status || s.status || '').toLowerCase().trim();
+        
+        if (!status || status === 'unknown' || status === '') {
+            const admitTerm = s.admit_term || '';
+            
+            if (ACTIVE_SEMESTERS.includes(admitTerm)) {
+                status = 'active';
+            } else if (admitTerm) {
+                const yearMatch = admitTerm.match(/(\d{4})/);
+                if (yearMatch) {
+                    const admitYear = parseInt(yearMatch[1]);
+                    const yearsEnrolled = CURRENT_YEAR - admitYear;
+                    const major = (s.major || '').toLowerCase();
+                    const isDiploma = major.includes('diploma');
+                    const isBachelor = major.includes('bachelor') || major.includes('bba') || major.includes('basc');
+                    
+                    if (isDiploma && yearsEnrolled >= 3) status = 'graduated';
+                    else if (isBachelor && yearsEnrolled >= 5) status = 'graduated';
+                    else if (yearsEnrolled >= 6) status = 'graduated';
+                    else if (yearsEnrolled <= 2) status = 'active';
+                    else if (isBachelor && yearsEnrolled <= 4) status = 'active';
+                    else status = 'inactive';
+                }
+            } else {
+                // Try student_id
+                let entryYear = null;
+                if (s.student_id) {
+                    const idStr = String(s.student_id);
+                    if (idStr.length >= 4) {
+                        const yearPrefix = parseInt(idStr.substring(0, 4));
+                        if (yearPrefix >= 2010 && yearPrefix <= CURRENT_YEAR) {
+                            entryYear = yearPrefix;
+                        }
+                    }
+                }
+                if (entryYear) {
+                    const yearsEnrolled = CURRENT_YEAR - entryYear;
+                    if (yearsEnrolled <= 2) status = 'active';
+                    else if (yearsEnrolled >= 4) status = 'graduated';
+                    else status = 'inactive';
+                }
+            }
+        }
+        
+        // Apply filter
+        if (filter === 'active') return status === 'active';
+        if (filter === 'graduated') return status === 'graduated';
+        // "This Semester" = Currently enrolled = Active students (not graduated)
+        if (filter === 'semester') return status === 'active';
+        // "New Admissions" = Students admitted this semester only
+        if (filter === 'new') return s.admit_term === 'Fall 2025';
+        
+        return true;
+    });
+}
+
+// Render program bars with filtered data
+function renderProgramBars(filter, totalStudents, gradients) {
+    const filteredStudents = getFilteredStudentsForProgram(filter);
+    
+    // Normalize and count majors
+    const majorCounts = {};
+    filteredStudents.forEach(s => {
+        const major = normalizeMajorForChart(s.major);
+        if (!majorCounts[major]) majorCounts[major] = 0;
+        majorCounts[major]++;
+    });
+    
+    const majors = Object.entries(majorCounts).sort((a, b) => b[1] - a[1]);
+    const maxMajor = majors.length > 0 ? majors[0][1] : 1;
+    const total = filteredStudents.length;
+    
+    if (majors.length === 0) {
+        return `<div style="text-align: center; padding: 40px; color: #64748b;">No students found for this filter</div>`;
+    }
+    
+    return majors.map(([major, count], i) => {
+        const shortName = major
+            .replace('Diploma of Business - ', 'Diploma: ')
+            .replace('Diploma of ', 'Diploma: ')
+            .replace('Bachelor of Business Administration (BBA) - ', 'BBA: ')
+            .replace('Bachelor of Applied Sciences (BASc) - ', 'BASc: ')
+            .replace('Management & Entrepreneurship', 'Mgmt & Entr.')
+            .replace('(External)', '(Ext.)')
+            .replace('Internet Applications & Web Development', 'Web Development');
+        const pct = total > 0 ? ((count/total)*100).toFixed(1) : '0.0';
+        return `
+            <div style="background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 13px; font-weight: 600; color: #334155;" title="${major}">${shortName}</span>
+                    <span style="font-size: 14px; font-weight: 700; color: #667eea;">${count} <span style="font-size: 11px; color: #94a3b8;">(${pct}%)</span></span>
+                </div>
+                <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
+                    <div style="height: 100%; width: ${(count/maxMajor)*100}%; background: ${gradients[i % gradients.length]}; border-radius: 5px; transition: width 0.5s ease;"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Normalize major names for chart (simplified version for performance)
+function normalizeMajorForChart(major) {
+    if (!major || major === 'Unknown' || major === '') return 'Unknown';
+    
+    const m = major.trim().toLowerCase();
+    
+    // Computer Science / Programming
+    if (m.includes('basc') && m.includes('computer')) {
+        return 'Bachelor of Applied Sciences (BASc) - Computer Science';
+    }
+    // BBA Accounting
+    if (m.includes('bba') && m.includes('account')) {
+        if (m.includes('external')) return 'Bachelor of Business Administration (BBA) - Accounting (External)';
+        return 'Bachelor of Business Administration (BBA) - Accounting';
+    }
+    // BBA Marketing
+    if (m.includes('bba') && m.includes('market')) {
+        return 'Bachelor of Business Administration (BBA) - Marketing Stream';
+    }
+    // BBA Management
+    if (m.includes('bba') && (m.includes('manage') || m.includes('mgmt') || m.includes('entr'))) {
+        return 'Bachelor of Business Administration (BBA) - Management & Entrepreneurship';
+    }
+    // Diploma Accounting
+    if (m.includes('diploma') && m.includes('account')) {
+        return 'Diploma of Business - Accounting';
+    }
+    // Diploma Programming
+    if (m.includes('diploma') && m.includes('program')) {
+        return 'Diploma of Computer Programming';
+    }
+    // Diploma Web Dev
+    if (m.includes('diploma') && (m.includes('web') || m.includes('internet'))) {
+        return 'Diploma of Internet Applications & Web Development';
+    }
+    // Diploma Management
+    if (m.includes('diploma') && (m.includes('manage') || m.includes('mgmt') || m.includes('entr'))) {
+        return 'Diploma of Business - Management & Entrepreneurship';
+    }
+    // Diploma Marketing
+    if (m.includes('diploma') && m.includes('market')) {
+        return 'Diploma of Business - Marketing';
+    }
+    // Foundation
+    if (m.includes('foundation') || m.includes('iep')) {
+        return 'Foundation Program';
+    }
+    
+    return major.trim();
+}
+
+function generateEnrollmentAnalytics(stats) {
+    const gradients = [
+        'linear-gradient(135deg, #667eea, #764ba2)',
+        'linear-gradient(135deg, #f093fb, #f5576c)',
+        'linear-gradient(135deg, #4facfe, #00f2fe)',
+        'linear-gradient(135deg, #fa709a, #fee140)',
+        'linear-gradient(135deg, #a8edea, #fed6e3)',
+        'linear-gradient(135deg, #d299c2, #fef9d7)',
+        'linear-gradient(135deg, #89f7fe, #66a6ff)',
+        'linear-gradient(135deg, #fddb92, #d1fdff)',
+        'linear-gradient(135deg, #c1dfc4, #deecdd)',
+        'linear-gradient(135deg, #ffecd2, #fcb69f)'
+    ];
+    
+    const levels = Object.entries(stats.levelCounts).sort((a,b) => a[0].localeCompare(b[0]));
+    const maxLevel = Math.max(...Object.values(stats.levelCounts), 1);
+    
     return `
         <div style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 28px; margin-bottom: 28px;">
-            <!-- Students by Program - Modern Bars -->
+            <!-- Students by Program - Modern Bars with Filter -->
             <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 16px; padding: 28px; border: 1px solid #e2e8f0;">
-                <h4 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 24px 0; display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    </div>
-                    Students by Program
-                </h4>
-                <div style="display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; padding-right: 12px;">
-                    ${majors.map(([major, count], i) => {
-                        const shortName = major.replace('Diploma of Business – ', 'Diploma: ')
-                            .replace('Diploma of ', 'Diploma: ')
-                            .replace('Bachelor of Business Administration (BBA) - ', 'BBA: ')
-                            .replace('Bachelor of Business Administration (BBA) ', 'BBA: ')
-                            .replace('Bachelor of Applied Sciences (BASc) in Computer Sciences - ', 'BASc: ')
-                            .replace('Management and Entrepreneurship', 'Mgmt & Entr.')
-                            .replace('(External Students)', '(Ext.)');
-                        const pct = ((count/stats.totalStudents)*100).toFixed(1);
-                        return `
-                            <div style="background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <span style="font-size: 13px; font-weight: 600; color: #334155;" title="${major}">${shortName}</span>
-                                    <span style="font-size: 14px; font-weight: 700; color: #667eea;">${count} <span style="font-size: 11px; color: #94a3b8;">(${pct}%)</span></span>
-                                </div>
-                                <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
-                                    <div style="height: 100%; width: ${(count/maxMajor)*100}%; background: ${gradients[i % gradients.length]}; border-radius: 5px; transition: width 0.5s ease;"></div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h4 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        Students by Program
+                    </h4>
+                    <select id="program-filter" onchange="filterProgramChart(this.value)" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-weight: 500; color: #334155; background: white; cursor: pointer; min-width: 160px;">
+                        <option value="all">All Time (Historical)</option>
+                        <option value="semester">Currently Enrolled</option>
+                        <option value="new">New This Semester</option>
+                        <option value="graduated">Graduated</option>
+                    </select>
+                </div>
+                <div id="program-chart-container" style="display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; padding-right: 12px;">
+                    ${renderProgramBars('all', stats.totalStudents, gradients)}
                 </div>
             </div>
             
@@ -7717,6 +12759,10 @@ function generateEnrollmentAnalytics(stats) {
                                     <stop offset="0%" style="stop-color:#f093fb"/>
                                     <stop offset="100%" style="stop-color:#f5576c"/>
                                 </linearGradient>
+                                <linearGradient id="foundationGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#22c55e"/>
+                                    <stop offset="100%" style="stop-color:#16a34a"/>
+                                </linearGradient>
                             </defs>
                             <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#e2e8f0" stroke-width="6"/>
                             <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="url(#diplomaGrad)" stroke-width="6" 
@@ -7724,6 +12770,9 @@ function generateEnrollmentAnalytics(stats) {
                             <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="url(#bachelorGrad)" stroke-width="6" 
                                 stroke-dasharray="${(stats.programType.bachelor/stats.totalStudents)*100} ${100-(stats.programType.bachelor/stats.totalStudents)*100}" 
                                 stroke-dashoffset="-${(stats.programType.diploma/stats.totalStudents)*100}" stroke-linecap="round"/>
+                            <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="url(#foundationGrad)" stroke-width="6" 
+                                stroke-dasharray="${((stats.programType.foundation || 0)/stats.totalStudents)*100} ${100-((stats.programType.foundation || 0)/stats.totalStudents)*100}" 
+                                stroke-dashoffset="-${((stats.programType.diploma + stats.programType.bachelor)/stats.totalStudents)*100}" stroke-linecap="round"/>
                         </svg>
                         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
                             <div style="font-size: 36px; font-weight: 800; color: #1e293b;">${stats.totalStudents}</div>
@@ -7749,6 +12798,16 @@ function generateEnrollmentAnalytics(stats) {
                             <div style="text-align: right;">
                                 <div style="font-size: 22px; font-weight: 800; color: #f5576c;">${stats.programType.bachelor}</div>
                                 <div style="font-size: 11px; color: #64748b;">${((stats.programType.bachelor/stats.totalStudents)*100).toFixed(1)}%</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: white; border-radius: 12px; border-left: 4px solid #22c55e; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                            <div style="flex: 1;">
+                                <div style="font-size: 14px; font-weight: 600; color: #334155;">Foundation Program</div>
+                                <div style="font-size: 11px; color: #64748b;">Pre-degree preparation</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 22px; font-weight: 800; color: #22c55e;">${stats.programType.foundation || 0}</div>
+                                <div style="font-size: 11px; color: #64748b;">${(((stats.programType.foundation || 0)/stats.totalStudents)*100).toFixed(1)}%</div>
                             </div>
                         </div>
                     </div>
@@ -8464,7 +13523,8 @@ function loadStudentCourses(student) {
     const studyPlan = AppState.studyPlans[studyPlanKey];
     
     // Get current semester number from level
-    const levelMatch = (student.level || 'Level 01').match(/\d+/);
+    const levelStr = String(student.level || 'Level 01');
+    const levelMatch = levelStr.match(/\d+/);
     const currentSemester = levelMatch ? parseInt(levelMatch[0]) : 1;
     const nextSemester = currentSemester + 1;
     
@@ -8757,3 +13817,741 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// ==================== COURSE REGISTRATION REQUEST SYSTEM ====================
+
+// Store registration requests globally
+if (!window.RegistrationRequests) {
+    // Load from localStorage if available
+    const saved = localStorage.getItem('cck_registration_requests');
+    window.RegistrationRequests = saved ? JSON.parse(saved) : [];
+}
+
+// Save registration requests to localStorage
+function saveRegistrationRequests() {
+    localStorage.setItem('cck_registration_requests', JSON.stringify(window.RegistrationRequests));
+}
+
+// Prerequisite checking system
+function checkPrerequisites(studentId, courseCode) {
+    const result = {
+        eligible: true,
+        issues: [],
+        warnings: []
+    };
+    
+    // Get student data
+    const student = findStudentById(studentId);
+    if (!student) {
+        result.eligible = false;
+        result.issues.push('Student not found');
+        return result;
+    }
+    
+    // Get completed courses (from enrollments/grades)
+    const completedCourses = getCompletedCourses(studentId);
+    
+    // Find course in study plans
+    let course = null;
+    let studyPlanKey = null;
+    for (const key in AppState.studyPlans) {
+        const found = AppState.studyPlans[key].courses?.find(c => c.code === courseCode);
+        if (found) {
+            course = found;
+            studyPlanKey = key;
+            break;
+        }
+    }
+    
+    if (!course) {
+        // Check in regular courses
+        course = AppState.courses.find(c => c.code === courseCode);
+    }
+    
+    if (!course) {
+        result.warnings.push('Course not found in study plan');
+        return result;
+    }
+    
+    // Check prerequisites
+    const prereqs = course.prerequisite || course.prerequisites || 'None';
+    if (prereqs && prereqs !== 'None' && prereqs !== '') {
+        const prereqList = prereqs.split(/[,&]/).map(p => p.trim()).filter(p => p && p !== 'None');
+        
+        prereqList.forEach(prereq => {
+            if (!completedCourses.includes(prereq)) {
+                result.eligible = false;
+                result.issues.push(`Prerequisite not completed: ${prereq}`);
+            }
+        });
+    }
+    
+    // Check level requirements
+    const studentLevel = getStudentLevelNumber(student.level);
+    const courseSemester = getSemesterNumber(course.semester);
+    const courseLevel = Math.ceil(courseSemester / 2);
+    
+    if (studentLevel < courseLevel - 1) {
+        result.warnings.push(`Course is for Level ${courseLevel}, student is at Level ${studentLevel}`);
+    }
+    
+    // Check if already enrolled
+    const currentEnrollments = AppState.enrollments.filter(e => e.student_id === studentId);
+    if (currentEnrollments.some(e => e.course_code === courseCode)) {
+        result.warnings.push('Student is already enrolled in this course');
+    }
+    
+    // Check credit limit (max 18 credits per semester typically)
+    const pendingCredits = calculatePendingCredits(studentId);
+    const courseCredits = course.credits || 3;
+    if (pendingCredits + courseCredits > 21) {
+        result.warnings.push(`Adding this course would exceed credit limit (${pendingCredits + courseCredits}/21 credits)`);
+    }
+    
+    return result;
+}
+
+// Get completed courses for a student
+function getCompletedCourses(studentId) {
+    const completed = [];
+    
+    // From historical grades
+    if (typeof window.historicalGradesData !== 'undefined') {
+        const studentGrades = window.historicalGradesData.filter(g => 
+            g.student_id === studentId && 
+            (g.grade === 'A' || g.grade === 'A+' || g.grade === 'B' || g.grade === 'B+' || 
+             g.grade === 'C' || g.grade === 'C+' || g.grade === 'D' || g.grade === 'D+' || 
+             g.grade === 'P' || g.grade === 'S')
+        );
+        studentGrades.forEach(g => {
+            if (!completed.includes(g.course_code)) {
+                completed.push(g.course_code);
+            }
+        });
+    }
+    
+    // From current enrollments (assume they'll complete)
+    const enrollments = AppState.enrollments.filter(e => e.student_id === studentId);
+    enrollments.forEach(e => {
+        if (!completed.includes(e.course_code)) {
+            completed.push(e.course_code);
+        }
+    });
+    
+    return completed;
+}
+
+// Get student level as number
+function getStudentLevelNumber(level) {
+    if (!level) return 1;
+    const levelStr = String(level).toLowerCase();
+    if (levelStr.includes('first') || levelStr === '1') return 1;
+    if (levelStr.includes('second') || levelStr === '2') return 2;
+    if (levelStr.includes('third') || levelStr === '3') return 3;
+    if (levelStr.includes('fourth') || levelStr === '4') return 4;
+    return 1;
+}
+
+// Get semester number
+function getSemesterNumber(semester) {
+    if (!semester) return 1;
+    const match = semester.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 1;
+}
+
+// Calculate pending credits for a student
+function calculatePendingCredits(studentId) {
+    let credits = 0;
+    
+    // From pending registration requests
+    const pendingRequests = window.RegistrationRequests.filter(r => 
+        r.studentId === studentId && r.status === 'pending'
+    );
+    
+    pendingRequests.forEach(req => {
+        req.courses.forEach(course => {
+            credits += course.credits || 3;
+        });
+    });
+    
+    return credits;
+}
+
+// Submit registration request from student portal
+window.submitRegistrationRequest = function(studentId, selectedCourses) {
+    const student = findStudentById(studentId);
+    if (!student) {
+        showToast('Student not found', 'error');
+        return false;
+    }
+    
+    if (!selectedCourses || selectedCourses.length === 0) {
+        showToast('Please select at least one course', 'error');
+        return false;
+    }
+    
+    // Validate all courses
+    const validationResults = [];
+    let hasBlockingIssues = false;
+    
+    selectedCourses.forEach(courseCode => {
+        const result = checkPrerequisites(studentId, courseCode);
+        validationResults.push({
+            courseCode,
+            ...result
+        });
+        if (!result.eligible) {
+            hasBlockingIssues = true;
+        }
+    });
+    
+    // Get course details
+    const coursesWithDetails = selectedCourses.map(code => {
+        let course = null;
+        for (const key in AppState.studyPlans) {
+            const found = AppState.studyPlans[key].courses?.find(c => c.code === code);
+            if (found) {
+                course = found;
+                break;
+            }
+        }
+        if (!course) {
+            course = AppState.courses.find(c => c.code === code);
+        }
+        return {
+            code,
+            name: course?.title || course?.name || code,
+            credits: course?.credits || 3,
+            semester: course?.semester || 'Unknown'
+        };
+    });
+    
+    // Create request
+    const request = {
+        id: Date.now(),
+        studentId: studentId,
+        studentName: student.name,
+        studentEmail: student.email || `${studentId}@cck.edu.kw`,
+        major: student.major,
+        level: student.level,
+        gpa: student.gpa,
+        courses: coursesWithDetails,
+        validation: validationResults,
+        hasIssues: hasBlockingIssues,
+        hasWarnings: validationResults.some(v => v.warnings.length > 0),
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+        reviewedAt: null,
+        reviewedBy: null,
+        reviewNotes: '',
+        emailSent: false
+    };
+    
+    window.RegistrationRequests.push(request);
+    saveRegistrationRequests();
+    
+    showToast('Registration request submitted successfully!', 'success');
+    return true;
+};
+
+// Admin: Approve registration request
+window.approveRegistrationRequest = function(requestId, notes = '') {
+    const request = window.RegistrationRequests.find(r => r.id === requestId);
+    if (!request) {
+        showToast('Request not found', 'error');
+        return;
+    }
+    
+    request.status = 'approved';
+    request.reviewedAt = new Date().toISOString();
+    request.reviewedBy = 'Admin';
+    request.reviewNotes = notes;
+    
+    saveRegistrationRequests();
+    
+    // Send approval email
+    sendRegistrationEmail(request, 'approved');
+    
+    showToast(`Registration approved for ${request.studentName}`, 'success');
+    loadCourseAdvising(); // Refresh the page
+};
+
+// Admin: Reject registration request
+window.rejectRegistrationRequest = function(requestId, reason = '') {
+    const request = window.RegistrationRequests.find(r => r.id === requestId);
+    if (!request) {
+        showToast('Request not found', 'error');
+        return;
+    }
+    
+    request.status = 'rejected';
+    request.reviewedAt = new Date().toISOString();
+    request.reviewedBy = 'Admin';
+    request.reviewNotes = reason;
+    
+    saveRegistrationRequests();
+    
+    // Send rejection email
+    sendRegistrationEmail(request, 'rejected');
+    
+    showToast(`Registration rejected for ${request.studentName}`, 'warning');
+    loadCourseAdvising(); // Refresh the page
+};
+
+// Admin: Request more info
+window.requestMoreInfo = function(requestId, message = '') {
+    const request = window.RegistrationRequests.find(r => r.id === requestId);
+    if (!request) {
+        showToast('Request not found', 'error');
+        return;
+    }
+    
+    request.status = 'needs_info';
+    request.reviewedAt = new Date().toISOString();
+    request.reviewNotes = message;
+    
+    saveRegistrationRequests();
+    
+    // Send info request email
+    sendRegistrationEmail(request, 'needs_info');
+    
+    showToast(`Information requested from ${request.studentName}`, 'info');
+    loadCourseAdvising();
+};
+
+// Send registration email (simulation - would connect to real email service)
+function sendRegistrationEmail(request, type) {
+    const emailTemplates = {
+        approved: {
+            subject: 'Course Registration Approved - CCK',
+            body: `Dear ${request.studentName},\n\nYour course registration request has been APPROVED.\n\nApproved Courses:\n${request.courses.map(c => `- ${c.code}: ${c.name} (${c.credits} credits)`).join('\n')}\n\nPlease complete your enrollment through the student portal.\n\nBest regards,\nCCK Registration Office`
+        },
+        rejected: {
+            subject: 'Course Registration Needs Attention - CCK',
+            body: `Dear ${request.studentName},\n\nYour course registration request requires attention.\n\nReason: ${request.reviewNotes || 'Please contact the registration office.'}\n\nPlease visit the registration office or contact your advisor.\n\nBest regards,\nCCK Registration Office`
+        },
+        needs_info: {
+            subject: 'Additional Information Required - CCK Registration',
+            body: `Dear ${request.studentName},\n\nWe need additional information regarding your course registration request.\n\nMessage: ${request.reviewNotes || 'Please contact the registration office.'}\n\nPlease respond to this email or visit the registration office.\n\nBest regards,\nCCK Registration Office`
+        }
+    };
+    
+    const template = emailTemplates[type];
+    if (!template) return;
+    
+    // Log email (in production, this would send actual email)
+    console.log('=== EMAIL NOTIFICATION ===');
+    console.log('To:', request.studentEmail);
+    console.log('Subject:', template.subject);
+    console.log('Body:', template.body);
+    console.log('==========================');
+    
+    request.emailSent = true;
+    saveRegistrationRequests();
+    
+    // Show notification
+    showToast(`Email sent to ${request.studentEmail}`, 'success');
+}
+
+// Show request details modal
+window.showRequestDetails = function(requestId) {
+    const request = window.RegistrationRequests.find(r => r.id === requestId);
+    if (!request) return;
+    
+    const modal = document.getElementById('modal');
+    const modalContent = modal.querySelector('.modal-content');
+    
+    const statusColors = {
+        pending: { bg: '#FEF3C7', color: '#92400E', text: 'Pending Review' },
+        approved: { bg: '#D1FAE5', color: '#065F46', text: 'Approved' },
+        rejected: { bg: '#FEE2E2', color: '#991B1B', text: 'Rejected' },
+        needs_info: { bg: '#DBEAFE', color: '#1E40AF', text: 'Needs Information' }
+    };
+    
+    const status = statusColors[request.status] || statusColors.pending;
+    
+    modalContent.innerHTML = `
+        <div class="modal-header">
+            <h2>Registration Request Details</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <!-- Student Info -->
+            <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--gray-50); border-radius: 12px; margin-bottom: 20px;">
+                <div style="width: 56px; height: 56px; background: var(--cck-red); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 700;">
+                    ${request.studentName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 18px; font-weight: 600; color: var(--gray-900);">${request.studentName}</div>
+                    <div style="font-size: 13px; color: var(--gray-500);">${request.studentId} • ${request.major || 'N/A'}</div>
+                    <div style="font-size: 12px; color: var(--gray-400);">Level: ${request.level || 'N/A'} • GPA: ${request.gpa || 'N/A'}</div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="display: inline-block; padding: 6px 14px; background: ${status.bg}; color: ${status.color}; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                        ${status.text}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Requested Courses -->
+            <h4 style="font-size: 14px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Requested Courses (${request.courses.length})</h4>
+            <div style="margin-bottom: 20px;">
+                ${request.courses.map((course, idx) => {
+                    const validation = request.validation[idx];
+                    const hasIssues = validation && !validation.eligible;
+                    const hasWarnings = validation && validation.warnings.length > 0;
+                    
+                    return `
+                        <div style="display: flex; align-items: center; padding: 12px; background: ${hasIssues ? '#FEF2F2' : hasWarnings ? '#FFFBEB' : '#F9FAFB'}; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${hasIssues ? '#DC2626' : hasWarnings ? '#F59E0B' : '#22C55E'};">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--gray-900);">${course.code}</div>
+                                <div style="font-size: 12px; color: var(--gray-600);">${course.name}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 12px; font-weight: 500; color: var(--gray-700);">${course.credits} cr</div>
+                                ${hasIssues ? `<div style="font-size: 10px; color: #DC2626;">⚠ ${validation.issues.join(', ')}</div>` : ''}
+                                ${hasWarnings ? `<div style="font-size: 10px; color: #F59E0B;">⚡ ${validation.warnings.join(', ')}</div>` : ''}
+                                ${!hasIssues && !hasWarnings ? `<div style="font-size: 10px; color: #22C55E;">✓ Eligible</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <!-- Validation Summary -->
+            ${request.hasIssues || request.hasWarnings ? `
+                <div style="padding: 16px; background: ${request.hasIssues ? '#FEF2F2' : '#FFFBEB'}; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="${request.hasIssues ? '#DC2626' : '#F59E0B'}" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span style="font-weight: 600; color: ${request.hasIssues ? '#DC2626' : '#F59E0B'};">
+                            ${request.hasIssues ? 'Prerequisite Issues Detected' : 'Warnings Detected'}
+                        </span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--gray-600); margin: 0;">
+                        ${request.hasIssues ? 'This request has prerequisite requirements that are not met. Please review carefully before approving.' : 'This request has warnings but may still be approvable with advisor discretion.'}
+                    </p>
+                </div>
+            ` : `
+                <div style="padding: 16px; background: #DCFCE7; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span style="font-weight: 600; color: #166534;">All Prerequisites Met</span>
+                    </div>
+                    <p style="font-size: 13px; color: #166534; margin: 4px 0 0 0;">Student is eligible for all requested courses.</p>
+                </div>
+            `}
+            
+            <!-- Admin Notes -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Admin Notes</label>
+                <textarea id="admin-review-notes" placeholder="Add notes for this request..." style="width: 100%; padding: 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 13px; min-height: 80px; resize: vertical;">${request.reviewNotes || ''}</textarea>
+            </div>
+            
+            <!-- Action Buttons -->
+            ${request.status === 'pending' || request.status === 'needs_info' ? `
+                <div style="display: flex; gap: 12px; padding-top: 16px; border-top: 1px solid var(--gray-100);">
+                    <button onclick="rejectRegistrationRequest(${request.id}, document.getElementById('admin-review-notes').value); closeModal();" 
+                        style="flex: 1; padding: 12px; background: #FEE2E2; color: #DC2626; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Reject
+                    </button>
+                    <button onclick="requestMoreInfo(${request.id}, document.getElementById('admin-review-notes').value); closeModal();" 
+                        style="flex: 1; padding: 12px; background: #DBEAFE; color: #1E40AF; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Request Info
+                    </button>
+                    <button onclick="approveRegistrationRequest(${request.id}, document.getElementById('admin-review-notes').value); closeModal();" 
+                        style="flex: 1; padding: 12px; background: #22C55E; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Approve
+                    </button>
+                </div>
+            ` : `
+                <div style="padding: 12px; background: var(--gray-50); border-radius: 8px; text-align: center;">
+                    <span style="font-size: 13px; color: var(--gray-600);">
+                        Reviewed on ${new Date(request.reviewedAt).toLocaleDateString()} by ${request.reviewedBy}
+                    </span>
+                </div>
+            `}
+            
+            <!-- Submitted Time -->
+            <div style="margin-top: 16px; text-align: center; font-size: 11px; color: var(--gray-400);">
+                Submitted: ${new Date(request.submittedAt).toLocaleString()}
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+};
+
+// Get registration request stats
+function getRegistrationRequestStats() {
+    const requests = window.RegistrationRequests || [];
+    return {
+        total: requests.length,
+        pending: requests.filter(r => r.status === 'pending').length,
+        approved: requests.filter(r => r.status === 'approved').length,
+        rejected: requests.filter(r => r.status === 'rejected').length,
+        needsInfo: requests.filter(r => r.status === 'needs_info').length,
+        withIssues: requests.filter(r => r.status === 'pending' && r.hasIssues).length
+    };
+}
+
+// Render pending registration requests for admin
+function renderPendingRegistrationRequests() {
+    const requests = window.RegistrationRequests || [];
+    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'needs_info');
+    
+    if (pendingRequests.length === 0) {
+        return `
+            <div style="text-align: center; padding: 40px 20px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" style="margin: 0 auto 12px;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div style="font-size: 14px; font-weight: 500; color: var(--gray-500); margin-bottom: 4px;">No Pending Requests</div>
+                <div style="font-size: 12px; color: var(--gray-400);">All registration requests have been processed</div>
+            </div>
+        `;
+    }
+    
+    return pendingRequests.slice(0, 10).map(request => {
+        const statusColors = {
+            pending: { bg: '#FEF3C7', color: '#92400E', icon: '⏳' },
+            needs_info: { bg: '#DBEAFE', color: '#1E40AF', icon: '❓' }
+        };
+        const status = statusColors[request.status] || statusColors.pending;
+        
+        return `
+            <div onclick="showRequestDetails(${request.id})" style="background: var(--gray-50); border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--gray-100); cursor: pointer; transition: all 0.2s; ${request.hasIssues ? 'border-left: 4px solid #DC2626;' : request.hasWarnings ? 'border-left: 4px solid #F59E0B;' : 'border-left: 4px solid #22C55E;'}">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 38px; height: 38px; background: ${request.hasIssues ? '#FEE2E2' : 'var(--cck-red)'}; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: ${request.hasIssues ? '#DC2626' : 'white'}; font-weight: 600; font-size: 12px;">
+                            ${request.studentName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                        </div>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${request.studentName}</div>
+                            <div style="font-size: 11px; color: var(--gray-500);">${request.studentId}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 10px; background: ${status.bg}; color: ${status.color}; padding: 4px 8px; border-radius: 12px; font-weight: 600;">
+                            ${status.icon} ${request.status === 'needs_info' ? 'Info Needed' : 'Pending'}
+                        </span>
+                        ${request.hasIssues ? `<div style="font-size: 9px; color: #DC2626; margin-top: 4px;">⚠ Has Issues</div>` : ''}
+                    </div>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
+                    ${request.courses.slice(0, 4).map(c => `
+                        <span style="font-size: 10px; background: var(--blue-100); color: var(--blue-600); padding: 3px 8px; border-radius: 4px; font-weight: 500;">${c.code}</span>
+                    `).join('')}
+                    ${request.courses.length > 4 ? `<span style="font-size: 10px; color: var(--gray-400);">+${request.courses.length - 4}</span>` : ''}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 10px; color: var(--gray-400);">
+                        ${new Date(request.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div style="font-size: 10px; color: var(--gray-500);">
+                        ${request.courses.reduce((sum, c) => sum + (c.credits || 3), 0)} credits
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Update the loadCourseAdvising function to include registration requests
+const originalLoadCourseAdvising = loadCourseAdvising;
+loadCourseAdvising = function() {
+    const container = document.getElementById('section-advising');
+    if (!container) return;
+    
+    const advisingStats = getAdvisingStats();
+    const regStats = getRegistrationRequestStats();
+    
+    container.innerHTML = `
+        <!-- Stats Cards - Including Registration Requests -->
+        <div class="admin-stats-grid" style="grid-template-columns: repeat(5, 1fr);">
+            <div class="admin-stat-card" style="${regStats.pending > 0 ? 'border: 2px solid #F59E0B; background: #FFFBEB;' : ''}">
+                <div class="admin-stat-icon orange">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div class="admin-stat-value">${regStats.pending}</div>
+                <div class="admin-stat-label">Pending Requests</div>
+                <div class="admin-stat-change ${regStats.pending > 0 ? 'negative' : 'positive'}">${regStats.pending > 0 ? '⚠ Needs attention' : '✓ All clear'}</div>
+            </div>
+            
+            <div class="admin-stat-card" style="${regStats.withIssues > 0 ? 'border: 2px solid #DC2626; background: #FEF2F2;' : ''}">
+                <div class="admin-stat-icon" style="background: #FEE2E2; color: #DC2626;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="admin-stat-value">${regStats.withIssues}</div>
+                <div class="admin-stat-label">With Issues</div>
+                <div class="admin-stat-change negative">Prerequisites not met</div>
+            </div>
+            
+            <div class="admin-stat-card">
+                <div class="admin-stat-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <div class="admin-stat-value">${regStats.approved}</div>
+                <div class="admin-stat-label">Approved</div>
+                <div class="admin-stat-change positive">This semester</div>
+            </div>
+            
+            <div class="admin-stat-card">
+                <div class="admin-stat-icon blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <div class="admin-stat-value">${advisingStats.totalStudents}</div>
+                <div class="admin-stat-label">Students Advised</div>
+                <div class="admin-stat-change positive">Unique students</div>
+            </div>
+            
+            <div class="admin-stat-card">
+                <div class="admin-stat-icon purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                </div>
+                <div class="admin-stat-value">${advisingStats.totalCourses}</div>
+                <div class="admin-stat-label">Course Selections</div>
+                <div class="admin-stat-change positive">Total selections</div>
+            </div>
+        </div>
+        
+        <!-- Main Content - Three Column Layout -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 0.8fr; gap: 24px;">
+            <!-- Left: Registration Requests -->
+            <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: 600; color: var(--gray-900); margin: 0;">Student Registration Requests</h3>
+                        <p style="font-size: 12px; color: var(--gray-500); margin: 2px 0 0 0;">Review and approve student course registrations</p>
+                    </div>
+                    ${regStats.pending > 0 ? `<span style="background: #DC2626; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">${regStats.pending} pending</span>` : ''}
+                </div>
+                <div style="padding: 16px; max-height: 500px; overflow-y: auto;">
+                    ${renderPendingRegistrationRequests()}
+                </div>
+            </div>
+            
+            <!-- Middle: Advising Form -->
+            <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div style="padding: 16px 20px; border-bottom: 1px solid var(--gray-100);">
+                    <h3 style="font-size: 15px; font-weight: 600; color: var(--gray-900); margin: 0;">Manual Advising Session</h3>
+                    <p style="font-size: 12px; color: var(--gray-500); margin: 2px 0 0 0;">Record advisor-initiated course selections</p>
+                </div>
+                <div style="padding: 20px;">
+                    <form id="advising-form" onsubmit="submitAdvisingForm(event)">
+                        <!-- Student Search -->
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Search Student</label>
+                            <div style="position: relative;">
+                                <input type="text" id="student-search-input" placeholder="Enter Student ID or Name..." oninput="searchStudents(this.value)" autocomplete="off" style="width: 100%; padding: 10px 14px 10px 40px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px;">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                            </div>
+                            <div id="student-search-results" style="display: none; position: absolute; z-index: 100; width: calc(100% - 48px); max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow-lg); margin-top: 4px;"></div>
+                        </div>
+                        
+                        <!-- Selected Student Card -->
+                        <div id="selected-student-card" style="display: none; background: var(--gray-50); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; border: 1px solid var(--gray-200);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div id="student-avatar" style="width: 44px; height: 44px; background: var(--cck-red); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: 700;">--</div>
+                                <div style="flex: 1;">
+                                    <div id="student-name-display" style="font-size: 14px; font-weight: 600; color: var(--gray-900);">--</div>
+                                    <div id="student-id-display" style="font-size: 11px; color: var(--gray-500);">--</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span id="student-level-badge" style="font-size: 10px; background: var(--blue-100); color: var(--blue-600); padding: 3px 8px; border-radius: 12px; font-weight: 600;">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Course Selection -->
+                        <div id="course-selection-section" style="display: none;">
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Select Courses</label>
+                                <div id="available-courses-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 8px;"></div>
+                            </div>
+                            
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Notes</label>
+                                <textarea id="advisor-notes" placeholder="Add notes..." style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; min-height: 60px; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary" style="width: 100%;">Submit Advising Record</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Right: Recent Activity & Demand -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Recent Records -->
+                <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;">
+                    <div style="padding: 14px 16px; border-bottom: 1px solid var(--gray-100);">
+                        <h4 style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin: 0;">Recent Activity</h4>
+                    </div>
+                    <div style="padding: 12px; max-height: 250px; overflow-y: auto;" id="advising-records-list">
+                        ${renderAdvisingRecords()}
+                    </div>
+                </div>
+                
+                <!-- Course Demand -->
+                <div style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; flex: 1;">
+                    <div style="padding: 14px 16px; border-bottom: 1px solid var(--gray-100);">
+                        <h4 style="font-size: 14px; font-weight: 600; color: var(--gray-900); margin: 0;">Top Course Demand</h4>
+                    </div>
+                    <div style="padding: 12px;">
+                        ${renderDemandPreview()}
+                    </div>
+                </div>
+                
+                <!-- Export Button -->
+                <button onclick="exportAdvisingRecords()" style="padding: 12px; background: var(--gray-100); color: var(--gray-700); border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export Records
+                </button>
+            </div>
+        </div>
+    `;
+};
+
+// Make functions globally available
+window.renderPendingRegistrationRequests = renderPendingRegistrationRequests;
+window.getRegistrationRequestStats = getRegistrationRequestStats;
+window.checkPrerequisites = checkPrerequisites;
+// ==================== STAFF PORTAL LOGIN ====================
+// Staff portal credentials are handled directly in handleLoginable & Scheduling System
+// Complete Application with AI Scheduling
+
+// ==================== EMBEDDED STUDY PLANS DATA ====================
+// This data is embedded to avoid browser caching issues
+// Last updated: Dec 4, 2025

@@ -15,10 +15,26 @@ Browser ──► Cloudflare Worker (src/worker.js)
               └─ /api/*       login + data API ──► D1 database (cck-sis-db)
 ```
 
-| Who | Logs in with | Can see |
-|-----|--------------|---------|
-| Admin | `admin` + admin password | Everything |
-| Student | Student ID + Civil ID | Own record and grades; other students in course lists are anonymous |
+| Who | Logs in with | Opens | Can see / do |
+|-----|--------------|-------|--------------|
+| Admin | `admin` | Admin portal (+ every staff page) | Everything; approves portal submissions and student requests |
+| HOD | `hod` | `hod.html` | Assign courses to instructors, submit to admin |
+| Registration 1 | `reg1` | `registration1.html` | Course credits, submit to admin |
+| Registration 2 | `reg2` | `registration2.html` | Instructors: full/part time, qualification, hours, max credits |
+| Facility | `facility` | `facility.html` | Classrooms, labs, halls |
+| Course Structure | `nehad` | `nehad.html` | Lecture/lab structure and timetable slots |
+| Student | Student ID + Civil ID | Student portal / `student_hub.html` | Own record and grades; registration requests |
+
+All logins go through the server, and staff pages are blocked for anyone without the right login.
+
+### How the portals work together
+
+The portals keep their working data in `cck_*` keys (originally browser localStorage).
+`public/js/cck-store.js` stores those keys in the D1 table `shared_state`, so every user on
+every device sees the same data. A portal saves drafts and **submits**; the admin sees the
+submission under **Portal Review** and **approves** or returns it. Only the admin can approve
+(the server refuses an "approved" status from anyone else), and Course Allocation uses a
+portal's data only once it is approved.
 
 Passwords are checked on the server. Sessions use an HttpOnly cookie. After 5 wrong
 passwords from one address, login is locked for 15 minutes.
@@ -89,6 +105,9 @@ Cloudflare then builds and deploys each push to `main`. To use your own domain:
 | POST / PUT / DELETE | `/api/students[/:id]` | admin |
 | POST | `/api/query` | admin (allocations, timetables, sync) |
 | POST | `/api/admin/delete-all` | admin + password |
+| POST | `/api/admin/staff-password` | admin (set a staff account's password) |
+| GET | `/api/state` | logged in (shared portal data, filtered by role) |
+| PUT | `/api/state/:key` | logged in (write rules depend on role) |
 | GET | `/api/health` | anyone |
 
 ## Data statistics
