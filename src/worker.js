@@ -6,7 +6,8 @@
 
 const SESSION_COOKIE = 'cck_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
-const MAX_FAILED_LOGINS = 5;
+const MAX_FAILED_LOGINS = 5;        // per account, per address
+const MAX_FAILED_PER_IP = 50;       // whole address (a campus shares one public IP)
 const LOCKOUT_SECONDS = 15 * 60;
 // Kept modest so a login fits the Workers Free plan's 10 ms CPU budget.
 // Stored hashes record their own iteration count, so this can be raised later.
@@ -118,7 +119,7 @@ function randomToken() {
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-function timingSafeEqual(a, b) {
+export function timingSafeEqual(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -136,7 +137,7 @@ export async function hashPassword(password) {
   return `pbkdf2$${PBKDF2_ITERATIONS}$${b64(salt)}$${b64(bits)}`;
 }
 
-async function verifyPassword(password, stored) {
+export async function verifyPassword(password, stored) {
   const [scheme, iter, salt, hash] = String(stored || '').split('$');
   if (scheme !== 'pbkdf2' || !iter || !salt || !hash) return false;
   const bits = await pbkdf2(password, unb64(salt), parseInt(iter, 10));
@@ -169,11 +170,14 @@ async function requireSession(request, env, role) {
   return s;
 }
 
-async function tooManyAttempts(env, ip) {
+// Locks one account from one address after 5 failures, and a whole address after 50,
+// so one student mistyping can't lock out everyone behind the college's shared IP.
+async function tooManyAttempts(env, ip, loginId) {
   const since = Math.floor(Date.now() / 1000) - LOCKOUT_SECONDS;
-  const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM login_attempts WHERE ip = ? AND attempted_at > ?')
-    .bind(ip, since).first();
-  return (row?.n || 0) >= MAX_FAILED_LOGINS;
+  const row = await env.DB.prepare(
+    'SELECT COUNT(*) AS n, SUM(CASE WHEN login_id = ? THEN 1 ELSE 0 END) AS mine FROM login_attempts WHERE ip = ? AND attempted_at > ?'
+  ).bind(String(loginId).slice(0, 64), ip, since).first();
+  return (row?.mine || 0) >= MAX_FAILED_LOGINS || (row?.n || 0) >= MAX_FAILED_PER_IP;
 }
 
 async function recordFailure(env, ip, loginId) {
@@ -241,7 +245,7 @@ async function login(request, env) {
   if (!loginId || !password) throw new HttpError(400, 'Enter your ID and password');
 
   const ip = clientIp(request);
-  if (await tooManyAttempts(env, ip)) {
+  if (await tooManyAttempts(env, ip, loginId)) {
     throw new HttpError(429, 'Too many failed attempts. Try again in 15 minutes.');
   }
 
@@ -277,7 +281,7 @@ async function login(request, env) {
   await env.DB.batch([
     env.DB.prepare('INSERT INTO sessions (token, role, user_id, expires_at) VALUES (?, ?, ?, ?)').bind(token, role, userId, expires),
     env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(Math.floor(Date.now() / 1000)),
-    env.DB.prepare('DELETE FROM login_attempts WHERE ip = ?').bind(ip),
+    env.DB.prepare('DELETE FROM login_attempts WHERE ip = ? AND login_id = ?').bind(ip, loginId.slice(0, 64)),
   ]);
   const secure = new URL(request.url).protocol === 'https:';
   return json({ role, user, redirect: STAFF_PORTALS[role]?.page || null }, 200,
@@ -324,19 +328,20 @@ async function setStaffPassword(request, env) {
   const username = String(body.username || '');
   const next = String(body.new_password || '');
   if (next.length < 10) throw new HttpError(400, 'Password must be at least 10 characters');
-  const res = await env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').bind(await hashPassword(next), username).run();
+  // Only staff portal accounts; the admin changes their own password with the current one
+  const res = await env.DB.prepare("UPDATE admin_users SET password_hash = ? WHERE username = ? AND role != 'admin'").bind(await hashPassword(next), username).run();
   if (!res.meta.changes) throw new HttpError(404, 'No such account');
   await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND role != ?').bind(username, 'student').run();
   return json({ ok: true });
 }
 
 // ---------------------------------------------------------------- shared portal data
-function storageKeyFor(s, key) {
+export function storageKeyFor(s, key) {
   if (PER_USER_KEYS.has(key)) return `u:${s.user_id}:${key}`;
   return key;
 }
 
-function canRead(s, key) {
+export function canRead(s, key) {
   if (s.role === 'admin' || STAFF_ROLES.has(s.role)) return true;
   return STUDENT_READABLE_KEYS.has(key);
 }
@@ -346,7 +351,7 @@ function parseJson(v, fallback) {
 }
 
 // Students only see their own registration requests
-function filterForStudent(key, value, studentId) {
+export function filterForStudent(key, value, studentId) {
   if (key !== 'cck_registration_requests') return value;
   const list = parseJson(value, []);
   return JSON.stringify(Array.isArray(list) ? list.filter((r) => String(r.studentId) === String(studentId)) : []);
@@ -370,12 +375,58 @@ async function getState(request, env) {
   return json({ role: s.role, user_id: s.user_id, state, now: Date.now() });
 }
 
+// Rebuilds a student's registration request from known fields only. Identity fields come
+// from the database, not the browser, and free text is stripped of markup, so nothing a
+// student sends can run as script in the admin's review page.
+export const plainText = (v, max = 200) => String(v ?? '').replace(/[<>]/g, '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
+const COURSE_CODE_RE = /^[A-Za-z]{2,6}\s?-?\d{3,4}[A-Za-z]?$/;
+export function cleanRegistrationRequest(r, student, prev) {
+  const courses = (Array.isArray(r.courses) ? r.courses : []).slice(0, 12).map((c) => {
+    const code = plainText(c && c.code, 20);
+    if (!COURSE_CODE_RE.test(code)) throw new HttpError(400, 'Invalid course code');
+    return {
+      code,
+      name: plainText(c.name, 120),
+      credits: Math.min(Math.max(parseInt(c.credits, 10) || 3, 0), 12),
+      semester: plainText(c.semester, 40),
+    };
+  });
+  if (!courses.length) throw new HttpError(400, 'Select at least one course');
+  const validation = (Array.isArray(r.validation) ? r.validation : []).slice(0, 12).map((v) => ({
+    courseCode: plainText(v && v.courseCode, 20),
+    eligible: !!(v && v.eligible),
+    issues: (Array.isArray(v && v.issues) ? v.issues : []).slice(0, 10).map((m) => plainText(m, 200)),
+    warnings: (Array.isArray(v && v.warnings) ? v.warnings : []).slice(0, 10).map((w) => plainText(w, 200)),
+  }));
+  const id = Number.isFinite(Number(r.id)) ? Number(r.id) : Date.now();
+  return {
+    id,
+    studentId: student.student_id,
+    studentName: student.name,
+    studentEmail: student.email || `${student.student_id}@cck.edu.kw`,
+    major: student.major,
+    level: student.level,
+    gpa: student.gpa,
+    courses,
+    validation,
+    hasIssues: validation.some((v) => !v.eligible),
+    hasWarnings: validation.some((v) => v.warnings.length > 0),
+    status: 'pending',
+    submittedAt: prev?.submittedAt || new Date().toISOString(),
+    reviewedAt: null,
+    reviewedBy: null,
+    reviewNotes: '',
+    emailSent: false,
+  };
+}
+
 async function putState(request, env, key) {
   const s = await requireSession(request, env);
   if (!STATE_KEY_RE.test(key)) throw new HttpError(400, 'Invalid key');
   const body = await readJson(request);
   const remove = body.remove === true;
-  const value = remove ? null : String(body.value ?? '');
+  if (!remove && typeof body.value !== 'string') throw new HttpError(400, 'Expected { value: string } or { remove: true }');
+  const value = remove ? null : body.value;
   if (value && value.length > MAX_STATE_BYTES) throw new HttpError(413, 'Value too large');
   const isStaff = s.role === 'admin' || STAFF_ROLES.has(s.role);
   const storeKey = storageKeyFor(s, key);
@@ -388,16 +439,25 @@ async function putState(request, env, key) {
     } else if (key === 'cck_registration_requests' && !remove) {
       // A student may add or withdraw their own requests, never touch others' or approve
       const current = parseJson(old?.value, []);
-      const mine = parseJson(value, []).filter((r) => String(r.studentId) === String(s.user_id));
+      const sent = parseJson(value, []);
+      if (!Array.isArray(sent)) throw new HttpError(400, 'Expected a list of requests');
+      const mine = sent.filter((r) => r && String(r.studentId) === String(s.user_id));
       const before = new Map((Array.isArray(current) ? current : []).filter((r) => String(r.studentId) === String(s.user_id)).map((r) => [String(r.id), r]));
+      const student = await env.DB.prepare('SELECT student_id, name, email, major, level, gpa FROM students WHERE student_id = ?').bind(s.user_id).first();
+      const kept = [];
       for (const r of mine) {
         const prev = before.get(String(r.id));
-        if (r.status && r.status !== 'pending' && r.status !== (prev && prev.status)) {
-          throw new HttpError(403, 'Only staff can approve or reject requests');
+        if (prev && prev.status && prev.status !== 'pending') {
+          // already reviewed: the student can't edit it, only keep it
+          kept.push(prev);
+          continue;
         }
+        if (r.status && r.status !== 'pending') throw new HttpError(403, 'Only staff can approve or reject requests');
+        kept.push(cleanRegistrationRequest(r, student, prev));
       }
+      if (kept.length > 20) throw new HttpError(400, 'Too many requests');
       const others = (Array.isArray(current) ? current : []).filter((r) => String(r.studentId) !== String(s.user_id));
-      newValue = JSON.stringify(others.concat(mine));
+      newValue = JSON.stringify(others.concat(kept));
     } else {
       throw new HttpError(403, 'Not allowed');
     }
@@ -489,7 +549,7 @@ async function getHistoricalGrades(request, env) {
   });
 }
 
-function cleanStudent(body, { partial }) {
+export function cleanStudent(body, { partial }) {
   const out = {};
   for (const f of STUDENT_FIELDS) {
     if (body[f] === undefined) continue;
@@ -502,12 +562,17 @@ function cleanStudent(body, { partial }) {
         if (v < 0 || v > 4.5) throw new HttpError(400, 'GPA must be between 0 and 4.5');
       } else v = String(v).trim().slice(0, 40);
     } else if (f === 'enrolled_credits') v = parseInt(v, 10) || 0;
-    else v = v === null ? null : String(v).trim();
+    else if (f === 'student_id') v = String(v ?? '').trim(); // checked as-is below
+    else v = v === null ? null : String(v).replace(/[<>]/g, '').trim().slice(0, 200);
     out[f] = v;
   }
   if (!partial) {
     if (!out.student_id) throw new HttpError(400, 'Student ID is required');
     if (!out.name) throw new HttpError(400, 'Name is required');
+  }
+  // Same characters the /api/students/:id route accepts, so every student can be edited later
+  if (out.student_id !== undefined && !/^[A-Za-z0-9_-]{1,40}$/.test(out.student_id)) {
+    throw new HttpError(400, 'Student ID may only use letters, digits, - and _');
   }
   if (out.civil_id && !/^[0-9]{12}$/.test(out.civil_id)) throw new HttpError(400, 'Civil ID must be 12 digits');
   return out;
@@ -552,7 +617,7 @@ async function deleteStudent(request, env, studentId) {
 // Admin import of the private JSON files, sent from the browser in chunks
 // (students.json, enrollments.json, historical_grades.json).
 const IMPORT_MAX_ROWS = 500;
-const toNumberOrNull = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+export const toNumberOrNull = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 async function importData(request, env) {
   await requireSession(request, env, 'admin');
   const body = await readJson(request);
@@ -802,6 +867,9 @@ export default {
         return withSecurityHeaders(Response.redirect(new URL('/?login=required', url).toString(), 302));
       }
     }
-    return withSecurityHeaders(await env.ASSETS.fetch(request));
+    const res = withSecurityHeaders(await env.ASSETS.fetch(request));
+    // Pages with private data must not be kept in the browser cache after logout
+    if (allowed) res.headers.set('cache-control', 'no-store');
+    return res;
   },
 };

@@ -1,0 +1,140 @@
+{
+ "summary": {
+  "students": 1080,
+  "students_by_status": {
+   "active": 662,
+   "graduated": 314,
+   "inactive": 104
+  },
+  "enrollments": 2527,
+  "enrolled_students": 535,
+  "grade_records": 8862,
+  "grades_by_verification": {
+   "unverified": 788,
+   "confirmed": 8074
+  },
+  "terms": 22,
+  "first_term": "Spring 2015-2016",
+  "last_term": "Summer 2023-2024"
+ },
+ "checks": [
+  {
+   "id": "DV-01",
+   "check": "Every student has an ID and a name",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "DV-02",
+   "check": "Student IDs are unique",
+   "pass": true,
+   "detail": "0 duplicates"
+  },
+  {
+   "id": "DV-03",
+   "check": "Student IDs use only letters, digits, - and _",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "DV-04",
+   "check": "Civil IDs are 12 digits",
+   "pass": true,
+   "detail": "662 present"
+  },
+  {
+   "id": "DV-05",
+   "check": "Civil IDs are unique",
+   "pass": true,
+   "detail": "0 duplicates"
+  },
+  {
+   "id": "DV-06",
+   "check": "Status is active, graduated or inactive",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "DV-07",
+   "check": "Numeric GPAs are between 0 and 4.5",
+   "pass": true,
+   "detail": "0 out of range"
+  },
+  {
+   "id": "DV-08",
+   "check": "Text GPAs are only known labels such as \"Not Given\"",
+   "pass": true,
+   "detail": {
+    "Not Given": 372
+   }
+  },
+  {
+   "id": "DV-09",
+   "check": "No duplicate enrollment rows",
+   "pass": true,
+   "detail": "0 duplicates"
+  },
+  {
+   "id": "DV-10",
+   "check": "Every enrollment belongs to a known student",
+   "pass": true,
+   "detail": "0 orphans"
+  },
+  {
+   "id": "DV-11",
+   "check": "Every enrolled course is in the course catalogue",
+   "pass": true,
+   "detail": "0 unknown"
+  },
+  {
+   "id": "DV-12",
+   "check": "No duplicate grade records (same student, course, term and grade)",
+   "pass": true,
+   "detail": "0 duplicates"
+  },
+  {
+   "id": "DV-13",
+   "check": "Every grade is a known letter or code",
+   "pass": true,
+   "detail": {}
+  },
+  {
+   "id": "DV-14",
+   "check": "Every term label reads \"Fall|Spring|Summer YYYY-YYYY\" with consecutive years",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "DV-15",
+   "check": "Verification is \"confirmed\" or \"unverified\"",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "DV-16",
+   "check": "Only the 2015-2020 pivot exports carry unverified grades",
+   "pass": true,
+   "detail": "0 after 2020"
+  },
+  {
+   "id": "DV-17",
+   "check": "Grade points are between 0 and 4.5",
+   "pass": true,
+   "detail": "0 out of range"
+  },
+  {
+   "id": "DV-18",
+   "check": "Every graded student is in the student list",
+   "pass": true,
+   "detail": "0 unknown students"
+  },
+  {
+   "id": "DV-19",
+   "check": "Course codes have the form ABC1234",
+   "pass": true,
+   "detail": "0 malformed"
+  }
+ ],
+ "passed": 19,
+ "failed": 0
+}

@@ -775,6 +775,39 @@ function showChangePasswordPrompt() {
     });
 }
 
+// Set a new password for one of the staff portal accounts (HOD, Registration 1/2, Facility, Nehad)
+function showStaffPasswordPrompt() {
+    var modal = document.createElement('div');
+    modal.id = 'password-modal';
+    var input = 'width: 100%; padding: 12px 16px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; margin-bottom: 12px; box-sizing: border-box;';
+    modal.innerHTML = '<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">' +
+        '<form id="staff-password-form" style="background: white; border-radius: 16px; padding: 32px; width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">' +
+        '<h3 style="font-size: 18px; font-weight: 600; color: #1F2937; margin: 0 0 6px;">Set staff password</h3>' +
+        '<p style="font-size: 13px; color: #6B7280; margin: 0 0 16px;">The account is signed out everywhere and must use the new password.</p>' +
+        '<select id="staff-user" style="' + input + '">' +
+        '<option value="hod">HOD (hod)</option><option value="reg1">Registration 1 (reg1)</option>' +
+        '<option value="reg2">Registration 2 (reg2)</option><option value="facility">Facility (facility)</option>' +
+        '<option value="nehad">Nehad timetable (nehad)</option></select>' +
+        '<input type="password" id="staff-pw-new" placeholder="New password (at least 10 characters)" autocomplete="new-password" style="' + input + '">' +
+        '<input type="password" id="staff-pw-confirm" placeholder="Repeat new password" autocomplete="new-password" style="' + input + '">' +
+        '<div style="display: flex; gap: 12px; margin-top: 8px;">' +
+        '<button type="button" onclick="closePasswordModal()" style="flex: 1; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; background: white; cursor: pointer;">Cancel</button>' +
+        '<button type="submit" style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: #1B5E20; color: white; cursor: pointer; font-weight: 600;">Save</button>' +
+        '</div></form></div>';
+    document.body.appendChild(modal);
+    document.getElementById('staff-password-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var username = document.getElementById('staff-user').value;
+        var next = document.getElementById('staff-pw-new').value;
+        if (next.length < 10) { showToast('Use at least 10 characters', 'error'); return; }
+        if (next !== document.getElementById('staff-pw-confirm').value) { showToast('The new passwords do not match', 'error'); return; }
+        var res = await window.api.setStaffPassword(username, next);
+        if (res.error) { showToast(res.error.message, 'error'); return; }
+        closePasswordModal();
+        showToast('Password set for ' + username, 'success');
+    });
+}
+
 function closePasswordModal() {
     var modal = document.getElementById('password-modal');
     if (modal) modal.remove();
@@ -838,6 +871,7 @@ function renderDatabaseManagementPanel() {
     html += '<button onclick="document.getElementById(\'import-files-input\').click()" style="padding: 8px 14px; border: 1px solid #10B981; border-radius: 8px; background: #F0FDF4; color: #166534; cursor: pointer; font-size: 13px; font-weight: 600;">Import data files</button>';
     html += '<input type="file" id="import-files-input" accept=".json,application/json" multiple style="display: none;" onchange="importDataFiles(this.files); this.value = \'\';">';
     html += '<button onclick="showChangePasswordPrompt()" style="padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; background: white; cursor: pointer; font-size: 13px;">Change admin password</button>';
+    html += '<button onclick="showStaffPasswordPrompt()" style="padding: 8px 14px; border: 1px solid #E5E7EB; border-radius: 8px; background: white; cursor: pointer; font-size: 13px;">Set staff password</button>';
     html += '</span>';
     html += '</div>';
     

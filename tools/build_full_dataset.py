@@ -247,6 +247,15 @@ hist = {
                 'unverified_records': sum(1 for r in records if r['verification'] == 'unverified'),
                 'enrolled_without_recoverable_grades': len(enrolled_only)},
 }
+# Some exports store GPAs as text ("2.56"); keep numbers as numbers and labels like "Not Given" as text
+for st in out_students:
+    for f in ('gpa', 'cgpa'):
+        v = st.get(f)
+        if isinstance(v, str):
+            try:
+                st[f] = float(v)
+            except ValueError:
+                pass
 json.dump(out_students, open(os.path.join(OUT, 'students.json'), 'w'), ensure_ascii=False, indent=1)
 json.dump(hist, open(os.path.join(OUT, 'historical_grades.json'), 'w'), ensure_ascii=False)
 print('students', len(out_students), Counter(s['status'] for s in out_students))

@@ -51,6 +51,9 @@
         changePassword(current, next) {
             return request('POST', '/api/auth/password', { current_password: current, new_password: next });
         },
+        setStaffPassword(username, next) {
+            return request('POST', '/api/admin/staff-password', { username: username, new_password: next });
+        },
         getData() { return request('GET', '/api/data'); },
         getHistoricalGrades() { return request('GET', '/api/historical-grades'); },
         createStudent(s) { return request('POST', '/api/students', s); },

@@ -1,0 +1,20 @@
+{
+ "/api/data": {
+  "median_ms": 40.9,
+  "max_ms": 62.4,
+  "kb": 1195,
+  "students": 1080,
+  "enrollments": 2527
+ },
+ "/api/historical-grades": {
+  "median_ms": 80.0,
+  "max_ms": 147.3,
+  "kb": 2685,
+  "records": 8862
+ },
+ "/api/state": {
+  "median_ms": 6.8,
+  "max_ms": 9.4,
+  "kb": 0
+ }
+}

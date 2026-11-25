@@ -1,0 +1,323 @@
+{
+ "base": "http://127.0.0.1:8788",
+ "checks": [
+  {
+   "id": "E2E-01",
+   "check": "Login page loads with the sign-in form",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-02",
+   "check": "Visitor is sent to the login page from /admin.html",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-02",
+   "check": "Visitor is sent to the login page from /hod.html",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-02",
+   "check": "Visitor is sent to the login page from /registration1.html",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-02",
+   "check": "Visitor is sent to the login page from /nehad.html",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-03",
+   "check": "Wrong password shows an error and stays on login",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-04",
+   "check": "Admin dashboard loads the student list from the database",
+   "pass": true,
+   "detail": "54"
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"students\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"allocation\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"instructors\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"timetable\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"analytics\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"predictions\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"advising\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"portal-review\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-05",
+   "check": "Admin section \"dashboard\" opens without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-06",
+   "check": "Database badge shows the synced state",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-07",
+   "check": "Admin can add, edit and delete a student and the changes are saved",
+   "pass": true,
+   "detail": "[True, 'Level 3', True]"
+  },
+  {
+   "id": "E2E-08",
+   "check": "hod logs in and lands on its own portal",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/hod"
+  },
+  {
+   "id": "E2E-09",
+   "check": "hod submits its work to the admin",
+   "pass": true,
+   "detail": "\u23f3 Pending Approval"
+  },
+  {
+   "id": "E2E-10",
+   "check": "hod cannot open the admin page",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-08",
+   "check": "reg1 logs in and lands on its own portal",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/registration1"
+  },
+  {
+   "id": "E2E-09",
+   "check": "reg1 submits its work to the admin",
+   "pass": true,
+   "detail": "\u23f3 Pending Approval"
+  },
+  {
+   "id": "E2E-10",
+   "check": "reg1 cannot open the admin page",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-08",
+   "check": "reg2 logs in and lands on its own portal",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/registration2"
+  },
+  {
+   "id": "E2E-09",
+   "check": "reg2 submits its work to the admin",
+   "pass": true,
+   "detail": "Pending Approval"
+  },
+  {
+   "id": "E2E-10",
+   "check": "reg2 cannot open the admin page",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-08",
+   "check": "facility logs in and lands on its own portal",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/facility"
+  },
+  {
+   "id": "E2E-09",
+   "check": "facility submits its work to the admin",
+   "pass": true,
+   "detail": "Pending Approval"
+  },
+  {
+   "id": "E2E-10",
+   "check": "facility cannot open the admin page",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-11",
+   "check": "Nehad submits the timetable for approval",
+   "pass": true,
+   "detail": "{\"spring2026\":\"submitted\"}"
+  },
+  {
+   "id": "E2E-12",
+   "check": "A portal cannot approve its own submission (server refuses)",
+   "pass": true,
+   "detail": "403"
+  },
+  {
+   "id": "E2E-13",
+   "check": "Student logs in to the student view",
+   "pass": true,
+   "detail": "student"
+  },
+  {
+   "id": "E2E-14",
+   "check": "Student browser holds only their own student record",
+   "pass": true,
+   "detail": "1"
+  },
+  {
+   "id": "E2E-15",
+   "check": "Student tabs open without errors",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-16",
+   "check": "Student submits a registration request",
+   "pass": true,
+   "detail": "True"
+  },
+  {
+   "id": "E2E-17",
+   "check": "A student cannot see another student's requests",
+   "pass": true,
+   "detail": "0"
+  },
+  {
+   "id": "E2E-18",
+   "check": "Admin sees all five portal submissions",
+   "pass": true,
+   "detail": "{'cck_hod_status_v3': {'spring2026': 'submitted'}, 'cck_reg1_status': {'spring2026': 'submitted'}, 'cck_reg2_status': {'spring2026': 'submitted'}, 'cck_fac_status': {'spring2026': 'submitted'}, 'cck_n"
+  },
+  {
+   "id": "E2E-19",
+   "check": "Admin sees the student's pending request",
+   "pass": true,
+   "detail": "[['T900001', 'pending']]"
+  },
+  {
+   "id": "E2E-20",
+   "check": "Script hidden in a request does not run in the admin view",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-21",
+   "check": "hod sees the admin approval",
+   "pass": true,
+   "detail": "\u2713 Approved by Admin"
+  },
+  {
+   "id": "E2E-21",
+   "check": "reg1 sees the admin approval",
+   "pass": true,
+   "detail": "\u2713 Approved by Admin"
+  },
+  {
+   "id": "E2E-21",
+   "check": "reg2 sees the admin approval",
+   "pass": true,
+   "detail": "\u2713 Approved by Admin"
+  },
+  {
+   "id": "E2E-21",
+   "check": "facility sees the admin approval",
+   "pass": true,
+   "detail": "\u2713 Approved by Admin"
+  },
+  {
+   "id": "E2E-21",
+   "check": "nehad sees the admin approval",
+   "pass": true,
+   "detail": "{\"spring2026\":\"approved\"}"
+  },
+  {
+   "id": "E2E-22",
+   "check": "Facility receives the approved timetable",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-23",
+   "check": "Student sees their request approved",
+   "pass": true,
+   "detail": "['approved']"
+  },
+  {
+   "id": "E2E-24",
+   "check": "Student Hub logs in on a phone-sized screen",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-25",
+   "check": "Student Hub page holds no other student's data",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-26",
+   "check": "After logout the admin page is closed again",
+   "pass": true,
+   "detail": "http://127.0.0.1:8788/?login=required"
+  },
+  {
+   "id": "E2E-27",
+   "check": "No JavaScript errors on any page during the whole run",
+   "pass": true,
+   "detail": "[]"
+  }
+ ],
+ "timings_ms": {
+  "login_page_load_ms": 930,
+  "admin_login_to_dashboard_ms": 1551,
+  "hod_login_ms": 2336,
+  "reg1_login_ms": 2325,
+  "reg2_login_ms": 2337,
+  "facility_login_ms": 2318,
+  "student_hub_load_ms": 873
+ },
+ "page_errors": [],
+ "passed": 51,
+ "failed": 0
+}

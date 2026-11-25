@@ -13704,7 +13704,7 @@ function renderAdvisingRecords() {
                         ${record.studentName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                     </div>
                     <div>
-                        <div style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${record.studentName}</div>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${escHtml(record.studentName)}</div>
                         <div style="font-size: 11px; color: var(--gray-500);">${record.studentId}</div>
                     </div>
                 </div>
@@ -13978,6 +13978,12 @@ function calculatePendingCredits(studentId) {
 }
 
 // Submit registration request from student portal
+// Escapes text before it goes into innerHTML (registration requests come from students)
+function escHtml(v) {
+    return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+window.escHtml = escHtml;
+
 window.submitRegistrationRequest = function(studentId, selectedCourses) {
     const student = findStudentById(studentId);
     if (!student) {
@@ -14182,7 +14188,7 @@ window.showRequestDetails = function(requestId) {
                     ${request.studentName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                 </div>
                 <div style="flex: 1;">
-                    <div style="font-size: 18px; font-weight: 600; color: var(--gray-900);">${request.studentName}</div>
+                    <div style="font-size: 18px; font-weight: 600; color: var(--gray-900);">${escHtml(request.studentName)}</div>
                     <div style="font-size: 13px; color: var(--gray-500);">${request.studentId} • ${request.major || 'N/A'}</div>
                     <div style="font-size: 12px; color: var(--gray-400);">Level: ${request.level || 'N/A'} • GPA: ${request.gpa || 'N/A'}</div>
                 </div>
@@ -14204,13 +14210,13 @@ window.showRequestDetails = function(requestId) {
                     return `
                         <div style="display: flex; align-items: center; padding: 12px; background: ${hasIssues ? '#FEF2F2' : hasWarnings ? '#FFFBEB' : '#F9FAFB'}; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${hasIssues ? '#DC2626' : hasWarnings ? '#F59E0B' : '#22C55E'};">
                             <div style="flex: 1;">
-                                <div style="font-weight: 600; color: var(--gray-900);">${course.code}</div>
-                                <div style="font-size: 12px; color: var(--gray-600);">${course.name}</div>
+                                <div style="font-weight: 600; color: var(--gray-900);">${escHtml(course.code)}</div>
+                                <div style="font-size: 12px; color: var(--gray-600);">${escHtml(course.name)}</div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 12px; font-weight: 500; color: var(--gray-700);">${course.credits} cr</div>
-                                ${hasIssues ? `<div style="font-size: 10px; color: #DC2626;">⚠ ${validation.issues.join(', ')}</div>` : ''}
-                                ${hasWarnings ? `<div style="font-size: 10px; color: #F59E0B;">⚡ ${validation.warnings.join(', ')}</div>` : ''}
+                                ${hasIssues ? `<div style="font-size: 10px; color: #DC2626;">⚠ ${escHtml(validation.issues.join(', '))}</div>` : ''}
+                                ${hasWarnings ? `<div style="font-size: 10px; color: #F59E0B;">⚡ ${escHtml(validation.warnings.join(', '))}</div>` : ''}
                                 ${!hasIssues && !hasWarnings ? `<div style="font-size: 10px; color: #22C55E;">✓ Eligible</div>` : ''}
                             </div>
                         </div>
@@ -14251,7 +14257,7 @@ window.showRequestDetails = function(requestId) {
             <!-- Admin Notes -->
             <div style="margin-bottom: 20px;">
                 <label style="display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">Admin Notes</label>
-                <textarea id="admin-review-notes" placeholder="Add notes for this request..." style="width: 100%; padding: 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 13px; min-height: 80px; resize: vertical;">${request.reviewNotes || ''}</textarea>
+                <textarea id="admin-review-notes" placeholder="Add notes for this request..." style="width: 100%; padding: 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 13px; min-height: 80px; resize: vertical;">${escHtml(request.reviewNotes || '')}</textarea>
             </div>
             
             <!-- Action Buttons -->
@@ -14334,7 +14340,7 @@ function renderPendingRegistrationRequests() {
                             ${request.studentName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </div>
                         <div>
-                            <div style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${request.studentName}</div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--gray-900);">${escHtml(request.studentName)}</div>
                             <div style="font-size: 11px; color: var(--gray-500);">${request.studentId}</div>
                         </div>
                     </div>
