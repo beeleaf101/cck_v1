@@ -9,6 +9,7 @@ in the repository or needed to run them.
 | Integration / security | `tests/integration/` | `node:test` + in-memory SQLite (`tests/helpers/d1-shim.mjs`) | Every API route through the real Worker: login, lockout, sessions, roles, page guards, approval workflow, imports, CSRF, headers |
 | Data validation | `tests/data/validate_dataset.py` | Python | The private JSON files before import: duplicates, IDs, grades, terms, orphans |
 | End-to-end | `tests/e2e/test_e2e.py` | Playwright (Chromium) | Real browsers for admin, the five portals and students, from login to approval |
+| UI crawl | `tests/e2e/crawl_ui.py` | Playwright (Chromium) | Signs in as every role and clicks every safe button on every screen; fails on any JavaScript error |
 | Load | `tests/perf/load_test.py` | Python threads | 100 simulated students signing in and loading their data at once |
 
 ## Run

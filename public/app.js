@@ -3218,6 +3218,16 @@ function loadProgressTab() {
 }
 
 // ==================== ADMIN NAVIGATION ====================
+// Opens an admin section the same way as clicking it in the sidebar ('allocation' or 'section-allocation')
+function showSection(sectionId) {
+    const name = String(sectionId || '').replace(/^section-/, '');
+    const link = document.querySelector(`.nav-link[data-section="${name}"]`);
+    if (typeof closeModal === 'function') closeModal();
+    if (link) link.click();
+    else loadAdminSection(name);
+}
+window.showSection = showSection;
+
 function handleAdminNav(e) {
     e.preventDefault();
     const section = e.currentTarget.dataset.section;
@@ -3375,7 +3385,7 @@ function loadAdminDashboard() {
             <div class="admin-table-card">
                 <div class="admin-table-header">
                     <h3>Recent Enrollments</h3>
-                    <button class="btn-icon" onclick="loadAdminSection('students')">View All</button>
+                    <button class="btn-icon" onclick="showSection('students')">View All</button>
                 </div>
                 <table class="admin-table">
                     <thead>
@@ -3425,7 +3435,7 @@ function loadAdminDashboard() {
                             </svg>
                             Generate Timetables
                         </button>
-                        <button class="btn-secondary quick-action-btn" onclick="loadAdminSection('analytics')">
+                        <button class="btn-secondary quick-action-btn" onclick="showSection('analytics')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                                 <line x1="18" y1="20" x2="18" y2="10"/>
                                 <line x1="12" y1="20" x2="12" y2="4"/>
@@ -3776,7 +3786,7 @@ function showAIAllocationResults() {
             
             <div style="display: flex; gap: 12px;">
                 <button class="btn-secondary" style="flex: 1;" onclick="closeModal()">Close</button>
-                <button class="btn-primary" style="flex: 1;" onclick="closeModal(); loadAdminSection('allocation');">View Details</button>
+                <button class="btn-primary" style="flex: 1;" onclick="showSection('allocation');">View Details</button>
             </div>
         </div>
     `;
@@ -5416,12 +5426,22 @@ window.hideUndoToast = function() {
 // Legacy function alias
 window.filterAdminStudents = applyStudentFilters;
 
+// Other dialogs replace the shared modal's inner markup; put the standard title/body back first
+function resetModalShell() {
+    const content = document.querySelector('#modal .modal-content');
+    if (!content || document.getElementById('modal-title')) return;
+    content.innerHTML = '<div class="modal-header"><h3 id="modal-title">Modal</h3><button class="modal-close">&times;</button></div><div class="modal-body" id="modal-body"></div>';
+    content.querySelector('.modal-close').addEventListener('click', closeModal);
+}
+window.resetModalShell = resetModalShell;
+
 window.viewStudentDetail = function(studentId) {
     const student = findStudentById(studentId);
     if (!student) return;
     
     const enrollments = AppState.enrollments.filter(e => e.student_id === studentId);
     
+    resetModalShell();
     document.getElementById('modal-title').textContent = 'Student Details';
     document.getElementById('modal-body').innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">

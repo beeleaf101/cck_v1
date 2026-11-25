@@ -24,6 +24,12 @@ STAFF = {'hod': 'Test-Hod-Pass-01', 'reg1': 'Test-Reg1-Pass-01', 'reg2': 'Test-R
 # Student 1 of the synthetic set (see makeStudents)
 STUDENT = ('T900001', str(300000000000 + 1 * 7919))
 STUDENT2 = ('T900002', str(300000000000 + 2 * 7919))
+# Optional: run against real accounts on a private copy, e.g. CCK_E2E_ACCOUNTS=private/accounts.json
+# {"admin": [user, pw], "staff": {"hod": pw, ...}, "student": [id, civil], "student2": [id, civil]}
+import os
+if os.environ.get('CCK_E2E_ACCOUNTS'):
+    _a = json.load(open(os.environ['CCK_E2E_ACCOUNTS']))
+    ADMIN, STAFF, STUDENT, STUDENT2 = tuple(_a['admin']), _a['staff'], tuple(_a['student']), tuple(_a['student2'])
 
 results, page_errors, timings = [], [], {}
 
@@ -135,18 +141,18 @@ def run():
             sp.click(f'.tab-btn[data-tab="{tab}"]'); sp.wait_for_timeout(600)
             sp.screenshot(path=str(SHOTS / f'student-{tab}.png'))
         check('E2E-15', 'Student tabs open without errors', not [e for e in page_errors if e.startswith('[student]')])
-        ok = sp.evaluate("submitRegistrationRequest('T900001', [AppState.courses[0].code])")
+        ok = sp.evaluate(f"submitRegistrationRequest('{STUDENT[0]}', [AppState.courses[0].code])")
         sp.wait_for_timeout(1500)
         check('E2E-16', 'Student submits a registration request', ok is True, ok)
         # a script tag in the request must be neutralised
-        sp.evaluate("""(() => { const r = window.RegistrationRequests.find(x => x.studentId === 'T900001');
+        sp.evaluate("""(() => { const r = window.RegistrationRequests.find(x => x.studentId === '%s');""" % STUDENT[0] + """
             r.courses[0].name = '<img src=x onerror="window.__xss=1">'; saveRegistrationRequests(); })()""")
         sp.wait_for_timeout(1200)
 
         # second student must not see the first student's request
         sp2 = new_page(b, 'student2')
         login(sp2, *STUDENT2); sp2.wait_for_timeout(1500)
-        others = sp2.evaluate("(window.RegistrationRequests||[]).filter(r => r.studentId !== 'T900002').length")
+        others = sp2.evaluate(f"(window.RegistrationRequests||[]).filter(r => r.studentId !== '{STUDENT2[0]}').length")
         check('E2E-17', "A student cannot see another student's requests", others == 0, others)
 
         # ---------- admin reviews and approves everything
@@ -156,8 +162,8 @@ def run():
         check('E2E-18', 'Admin sees all five portal submissions',
               all('submitted' in json.dumps(v) for v in statuses.values()), statuses)
         reqs = ad.evaluate("(window.RegistrationRequests||[]).map(r => [r.studentId, r.status])")
-        check('E2E-19', "Admin sees the student's pending request", ['T900001', 'pending'] in reqs, reqs)
-        rid = ad.evaluate("window.RegistrationRequests.find(r => r.studentId === 'T900001').id")
+        check('E2E-19', "Admin sees the student's pending request", [STUDENT[0], 'pending'] in reqs, reqs)
+        rid = ad.evaluate(f"window.RegistrationRequests.find(r => r.studentId === '{STUDENT[0]}').id")
         ad.evaluate(f"showRequestDetails({rid})"); ad.wait_for_timeout(800)
         check('E2E-20', 'Script hidden in a request does not run in the admin view', ad.evaluate('window.__xss') is None)
         ad.screenshot(path=str(SHOTS / 'admin-request.png'))
@@ -189,7 +195,7 @@ def run():
         check('E2E-24', 'Student Hub logs in on a phone-sized screen', not hub.is_visible('#login-screen'))
         hub.screenshot(path=str(SHOTS / 'hub-mobile.png'))
         html = hub.content()
-        check('E2E-25', 'Student Hub page holds no other student\'s data', 'T900002' not in html and 'Test Student 002' not in html)
+        check('E2E-25', 'Student Hub page holds no other student\'s data', STUDENT2[0] not in html)
 
         # ---------- logout
         ad.evaluate("handleLogout ? handleLogout() : cckLogout()"); ad.wait_for_timeout(1500)

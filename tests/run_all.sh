@@ -33,7 +33,10 @@ for i in $(seq 1 30); do curl -sf http://127.0.0.1:8788/api/health >/dev/null &&
 echo "== 4. End-to-end browser tests (Playwright)"
 python3 tests/e2e/test_e2e.py --base http://127.0.0.1:8788 --out "$R/e2e.json" || status=1
 
-echo "== 5. Load test (100 simulated students)"
+echo "== 5. Click every safe button on every screen"
+python3 tests/e2e/crawl_ui.py --base http://127.0.0.1:8788 --out "$R/crawl.json" || status=1
+
+echo "== 6. Load test (100 simulated students)"
 python3 tests/perf/load_test.py --base http://127.0.0.1:8788 --users 100 --out "$R/perf.json" || status=1
 
 echo; [ $status -eq 0 ] && echo "ALL TESTS PASSED" || echo "SOME TESTS FAILED"
