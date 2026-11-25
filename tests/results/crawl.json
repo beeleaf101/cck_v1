@@ -1,0 +1,225 @@
+{
+ "screens": [
+  {
+   "screen": "admin/dashboard",
+   "buttons_seen": 63
+  },
+  {
+   "screen": "admin/students",
+   "buttons_seen": 89
+  },
+  {
+   "screen": "admin/allocation",
+   "buttons_seen": 23
+  },
+  {
+   "screen": "admin/instructors",
+   "buttons_seen": 24
+  },
+  {
+   "screen": "admin/timetable",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "admin/analytics",
+   "buttons_seen": 9
+  },
+  {
+   "screen": "admin/predictions",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "admin/advising",
+   "buttons_seen": 4
+  },
+  {
+   "screen": "admin/portal-review",
+   "buttons_seen": 11
+  },
+  {
+   "screen": "hod/home",
+   "buttons_seen": 14
+  },
+  {
+   "screen": "hod/tab0",
+   "buttons_seen": 13
+  },
+  {
+   "screen": "hod/tab1",
+   "buttons_seen": 13
+  },
+  {
+   "screen": "hod/tab2",
+   "buttons_seen": 13
+  },
+  {
+   "screen": "hod/tab3",
+   "buttons_seen": 13
+  },
+  {
+   "screen": "hod/tab4",
+   "buttons_seen": 13
+  },
+  {
+   "screen": "reg1/home",
+   "buttons_seen": 6
+  },
+  {
+   "screen": "reg1/tab0",
+   "buttons_seen": 6
+  },
+  {
+   "screen": "reg1/tab1",
+   "buttons_seen": 6
+  },
+  {
+   "screen": "reg1/tab2",
+   "buttons_seen": 6
+  },
+  {
+   "screen": "reg1/tab3",
+   "buttons_seen": 6
+  },
+  {
+   "screen": "reg2/home",
+   "buttons_seen": 14
+  },
+  {
+   "screen": "reg2/tab0",
+   "buttons_seen": 13
+  },
+  {
+   "screen": "facility/home",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "facility/tab0",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "facility/tab1",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "facility/tab2",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "facility/tab3",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "facility/tab4",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "facility/tab5",
+   "buttons_seen": 8
+  },
+  {
+   "screen": "nehad/home",
+   "buttons_seen": 2
+  },
+  {
+   "screen": "nehad/tab0",
+   "buttons_seen": 2
+  },
+  {
+   "screen": "nehad/tab1",
+   "buttons_seen": 40
+  },
+  {
+   "screen": "nehad/tab2",
+   "buttons_seen": 40
+  },
+  {
+   "screen": "nehad/tab3",
+   "buttons_seen": 40
+  },
+  {
+   "screen": "nehad/tab4",
+   "buttons_seen": 6
+  },
+  {
+   "screen": "nehad/tab5",
+   "buttons_seen": 3
+  },
+  {
+   "screen": "student/schedule",
+   "buttons_seen": 5
+  },
+  {
+   "screen": "student/registration",
+   "buttons_seen": 5
+  },
+  {
+   "screen": "student/prerequisites",
+   "buttons_seen": 5
+  },
+  {
+   "screen": "student/progress",
+   "buttons_seen": 5
+  },
+  {
+   "screen": "hub",
+   "buttons_seen": 12
+  }
+ ],
+ "errors": [],
+ "clicked": 457,
+ "skipped": 90,
+ "downloads": [
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Students_2026-11-25.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Students_2026-11-25.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "admin",
+   "file": "CCK_Report_spring2026.csv"
+  },
+  {
+   "where": "nehad",
+   "file": "cck_timetables.xlsx"
+  }
+ ]
+}
