@@ -15,6 +15,7 @@ in the repository or needed to run them.
 
 ```bash
 npm test                                  # unit + integration (about 2 s, no server needed)
+npm run test:coverage                     # same, with line/branch coverage of src/worker.js
 bash tests/run_all.sh                     # everything, starts its own local Worker on port 8788
 CCK_DATA_DIR=../private-data bash tests/run_all.sh   # also validate the real data files
 ```

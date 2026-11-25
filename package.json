@@ -13,7 +13,8 @@
     "db:seed": "wrangler d1 execute cck-sis-db --remote --file=private/seed-public.sql && wrangler d1 execute cck-sis-db --remote --file=private/seed-private.sql",
     "db:seed:local": "wrangler d1 execute cck-sis-db --local --file=private/seed-public.sql && wrangler d1 execute cck-sis-db --local --file=private/seed-private.sql",
     "test": "node --no-warnings --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
-    "test:all": "bash tests/run_all.sh"
+    "test:all": "bash tests/run_all.sh",
+    "test:coverage": "node --no-warnings --test --experimental-test-coverage --test-coverage-include=src/worker.js tests/unit/*.test.mjs tests/integration/*.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.50.0"

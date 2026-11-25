@@ -1,0 +1,7 @@
+{
+ "file": "src/worker.js",
+ "line_pct": 90.74,
+ "branch_pct": 83.49,
+ "function_pct": 90.7,
+ "tests": 63
+}
