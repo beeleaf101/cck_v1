@@ -378,6 +378,7 @@ async function getState(request, env) {
 // Rebuilds a student's registration request from known fields only. Identity fields come
 // from the database, not the browser, and free text is stripped of markup, so nothing a
 // student sends can run as script in the admin's review page.
+// eslint-disable-next-line no-control-regex -- deliberately removes control characters
 export const plainText = (v, max = 200) => String(v ?? '').replace(/[<>]/g, '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 const COURSE_CODE_RE = /^[A-Za-z]{2,6}\s?-?\d{3,4}[A-Za-z]?$/;
 export function cleanRegistrationRequest(r, student, prev) {

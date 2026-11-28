@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="js/cck-store.js"></script>
+<script src="js/a11y.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CCK Student Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,8 +14,8 @@
   --sidebar:#0D1117;
   --accent:#C8102E;
   --accent2:#1A3A6B;
-  --green:#16A34A;
-  --amber:#D97706;
+  --green:#15803D;
+  --amber:#B45309;
   --text:#0D1117;
   --sub:#64748B;
   --border:#E5E7EB;
@@ -104,7 +105,7 @@ table.tt tr:hover td{background:#FAFAFA;}
 .wg-cell{background:var(--card);padding:8px 10px;min-height:50px;}
 .wg-head{background:#F8FAFC;padding:10px;font-weight:700;font-size:11px;color:var(--sub);text-transform:uppercase;text-align:center;}
 .wg-time{background:#FAFAFA;color:var(--sub);font-size:10px;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;}
-.wg-session{background:#EFF6FF;border-left:3px solid #3B82F6;border-radius:4px;padding:5px 7px;margin-bottom:3px;cursor:default;}
+.wg-session{background:#EFF6FF;border-left:3px solid #1D4ED8;border-radius:4px;padding:5px 7px;margin-bottom:3px;cursor:default;}
 .wg-session.lab{background:#F5F3FF;border-left-color:#7C3AED;}
 .wg-session .ws-code{font-weight:700;font-size:10px;color:#1E40AF;}
 .wg-session.lab .ws-code{color:#5B21B6;}
@@ -142,7 +143,7 @@ table.tt tr:hover td{background:#FAFAFA;}
 .gr-range{font-size:10px;color:var(--sub);margin-top:1px;}
 .gr-pts{font-size:12px;font-weight:700;color:var(--accent2);}
 .add-course-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent2);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;}
-.del-btn{background:none;border:none;color:#EF4444;cursor:pointer;font-size:16px;padding:2px 6px;}
+.del-btn{background:none;border:none;color:#B91C1C;cursor:pointer;font-size:16px;padding:2px 6px;}
 .del-btn:hover{background:#FEF2F2;border-radius:4px;}
 .semester-tab{display:inline-flex;padding:3px;background:#F1F5F9;border-radius:8px;gap:2px;margin-bottom:16px;}
 .st-btn{padding:5px 14px;border:none;background:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;color:var(--sub);}
@@ -219,7 +220,7 @@ table.tt tr:hover td{background:#FAFAFA;}
     </div>
     <div class="login-field">
       <label>Civil ID</label>
-      <input type="password" id="li-pw" placeholder="Your Civil ID">
+      <input type="password" id="li-pw" placeholder="Your Civil ID" autocomplete="current-password">
     </div>
     <button class="login-btn" onclick="doLogin()">Sign In</button>
     <div class="login-err" id="login-err">Invalid student ID or password.</div>
@@ -440,9 +441,9 @@ table.tt tr:hover td{background:#FAFAFA;}
                 <tbody>
                   <tr><td style="padding:5px 8px;font-weight:700;">A+</td><td style="padding:5px 8px;color:var(--sub);">95–100</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--green);">4.00</td></tr>
                   <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">A-</td><td style="padding:5px 8px;color:var(--sub);">90–94</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--green);">3.67</td></tr>
-                  <tr><td style="padding:5px 8px;font-weight:700;">B+</td><td style="padding:5px 8px;color:var(--sub);">86–89</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#2563EB;">3.33</td></tr>
-                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">B</td><td style="padding:5px 8px;color:var(--sub);">83–85</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#2563EB;">3.00</td></tr>
-                  <tr><td style="padding:5px 8px;font-weight:700;">B-</td><td style="padding:5px 8px;color:var(--sub);">80–82</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#2563EB;">2.67</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">B+</td><td style="padding:5px 8px;color:var(--sub);">86–89</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#1D4ED8;">3.33</td></tr>
+                  <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">B</td><td style="padding:5px 8px;color:var(--sub);">83–85</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#1D4ED8;">3.00</td></tr>
+                  <tr><td style="padding:5px 8px;font-weight:700;">B-</td><td style="padding:5px 8px;color:var(--sub);">80–82</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:#1D4ED8;">2.67</td></tr>
                   <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">C+</td><td style="padding:5px 8px;color:var(--sub);">75–79</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--amber);">2.33</td></tr>
                   <tr><td style="padding:5px 8px;font-weight:700;">C</td><td style="padding:5px 8px;color:var(--sub);">70–74</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--amber);">2.00</td></tr>
                   <tr style="background:#FAFAFA"><td style="padding:5px 8px;font-weight:700;">C-</td><td style="padding:5px 8px;color:var(--sub);">66–69</td><td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--amber);">1.67</td></tr>
@@ -942,7 +943,7 @@ function renderEventsList(){
     const d=new Date(e.date);
     const diff=Math.ceil((d-today)/(1000*60*60*24));
     const diffLbl=diff===0?'Today':diff===1?'Tomorrow':`In ${diff} days`;
-    const color=e.type==='holiday'?'#DC2626':e.type==='exam'?'#D97706':'var(--accent2)';
+    const color=e.type==='holiday'?'#DC2626':e.type==='exam'?'#B45309':'var(--accent2)';
     return`<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="min-width:100px;font-size:12px;color:var(--sub);">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
       <div style="flex:1;font-size:13px;font-weight:500;">${e.label}</div>
@@ -958,7 +959,7 @@ const CLUBS=[
   {id:'gdev',name:'Google Developers',desc:'Explore Google technologies, build Android & web apps, participate in Google-sponsored hackathons and workshops.',color:'#4285F4',bg:'#EEF4FF',tags:['Android','Web','Cloud','AI'],meetings:'Every Monday, 4:00 PM'},
   {id:'cisco',name:'Cisco NetAcad',desc:'Learn networking fundamentals, cybersecurity, and earn Cisco certifications through hands-on labs and study sessions.',color:'#1BA0D7',bg:'#E0F4FA',tags:['Networking','Security','CCNA'],meetings:'Every Wednesday, 3:00 PM'},
   {id:'cs',name:'Computer Science Club',desc:'Competitive programming, algorithm challenges, LeetCode sessions, and tech talks by industry professionals.',color:'#7C3AED',bg:'#F5F3FF',tags:['Algorithms','Competitive','DSA'],meetings:'Tuesday & Thursday, 2:00 PM'},
-  {id:'pitch',name:'Pitch Club',desc:'Develop entrepreneurial skills through pitch competitions, startup ideation workshops, and investor Q&A sessions.',color:'#D97706',bg:'#FFFBEB',tags:['Startup','Entrepreneurship','Pitching'],meetings:'Every Sunday, 5:00 PM'},
+  {id:'pitch',name:'Pitch Club',desc:'Develop entrepreneurial skills through pitch competitions, startup ideation workshops, and investor Q&A sessions.',color:'#B45309',bg:'#FFFBEB',tags:['Startup','Entrepreneurship','Pitching'],meetings:'Every Sunday, 5:00 PM'},
   {id:'photo',name:'Photography & Media',desc:'Learn photography, video editing, and content creation. Cover campus events and build your creative portfolio.',color:'#DC2626',bg:'#FEF2F2',tags:['Photography','Video','Design'],meetings:'Every Thursday, 4:00 PM'},
   {id:'debate',name:'Debate Society',desc:'Sharpen critical thinking and public speaking through structured debates, Model UN simulations, and speech workshops.',color:'#166534',bg:'#F0FDF4',tags:['Public Speaking','Critical Thinking'],meetings:'Every Tuesday, 5:00 PM'},
 ];

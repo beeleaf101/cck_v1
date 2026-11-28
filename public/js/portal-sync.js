@@ -711,9 +711,9 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div>
           <div style="font-size:14px;font-weight:700;color:#0F172A">Change Log</div>
-          <div style="font-size:11px;color:#94A3B8;margin-top:2px">
+          <div style="font-size:11px;color:#64748B;margin-top:2px">
             ${semLabel} · ${allChanges.length} total changes · 
-            <span style="color:${totalUnsynced ? '#6366F1' : '#16A34A'};font-weight:600">
+            <span style="color:${totalUnsynced ? '#6366F1' : '#15803D'};font-weight:600">
               ${totalUnsynced > 0 ? `${totalUnsynced} pending sync` : 'All synced ✓'}
             </span>
           </div>
@@ -773,7 +773,7 @@
         .pr-chg-diff { display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px; }
         .pr-chg-old { padding:1px 6px;background:#FEF2F2;color:#991B1B;border-radius:4px;font-size:10px;font-weight:600;font-family:monospace;text-decoration:line-through;opacity:.7; }
         .pr-chg-new { padding:1px 6px;background:#F0FDF4;color:#166534;border-radius:4px;font-size:10px;font-weight:600;font-family:monospace; }
-        .pr-chg-arr { color:#94A3B8;font-size:11px; }
+        .pr-chg-arr { color:#64748B;font-size:11px; }
         .pr-portal-badge { padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.04em; }
         .pr-sync-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px; }
       </style>
@@ -782,7 +782,7 @@
 
   PSYNC._renderChangeEntries = function (entries) {
     if (!entries.length) {
-      return `<div style="padding:36px;text-align:center;color:#94A3B8;font-size:13px;background:white;border-radius:8px;border:1px solid #F1F5F9">
+      return `<div style="padding:36px;text-align:center;color:#64748B;font-size:13px;background:white;border-radius:8px;border:1px solid #F1F5F9">
         No changes recorded yet. Changes are logged automatically when portals save data.
       </div>`;
     }
@@ -833,7 +833,7 @@
           <span class="pr-chg-new">${r.type || 'room'} · Cap ${r.capacity || '—'}</span>
         </div>`;
       } else if (entry.action === 'room_update') {
-        diffHTML = `<div class="pr-chg-diff"><span style="font-size:10px;color:#94A3B8">Details updated</span></div>`;
+        diffHTML = `<div class="pr-chg-diff"><span style="font-size:10px;color:#64748B">Details updated</span></div>`;
       }
 
       return `
@@ -845,14 +845,14 @@
               <span style="font-size:12px;font-weight:600;color:#0F172A">${entry.label}</span>
             </div>
             ${diffHTML}
-            <div style="font-size:10px;color:#94A3B8;margin-top:4px;display:flex;align-items:center;gap:8px">
+            <div style="font-size:10px;color:#64748B;margin-top:4px;display:flex;align-items:center;gap:8px">
               <span>${tsStr}</span>
               <span style="font-family:monospace;color:#CBD5E1">${entry.entityType}:${entry.entityId}</span>
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-            <div class="pr-sync-dot" style="background:${entry.synced ? '#16A34A' : '#6366F1'}" title="${entry.synced ? 'Synced' : 'Pending sync'}"></div>
-            ${!entry.synced ? `<span style="font-size:9px;color:#6366F1;font-weight:700;white-space:nowrap">Pending</span>` : `<span style="font-size:9px;color:#94A3B8">Synced</span>`}
+            <div class="pr-sync-dot" style="background:${entry.synced ? '#15803D' : '#6366F1'}" title="${entry.synced ? 'Synced' : 'Pending sync'}"></div>
+            ${!entry.synced ? `<span style="font-size:9px;color:#6366F1;font-weight:700;white-space:nowrap">Pending</span>` : `<span style="font-size:9px;color:#64748B">Synced</span>`}
           </div>
         </div>
       `;
@@ -896,7 +896,7 @@
           <div style="width:36px;height:36px;border-radius:9px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;font-size:16px">🔄</div>
           <div>
             <div style="font-size:14px;font-weight:700;color:#0F172A">Sync All Portals</div>
-            <div style="font-size:11px;color:#94A3B8">Pulling data from all portals into Admin</div>
+            <div style="font-size:11px;color:#64748B">Pulling data from all portals into Admin</div>
           </div>
         </div>
         <div id="pr-sync-progress" style="display:flex;flex-direction:column;gap:6px;min-height:120px;max-height:260px;overflow-y:auto;font-size:12px;font-family:monospace;color:#374151;background:#F8FAFC;border-radius:8px;padding:12px;border:1px solid #E2E8F0"></div>

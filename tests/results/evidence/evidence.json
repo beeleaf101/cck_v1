@@ -1,0 +1,158 @@
+[
+ {
+  "step": 1,
+  "file": "01-login-page.png",
+  "check": "Login page loads with the sign-in form",
+  "pass": true
+ },
+ {
+  "step": 2,
+  "file": "02-guard-hod.png",
+  "check": "Visitor opening /hod is sent back to the login page (login=required)",
+  "pass": true
+ },
+ {
+  "step": 3,
+  "file": "03-wrong-password.png",
+  "check": "Wrong password is refused; user stays on the login page",
+  "pass": true
+ },
+ {
+  "step": 4,
+  "file": "04-admin-dashboard.png",
+  "check": "Admin dashboard loads 54 students from the database",
+  "pass": true
+ },
+ {
+  "step": 5,
+  "file": "05-admin-students.png",
+  "check": "Student Management lists students with search and filters",
+  "pass": true
+ },
+ {
+  "step": 6,
+  "file": "06-admin-allocation.png",
+  "check": "Course Allocation screen opens without errors",
+  "pass": true
+ },
+ {
+  "step": 7,
+  "file": "07-reg1-portal.png",
+  "check": "Registration 1 logs in and lands on its own portal",
+  "pass": true
+ },
+ {
+  "step": 8,
+  "file": "08-reg1-submitted.png",
+  "check": "Registration 1 submits to the admin (button now reads \"\u23f3 Pending Approval\")",
+  "pass": true
+ },
+ {
+  "step": 9,
+  "file": "09-reg1-cannot-approve.png",
+  "check": "A portal trying to approve itself is refused by the server (HTTP 403)",
+  "pass": true
+ },
+ {
+  "step": 10,
+  "file": "10-student-request.png",
+  "check": "Student submits a course registration request",
+  "pass": true
+ },
+ {
+  "step": 11,
+  "file": "11-student-privacy.png",
+  "check": "Student browser holds only 1 student record (their own)",
+  "pass": true
+ },
+ {
+  "step": 12,
+  "file": "12-admin-sees-submission.png",
+  "check": "Admin Portal Review shows the Registration 1 submission",
+  "pass": true
+ },
+ {
+  "step": 13,
+  "file": "13-admin-approves.png",
+  "check": "Admin approves the Registration 1 submission",
+  "pass": true
+ },
+ {
+  "step": 14,
+  "file": "14-admin-request-detail.png",
+  "check": "Admin opens the student's request details",
+  "pass": true
+ },
+ {
+  "step": 15,
+  "file": "15-reg1-sees-approval.png",
+  "check": "Registration 1 sees the decision: \"\u2713 Approved by Admin\"",
+  "pass": true
+ },
+ {
+  "step": 16,
+  "file": "16-student-sees-approval.png",
+  "check": "Student sees their request status: approved",
+  "pass": true
+ },
+ {
+  "step": 17,
+  "file": "17-hod-portal.png",
+  "check": "HOD logs in and lands on its own portal",
+  "pass": true
+ },
+ {
+  "step": 18,
+  "file": "18-hod-blocked.png",
+  "check": "HOD cannot open the admin page",
+  "pass": true
+ },
+ {
+  "step": 19,
+  "file": "19-reg2-portal.png",
+  "check": "REG2 logs in and lands on its own portal",
+  "pass": true
+ },
+ {
+  "step": 20,
+  "file": "20-reg2-blocked.png",
+  "check": "REG2 cannot open the admin page",
+  "pass": true
+ },
+ {
+  "step": 21,
+  "file": "21-facility-portal.png",
+  "check": "FACILITY logs in and lands on its own portal",
+  "pass": true
+ },
+ {
+  "step": 22,
+  "file": "22-facility-blocked.png",
+  "check": "FACILITY cannot open the admin page",
+  "pass": true
+ },
+ {
+  "step": 23,
+  "file": "23-nehad-portal.png",
+  "check": "NEHAD logs in and lands on its own portal",
+  "pass": true
+ },
+ {
+  "step": 24,
+  "file": "24-nehad-blocked.png",
+  "check": "NEHAD cannot open the admin page",
+  "pass": true
+ },
+ {
+  "step": 25,
+  "file": "25-student-hub-mobile.png",
+  "check": "Student Hub works on a phone-sized screen",
+  "pass": true
+ },
+ {
+  "step": 26,
+  "file": "26-logout.png",
+  "check": "After logout the admin page is closed again",
+  "pass": true
+ }
+]

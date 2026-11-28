@@ -206,7 +206,7 @@ function renderList(){
   el.innerHTML=list.map(ins=>{
     const cr=assignedCr(ins.id), max=getMax(ins.id);
     const pct=Math.min(100,Math.round(cr/max*100));
-    const crClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+    const crClr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
     const cs=ins.department==='Computer Science';
     return `<div class="ir ${selId===ins.id?'sel':''}" onclick="selectIns('${ins.id}')">
       <div class="av ${cs?'av-cs':'av-bus'}">${ini(ins.name)}</div>
@@ -261,7 +261,7 @@ function buildDeptChips(id){
 
 // Note: setTeachDept receives label with underscores for spaces, convert back
 var _origSetTeachDept = setTeachDept;
-setTeachDept = function(id, labelRaw){
+window.setTeachDept = function(id, labelRaw){
   var label = labelRaw.replace(/_/g,' ');
   _origSetTeachDept(id, label);
 };
@@ -272,7 +272,7 @@ function renderPanel(id){
   const d=instData[id]||{};
   const cr=assignedCr(id), max=getMax(id);
   const pct=Math.min(100,Math.round(cr/max*100));
-  const crClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+  const crClr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
   const cs=ins.department==='Computer Science';
   const current=new Set(assignments[id]||[]);
   // Use teach dept labels to determine which courses are eligible
@@ -298,7 +298,7 @@ function renderPanel(id){
         <div class="av ${cs?'av-cs':'av-bus'}" style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${ini(ins.name)}</div>
         <div>
           <div style="font-size:14px;font-weight:700;color:#0F172A">${ins.name}</div>
-          <div style="font-size:11px;color:#94A3B8;margin-top:2px">${d.qualification||'—'} · ${d.employment||'Full-Time'}</div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px">${d.qualification||'—'} · ${d.employment||'Full-Time'}</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;">${buildDeptBadges(id)}</div>
         </div>
       </div>
@@ -333,7 +333,7 @@ function renderPanel(id){
         const chk=current.has(c.code);
         const wouldOver=!chk&&(cr+getCr(c.code))>max;
         const grp=codeToGroup(c.code);
-        const dotClr=grp==='cs'?'#3B82F6':grp==='gen'?'#16A34A':'#D97706';
+        const dotClr=grp==='cs'?'#1D4ED8':grp==='gen'?'#15803D':'#B45309';
         return `<div class="citem" data-code="${c.code.toLowerCase()}" data-name="${c.name.toLowerCase()}">
           <input type="checkbox" ${chk?'checked':''} onchange="toggle('${id}','${c.code}',this.checked)">
           <span class="cc">${c.code}</span>
@@ -360,7 +360,7 @@ function toggle(id,code,checked){
   // Live update credit indicator
   const cr=assignedCr(id), max=getMax(id);
   const pct=Math.min(100,Math.round(cr/max*100));
-  const clr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+  const clr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
   const pe=document.getElementById('pcr'), pb=document.getElementById('pbar');
   if(pe){pe.textContent=`${cr} / ${max}`;pe.style.color=clr;}
   if(pb){pb.style.width=pct+'%';pb.style.background=clr;}
@@ -425,7 +425,7 @@ function openOverloadModal(id){
             <span style="font-size:10px;font-weight:700;color:#DC2626;background:#FEE2E2;border:1px solid #FCA5A5;padding:2px 8px;border-radius:10px">+${ol} cr</span>
           </div>
           <div style="font-size:12px;color:#64748B">${ins.name} · ${d.qualification||'—'} · ${d.employment||'Full-Time'}</div>
-          <div style="font-size:11px;color:#94A3B8;margin-top:2px">Limit: <b>${max}</b> cr &nbsp;·&nbsp; Assigned: <b>${cr}</b> cr &nbsp;·&nbsp; Overload: <span style="color:#DC2626;font-weight:700">${ol} cr</span></div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px">Limit: <b>${max}</b> cr &nbsp;·&nbsp; Assigned: <b>${cr}</b> cr &nbsp;·&nbsp; Overload: <span style="color:#DC2626;font-weight:700">${ol} cr</span></div>
         </div>
         <button onclick="closeOverloadModal()" style="width:28px;height:28px;border:none;background:#F1F5F9;border-radius:7px;cursor:pointer;color:#64748B;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit">✕</button>
       </div>
@@ -434,7 +434,7 @@ function openOverloadModal(id){
       <div style="flex:1;overflow-y:auto;padding:16px 20px;">
 
         <!-- Course table -->
-        <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Assigned Courses</div>
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Assigned Courses</div>
         <div style="border:1px solid #E2E8F0;border-radius:9px;overflow:hidden;margin-bottom:18px">
           <div style="display:grid;grid-template-columns:90px 1fr 36px;padding:6px 12px;background:#F8FAFC;border-bottom:1px solid #E2E8F0">
             <span style="font-size:10px;font-weight:700;color:#64748B">Code</span>
@@ -450,14 +450,14 @@ function openOverloadModal(id){
         </div>
 
         <!-- Summary pills -->
-        <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Payment Calculation</div>
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Payment Calculation</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px;text-align:center">
-            <div style="font-size:9px;font-weight:600;color:#94A3B8;text-transform:uppercase;margin-bottom:3px">Assigned</div>
+            <div style="font-size:9px;font-weight:600;color:#64748B;text-transform:uppercase;margin-bottom:3px">Assigned</div>
             <div style="font-size:17px;font-weight:800;color:#0F172A">${cr}<span style="font-size:10px;font-weight:500;color:#64748B"> cr</span></div>
           </div>
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px;text-align:center">
-            <div style="font-size:9px;font-weight:600;color:#94A3B8;text-transform:uppercase;margin-bottom:3px">Limit</div>
+            <div style="font-size:9px;font-weight:600;color:#64748B;text-transform:uppercase;margin-bottom:3px">Limit</div>
             <div style="font-size:17px;font-weight:800;color:#0F172A">${max}<span style="font-size:10px;font-weight:500;color:#64748B"> cr</span></div>
           </div>
           <div style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:8px;padding:9px;text-align:center">
@@ -492,7 +492,7 @@ function openOverloadModal(id){
                 onfocus="this.style.borderColor='#DC2626'" onblur="this.style.borderColor='#FCA5A5'">
               <span style="font-size:13px;font-weight:700;color:#7F1D1D;flex-shrink:0">KWD</span>
             </div>
-            <div style="font-size:11px;color:#94A3B8;margin-top:5px" id="ol-formula">${ol} cr × ${rate} KWD/cr = ${totalPay} KWD</div>
+            <div style="font-size:11px;color:#64748B;margin-top:5px" id="ol-formula">${ol} cr × ${rate} KWD/cr = ${totalPay} KWD</div>
           </div>
         </div>
       </div>
@@ -629,14 +629,14 @@ function renderSummary(){
                  'General Education':{bg:'#F0FDF4',c:'#15803D',bd:'#BBF7D0',s:'Gen Ed'}}[d]||{bg:'#F1F5F9',c:'#475569',bd:'#E2E8F0',s:d};
       return '<span style="padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700;background:'+cfg.bg+';color:'+cfg.c+';border:1px solid '+cfg.bd+'">'+cfg.s+'</span>';
     }).join('');
-    const crBar=`<div style="height:3px;background:#E2E8F0;border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct>100?'#DC2626':pct>80?'#D97706':'#16A34A'};border-radius:2px"></div></div>`;
+    const crBar=`<div style="height:3px;background:#E2E8F0;border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct>100?'#DC2626':pct>80?'#B45309':'#15803D'};border-radius:2px"></div></div>`;
     return `<div class="sc">
       <div class="sc-hd">
         <div class="av ${cs?'av-cs':'av-bus'}" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${ini(ins.name)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ins.name}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap">
-            <span style="font-size:10px;color:#94A3B8">${(instData[ins.id]?.qualification)||''} · ${(instData[ins.id]?.employment)||'FT'}</span>
+            <span style="font-size:10px;color:#64748B">${(instData[ins.id]?.qualification)||''} · ${(instData[ins.id]?.employment)||'FT'}</span>
             ${deptBadges}
           </div>
           ${crBar}
@@ -644,10 +644,10 @@ function renderSummary(){
         <span class="${sCls}" style="flex-shrink:0;margin-left:6px">${sTxt}</span>
       </div>
       <div class="sc-chips" style="min-height:auto;padding:8px 14px">
-        ${crs.length?crs.map(c=>`<span class="chip ${codeToGroup(c)==='cs'?'chip-cs':codeToGroup(c)==='gen'?'chip-gen':'chip-bus'}">${c}</span>`).join(''):'<span style="font-size:11px;color:#94A3B8;font-style:italic">None assigned</span>'}
+        ${crs.length?crs.map(c=>`<span class="chip ${codeToGroup(c)==='cs'?'chip-cs':codeToGroup(c)==='gen'?'chip-gen':'chip-bus'}">${c}</span>`).join(''):'<span style="font-size:11px;color:#64748B;font-style:italic">None assigned</span>'}
       </div>
       <div class="sc-ft">
-        <span style="font-size:11px;font-weight:700;color:${pct>100?'#DC2626':pct>80?'#D97706':'#374151'}">${cr} / ${max} cr.</span>
+        <span style="font-size:11px;font-weight:700;color:${pct>100?'#DC2626':pct>80?'#B45309':'#374151'}">${cr} / ${max} cr.</span>
         <span style="font-size:11px;color:#64748B">${crs.length} course${crs.length!==1?'s':''}</span>
         <button onclick="downloadSummary('${ins.id}')" style="padding:3px 10px;background:#0F172A;color:white;border:none;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;letter-spacing:.02em">↓ PDF</button>
       </div>
@@ -665,7 +665,7 @@ function renderUnassigned(){
     <td><span class="dept-badge ${isCS(c.code)?'dept-cs':'dept-bus'}">${isCS(c.code)?'CS':'Biz'}</span></td>
     <td>${getCr(c.code)} cr.</td>
     <td>
-      <button onclick="openAssignModal('${c.code}','${c.name.replace(/'/g,"\'")}',${isCS(c.code)})"
+      <button onclick="openAssignModal('${c.code}','${c.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${isCS(c.code)})"
         style="padding:4px 12px;background:#0F172A;color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         Assign
@@ -694,7 +694,7 @@ function openAssignModal(code, name, cs){
     var cr=assignedCr(ins.id), max=getMax(ins.id);
     var already=(assignments[ins.id]||[]).includes(code);
     var pct=Math.min(100,Math.round(cr/max*100));
-    var crClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+    var crClr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
     var avCls=cs?'av-cs':'av-bus';
 
     var row=document.createElement('div');
@@ -713,14 +713,14 @@ function openAssignModal(code, name, cs){
     var info=document.createElement('div');
     info.style.cssText='flex:1;min-width:0';
     info.innerHTML='<div style="font-size:12px;font-weight:600;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+ins.name+'</div>'
-      +'<div style="font-size:10px;color:#94A3B8">'+cr+'/'+max+' credits used</div>'
+      +'<div style="font-size:10px;color:#64748B">'+cr+'/'+max+' credits used</div>'
       +'<div style="height:3px;background:#E2E8F0;border-radius:2px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+crClr+';border-radius:2px"></div></div>';
 
     row.appendChild(av);
     row.appendChild(info);
     if(already){
       var badge=document.createElement('span');
-      badge.style.cssText='font-size:10px;font-weight:700;color:#16A34A;background:#DCFCE7;padding:2px 7px;border-radius:10px;flex-shrink:0';
+      badge.style.cssText='font-size:10px;font-weight:700;color:#15803D;background:#DCFCE7;padding:2px 7px;border-radius:10px;flex-shrink:0';
       badge.textContent='Assigned ✓';
       row.appendChild(badge);
     }
@@ -809,7 +809,7 @@ function renderTimetable(){
   });
 
   if(!list.length){
-    document.getElementById('tt-grid').innerHTML='<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px">No instructors with assignments found.</div>';
+    document.getElementById('tt-grid').innerHTML='<div style="padding:40px;text-align:center;color:#64748B;font-size:13px">No instructors with assignments found.</div>';
     return;
   }
 
@@ -820,7 +820,7 @@ function renderTimetable(){
     var cs=ins.department==='Computer Science';
     var cr=assignedCr(ins.id), max=getMax(ins.id);
     var pct=Math.min(100,Math.round(cr/max*100));
-    var crClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+    var crClr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
     var cellBg=cs?'#EFF6FF':'#FFFBEB';
     var cellBorder=cs?'#BFDBFE':'#FDE68A';
     var cellTxt=cs?'#1E40AF':'#92400E';
@@ -841,7 +841,7 @@ function renderTimetable(){
     html+='<div style="display:flex;align-items:center;gap:10px">';
     html+='<div class="av '+avCls+'" style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'+ini(ins.name)+'</div>';
     html+='<div><div style="font-size:14px;font-weight:700;color:#0F172A">'+ins.name+'</div>';
-    html+='<div style="font-size:11px;color:#94A3B8">'+(d.qualification||'')+' · '+(d.employment||'FT')+' · '+ins.department+'</div></div>';
+    html+='<div style="font-size:11px;color:#64748B">'+(d.qualification||'')+' · '+(d.employment||'FT')+' · '+ins.department+'</div></div>';
     html+='</div>';
     html+='<div style="display:flex;align-items:center;gap:10px">';
     html+='<span style="font-size:13px;font-weight:800;color:'+crClr+'">'+cr+'/'+max+' cr</span>';
@@ -889,7 +889,7 @@ function downloadSummary(insId){
   var cs=ins.department==='Computer Science';
   var pct=Math.min(100,Math.round(cr/max*100));
   var statusTxt=pct>100?'Overloaded':pct>80?'Near Limit':'Within Limit';
-  var statusClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+  var statusClr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
   var avBg=cs?'#DBEAFE':'#FEF3C7';
   var avClr=cs?'#1E40AF':'#92400E';
   var badgeBg=pct>100?'#FEE2E2':pct>80?'#FEF3C7':'#DCFCE7';
@@ -964,7 +964,7 @@ function downloadSummary(insId){
     +   '</div>'
     +   '<div style="text-align:right">'
     +     '<div class="badge">' + statusTxt + '</div>'
-    +     '<div style="font-size:22px;font-weight:800;color:' + statusClr + ';margin-top:6px">' + cr + ' <span style="font-size:13px;font-weight:500;color:#94A3B8">/ ' + max + ' cr</span></div>'
+    +     '<div style="font-size:22px;font-weight:800;color:' + statusClr + ';margin-top:6px">' + cr + ' <span style="font-size:13px;font-weight:500;color:#64748B">/ ' + max + ' cr</span></div>'
     +     '<div class="pb"><div class="pf"></div></div>'
     +   '</div>'
     + '</div>'
@@ -981,7 +981,7 @@ function downloadSummary(insId){
     +   '</div>'
     + '</div>'
     + '<div class="crs"><div class="crs-t">Assigned Courses (' + crs.length + ')</div>' + courseRows + '</div>'
-    + '<div style="margin-top:18px;text-align:center;font-size:10px;color:#94A3B8" class="np">Canadian College of Kuwait - Student Information System - Generated ' + new Date().toLocaleDateString() + '</div>'
+    + '<div style="margin-top:18px;text-align:center;font-size:10px;color:#64748B" class="np">Canadian College of Kuwait - Student Information System - Generated ' + new Date().toLocaleDateString() + '</div>'
     + '<div style="margin-top:16px;display:flex;justify-content:center;gap:10px" class="np">'
     +   '<button onclick="window.print()" style="padding:8px 20px;background:#0F172A;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Print / Save PDF</button>'
     +   '<button onclick="window.close()" style="padding:8px 20px;background:#F1F5F9;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Close</button>'
@@ -1087,7 +1087,7 @@ function renderTutoring(){
   var grid = document.getElementById('tut-grid');
   if(!grid) return;
   if(!list.length){
-    grid.innerHTML = '<p style="color:#94A3B8;padding:24px">No instructors match filter.</p>';
+    grid.innerHTML = '<p style="color:#64748B;padding:24px">No instructors match filter.</p>';
     return;
   }
 
@@ -1106,7 +1106,7 @@ function renderTutoring(){
     // ── Course rows: ALL courses in DB with search ──
     var allCodes = getAllCoursesSorted(ins.id);
     var eligSet  = new Set(eligible);
-    var courseRows = '';
+    var courseRows;
     if(allCodes.length){
       courseRows = eligible.map(function(code){
         var isTut = tutored.indexOf(code) !== -1;
@@ -1121,19 +1121,19 @@ function renderTutoring(){
                 + 'style="display:flex;align-items:center;gap:9px;padding:8px 10px;cursor:pointer;transition:background .12s;' + rowStyle + '">';
         row += '<input type="checkbox" id="' + cbId + '"'
              + (isTut ? ' checked="checked"' : '')
-             + ' style="width:15px;height:15px;accent-color:#16A34A;cursor:pointer;flex-shrink:0"'
+             + ' style="width:15px;height:15px;accent-color:#15803D;cursor:pointer;flex-shrink:0"'
              + ' onchange="toggleTutor(\'' + ins.id + '\',\'' + code + '\',this.checked)">';
         row += '<span style="font-size:11px;font-weight:700;color:#1E40AF;min-width:80px;flex-shrink:0">' + code + '</span>';
         row += '<span style="font-size:11px;color:#374151;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + ci.n + '">' + ci.n + '</span>';
-        row += '<span style="font-size:10px;font-weight:600;color:#94A3B8;flex-shrink:0">' + ci.cr + ' cr</span>';
+        row += '<span style="font-size:10px;font-weight:600;color:#64748B;flex-shrink:0">' + ci.cr + ' cr</span>';
         if(isTut){
-          row += '<span style="font-size:10px;font-weight:700;color:#16A34A;background:#DCFCE7;padding:1px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0">Tutoring</span>';
+          row += '<span style="font-size:10px;font-weight:700;color:#15803D;background:#DCFCE7;padding:1px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0">Tutoring</span>';
         }
         row += '</label>';
         return row;
       }).join('');
     } else {
-      courseRows = '<p style="font-size:11px;color:#94A3B8;padding:10px">No eligible courses found.</p>';
+      courseRows = '<p style="font-size:11px;color:#64748B;padding:10px">No eligible courses found.</p>';
     }
 
     // ── Employment badge ──
@@ -1168,7 +1168,7 @@ function renderTutoring(){
     } else {
       paySection = '<div style="padding:10px 14px;background:#F0FDF4;border-top:1px solid #BBF7D0;">'
         + '<div style="display:flex;align-items:center;gap:8px;">'
-        + '<svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
         + '<span style="font-size:11px;font-weight:700;color:#166534">Tutoring payment included in salary</span>'
         + '</div></div>';
     }
@@ -1207,12 +1207,12 @@ function renderTutoring(){
       card += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
       card += timeStr+'</span>';
     }
-    card += '<span style="font-size:10px;color:#94A3B8">' + tutored.length + ' tutoring · ' + eligible.length + ' eligible · ' + totalCodes + ' total</span>';
+    card += '<span style="font-size:10px;color:#64748B">' + tutored.length + ' tutoring · ' + eligible.length + ' eligible · ' + totalCodes + ' total</span>';
     card += '</div>';
     card += '</div></div>';
     // Search bar
     card += '<div style="position:relative;padding:7px 10px;border-bottom:1px solid #F1F5F9;background:#FAFAFA;">';
-    card += '<svg style="position:absolute;left:19px;top:50%;transform:translateY(-50%);pointer-events:none;color:#94A3B8" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>';
+    card += '<svg style="position:absolute;left:19px;top:50%;transform:translateY(-50%);pointer-events:none;color:#64748B" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>';
     card += '<input type="text" id="tut_search_' + ins.id + '" placeholder="Search courses…" '
           + 'oninput="filterTutorRows(\'' + ins.id + '\',this.value)" '
           + 'style="width:100%;padding:6px 10px 6px 28px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:11px;font-family:inherit;outline:none;background:white;color:#0F172A;" '
@@ -1221,7 +1221,7 @@ function renderTutoring(){
     // Course list
     card += '<div id="tut_list_' + ins.id + '" style="padding:8px;display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;flex:1;">';
     card += courseRows;
-    card += '<div id="tut_nores_' + ins.id + '" style="display:none;padding:16px;text-align:center;font-size:11px;color:#94A3B8">No courses match your search</div>';
+    card += '<div id="tut_nores_' + ins.id + '" style="display:none;padding:16px;text-align:center;font-size:11px;color:#64748B">No courses match your search</div>';
     card += '</div>';
     // Payment
     card += paySection;

@@ -4,11 +4,21 @@ on:
     branches: [main]
   pull_request:
 jobs:
-  unit-and-integration:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm test
+      - run: npm ci
+      - name: Code quality (ESLint)
+        run: npm run lint
+      - name: HTML validation (html-validate)
+        run: npm run lint:html
+      - name: Secret scan (secretlint)
+        run: npm run scan:secrets
+      - name: Dependency audit (npm audit)
+        run: npm audit --omit=dev
+      - name: Unit and integration tests with coverage
+        run: npm run test:coverage

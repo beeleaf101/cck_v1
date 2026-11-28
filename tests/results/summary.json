@@ -1,0 +1,102 @@
+{
+ "run": "2026-11-28 13:05 +03",
+ "overall": "complete-passed",
+ "suites": [
+  {
+   "suite": "Unit + integration + security",
+   "tool": "Node.js test runner",
+   "checks": 63,
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Code coverage (server)",
+   "tool": "node --experimental-test-coverage",
+   "checks": "90.74% lines",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": "83.49% branches"
+  },
+  {
+   "suite": "Code quality",
+   "tool": "ESLint 10",
+   "checks": "all .js files",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "HTML validation",
+   "tool": "html-validate 11",
+   "checks": "8 pages",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Secret scan",
+   "tool": "secretlint 14",
+   "checks": "all files",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Dependency audit",
+   "tool": "npm audit",
+   "checks": "all packages",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Private data in repository",
+   "tool": "scan_private_data.py",
+   "checks": "70 files",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Data validation (real files)",
+   "tool": "validate_dataset.py",
+   "checks": 19,
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "End-to-end workflow",
+   "tool": "Playwright (Chromium)",
+   "checks": 51,
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Every button, every screen",
+   "tool": "Playwright crawl",
+   "checks": "457 clicks / 41 screens",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Accessibility (WCAG 2.1 AA)",
+   "tool": "axe-core 4",
+   "checks": "20 screens",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": ""
+  },
+  {
+   "suite": "Load (100 students)",
+   "tool": "Python threads",
+   "checks": "600 requests",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
+   "note": "252.2 req/s"
+  }
+ ]
+}

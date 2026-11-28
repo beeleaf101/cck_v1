@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="js/cck-store.js"></script>
+<script src="js/a11y.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Control Center | CCK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,21 +20,21 @@ body{background:#EDEEF2;overflow:hidden;}
 .portal-sidebar{background:#111827;border-right:none;}
 .portal-sidebar-brand{border-bottom:1px solid rgba(255,255,255,.07);padding:16px 14px;}
 .portal-sidebar-brand-name{color:#F9FAFB;font-size:13px;font-weight:700;}
-.portal-sidebar-brand-role{color:rgba(255,255,255,.35);font-size:11px;}
+.portal-sidebar-brand-role{color:rgba(255,255,255,.62);font-size:11px;}
 .portal-sidebar-user{padding:12px 14px 8px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:6px;}
 .portal-sidebar-user-name{color:rgba(255,255,255,.85);font-size:13px;font-weight:600;}
-.portal-sidebar-user-role{color:rgba(255,255,255,.35);font-size:11px;}
-.portal-nav-section{color:rgba(255,255,255,.28);font-size:9px;font-weight:700;letter-spacing:.1em;padding:10px 14px 4px;}
+.portal-sidebar-user-role{color:rgba(255,255,255,.62);font-size:11px;}
+.portal-nav-section{color:rgba(255,255,255,.58);font-size:9px;font-weight:700;letter-spacing:.1em;padding:10px 14px 4px;}
 .portal-nav-link{color:rgba(255,255,255,.55);border-radius:6px;margin:1px 6px;padding:8px 10px;font-size:12px;}
 .portal-nav-link svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0;}
 .portal-nav-link:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);}
 .portal-nav-link.active{background:rgba(255,255,255,.1);color:#F9FAFB;}
 .portal-sidebar-spacer{flex:1;}
 .portal-sidebar-footer{padding:10px 10px 14px;}
-.btn-portal-logout{width:100%;background:rgba(255,255,255,.05);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.09);border-radius:7px;padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;}
+.btn-portal-logout{width:100%;background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.09);border-radius:7px;padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;}
 .btn-portal-logout:hover{background:rgba(255,255,255,.09);color:rgba(255,255,255,.75);}
 .btn-portal-logout svg{width:14px;height:14px;stroke:currentColor;}
-.portal-sidebar-db{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;padding:0 4px;}
+.portal-sidebar-db{font-size:10px;color:rgba(255,255,255,.6);margin-top:8px;padding:0 4px;}
 .portal-sidebar-db.online{color:#4ADE80;}
 
 /* ── Pipeline strip ──────────────────────────────────────────────── */
@@ -52,16 +53,16 @@ body{background:#EDEEF2;overflow:hidden;}
   display:flex;align-items:center;justify-content:center;
 }
 .pipe-icon-wrap svg{width:16px;height:16px;stroke:#94A3B8;fill:none;stroke-width:2;}
-.pipe-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;}
-.pipe-status{font-size:11px;font-weight:700;color:#94A3B8;}
+.pipe-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748B;}
+.pipe-status{font-size:11px;font-weight:700;color:#64748B;}
 .pipe-step.pipe-submitted{background:#FFFDF5;}
 .pipe-step.pipe-submitted .pipe-icon-wrap{background:#FEF3C7;}
-.pipe-step.pipe-submitted .pipe-icon-wrap svg{stroke:#D97706;}
-.pipe-step.pipe-submitted .pipe-status{color:#D97706;}
+.pipe-step.pipe-submitted .pipe-icon-wrap svg{stroke:#B45309;}
+.pipe-step.pipe-submitted .pipe-status{color:#B45309;}
 .pipe-step.pipe-approved{background:#F7FFF9;}
 .pipe-step.pipe-approved .pipe-icon-wrap{background:#DCFCE7;}
-.pipe-step.pipe-approved .pipe-icon-wrap svg{stroke:#16A34A;}
-.pipe-step.pipe-approved .pipe-status{color:#16A34A;}
+.pipe-step.pipe-approved .pipe-icon-wrap svg{stroke:#15803D;}
+.pipe-step.pipe-approved .pipe-status{color:#15803D;}
 
 /* ── Status badges ───────────────────────────────────────────────── */
 .badge{
@@ -70,9 +71,9 @@ body{background:#EDEEF2;overflow:hidden;}
 }
 .badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .badge-approved{background:#DCFCE7;color:#15803D;}
-.badge-approved .badge-dot{background:#16A34A;}
+.badge-approved .badge-dot{background:#15803D;}
 .badge-submitted{background:#FEF3C7;color:#B45309;}
-.badge-submitted .badge-dot{background:#D97706;}
+.badge-submitted .badge-dot{background:#B45309;}
 .badge-draft{background:#F1F5F9;color:#64748B;}
 .badge-draft .badge-dot{background:#CBD5E1;}
 
@@ -177,17 +178,17 @@ body{background:#EDEEF2;overflow:hidden;}
 /* ── Section header ──────────────────────────────────────────────── */
 .sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
 .sec-title{font-size:15px;font-weight:700;color:#0F172A;}
-.sec-sub{font-size:11px;color:#94A3B8;margin-top:2px;}
+.sec-sub{font-size:11px;color:#64748B;margin-top:2px;}
 
 /* ── Stat cards override ─────────────────────────────────────────── */
 .portal-stats{margin-bottom:18px;}
 .portal-stat-card{background:white;border:1px solid #E2E8F0;border-radius:10px;padding:14px 18px;}
-.portal-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#94A3B8;margin-bottom:5px;}
+.portal-stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#64748B;margin-bottom:5px;}
 .portal-stat-value{font-size:14px;font-weight:700;color:#0F172A;font-family:'DM Mono',monospace;}
 
 /* ── Credit delta ────────────────────────────────────────────────── */
 .cr-val{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;}
-.cr-up{color:#16A34A;} .cr-dn{color:#DC2626;} .cr-eq{color:#64748B;}
+.cr-up{color:#15803D;} .cr-dn{color:#DC2626;} .cr-eq{color:#64748B;}
 
 /* ── Toast ───────────────────────────────────────────────────────── */
 .toast-stack{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
@@ -223,22 +224,22 @@ body{background:#EDEEF2;overflow:hidden;}
     <button class="portal-nav-link" onclick="showTab('hod',this)">
       <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       HOD Assignments
-      <span id="badge-hod" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+      <span id="badge-hod" style="margin-left:auto;background:#B45309;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
     </button>
     <button class="portal-nav-link" onclick="showTab('reg1',this)">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Reg 1 – Credits
-      <span id="badge-reg1" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+      <span id="badge-reg1" style="margin-left:auto;background:#B45309;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
     </button>
     <button class="portal-nav-link" onclick="showTab('reg2',this)">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       Reg 2 – Instructors
-      <span id="badge-reg2" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+      <span id="badge-reg2" style="margin-left:auto;background:#B45309;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
     </button>
     <button class="portal-nav-link" onclick="showTab('facility',this)">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
       Facility – Rooms
-      <span id="badge-fac" style="margin-left:auto;background:#D97706;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
+      <span id="badge-fac" style="margin-left:auto;background:#B45309;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">!</span>
     </button>
     <button class="portal-nav-link" onclick="showTab('notifications',this)">
       <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -338,7 +339,7 @@ body{background:#EDEEF2;overflow:hidden;}
         <div style="display:flex;gap:8px" id="hod-actions"></div>
       </div>
       <div id="hod-banner" style="display:none" class="sbanner"></div>
-      <div class="content-card" id="hod-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No assignments submitted yet.</div></div>
+      <div class="content-card" id="hod-content"><div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No assignments submitted yet.</div></div>
     </div>
 
     <!-- ── REG 1 ─────────────────────────────────────────────────── -->
@@ -348,7 +349,7 @@ body{background:#EDEEF2;overflow:hidden;}
         <div style="display:flex;gap:8px" id="reg1-actions"></div>
       </div>
       <div id="reg1-banner" style="display:none" class="sbanner"></div>
-      <div class="content-card" id="reg1-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No credit changes submitted yet.</div></div>
+      <div class="content-card" id="reg1-content"><div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No credit changes submitted yet.</div></div>
     </div>
 
     <!-- ── REG 2 ─────────────────────────────────────────────────── -->
@@ -358,7 +359,7 @@ body{background:#EDEEF2;overflow:hidden;}
         <div style="display:flex;gap:8px" id="reg2-actions"></div>
       </div>
       <div id="reg2-banner" style="display:none" class="sbanner"></div>
-      <div class="content-card" id="reg2-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No instructor data submitted yet.</div></div>
+      <div class="content-card" id="reg2-content"><div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No instructor data submitted yet.</div></div>
     </div>
 
     <!-- ── FACILITY ───────────────────────────────────────────────── -->
@@ -368,7 +369,7 @@ body{background:#EDEEF2;overflow:hidden;}
         <div style="display:flex;gap:8px" id="fac-actions"></div>
       </div>
       <div id="fac-banner" style="display:none" class="sbanner"></div>
-      <div class="content-card" id="fac-content"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No room data submitted yet.</div></div>
+      <div class="content-card" id="fac-content"><div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No room data submitted yet.</div></div>
     </div>
 
     <!-- ── NOTIFICATIONS ─────────────────────────────────────────── -->
@@ -377,7 +378,7 @@ body{background:#EDEEF2;overflow:hidden;}
         <div><div class="sec-title">Notifications</div><div class="sec-sub">Submissions and updates from all portals</div></div>
         <button onclick="clearNotifications()" style="padding:6px 14px;border:1.5px solid #E2E8F0;background:white;border-radius:8px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit">Clear All</button>
       </div>
-      <div id="notifs-list"><div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No notifications yet.</div></div>
+      <div id="notifs-list"><div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No notifications yet.</div></div>
     </div>
 
   </main>
@@ -407,7 +408,7 @@ const SVG={
 };
 const IC={
   hod:    {bg:'#EEF2FF',clr:'#4F46E5'},
-  reg1:   {bg:'#F0FDF4',clr:'#16A34A'},
+  reg1:   {bg:'#F0FDF4',clr:'#15803D'},
   reg2:   {bg:'#FFF7ED',clr:'#EA580C'},
   facility:{bg:'#F0F9FF',clr:'#0284C7'}
 };
@@ -454,18 +455,18 @@ function actionBtns(p, status){
     return `<button class="btn-approve" onclick="approvePortal('${p}')">${SVG.check}Approve</button><button class="btn-reject" onclick="rejectPortal('${p}')">${SVG.x}Request Changes</button>`;
   if(status==='approved')
     return `<button class="btn-reject" onclick="rejectPortal('${p}')">${SVG.undo}Revert to Draft</button>`;
-  return `<span style="font-size:12px;color:#94A3B8;padding:6px 0">Waiting for ${p.toUpperCase()} to submit</span>`;
+  return `<span style="font-size:12px;color:#64748B;padding:6px 0">Waiting for ${p.toUpperCase()} to submit</span>`;
 }
 
 // ── Banner helper ─────────────────────────────────────────────────────
 function setBanner(el, status, submitted, approved){
   if(status==='submitted'){
     el.style.display='flex';
-    el.setAttribute('style','display:flex;padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:500;border-left:3px solid #D97706;background:#FFFCF0;color:#92400E;align-items:center;gap:8px;');
-    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${submitted}`;
+    el.setAttribute('style','display:flex;padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:500;border-left:3px solid #B45309;background:#FFFCF0;color:#92400E;align-items:center;gap:8px;');
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${submitted}`;
   }else if(status==='approved'){
-    el.setAttribute('style','display:flex;padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:500;border-left:3px solid #16A34A;background:#F0FDF4;color:#166534;align-items:center;gap:8px;');
-    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>${approved}`;
+    el.setAttribute('style','display:flex;padding:11px 16px;border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:500;border-left:3px solid #15803D;background:#F0FDF4;color:#166534;align-items:center;gap:8px;');
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>${approved}`;
   }else{
     el.style.display='none';
   }
@@ -564,7 +565,7 @@ function renderHOD(){
     'HOD assignments approved.');
 
   const ids=Object.keys(asgn).filter(k=>asgn[k]?.length>0);
-  if(!ids.length){document.getElementById('hod-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No assignments found. HOD needs to assign and submit first.</div>';return;}
+  if(!ids.length){document.getElementById('hod-content').innerHTML='<div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No assignments found. HOD needs to assign and submit first.</div>';return;}
 
   const total=Object.values(asgn).reduce((s,a)=>s+(Array.isArray(a)?a.length:0),0);
   document.getElementById('hod-content').innerHTML=`
@@ -575,12 +576,12 @@ function renderHOD(){
       const codes=asgn[insId]||[];
       const d=instData[insId]||{};
       const cs=codes.some(c=>isCS(c));
-      const chips=codes.slice(0,10).map(c=>`<span class="chip chip-${codeGroup(c)}">${c}</span>`).join(' ')+(codes.length>10?`<span style="font-size:10px;color:#94A3B8">+${codes.length-10} more</span>`:'');
+      const chips=codes.slice(0,10).map(c=>`<span class="chip chip-${codeGroup(c)}">${c}</span>`).join(' ')+(codes.length>10?`<span style="font-size:10px;color:#64748B">+${codes.length-10} more</span>`:'');
       return `<div class="drow">
         <div class="av ${cs?'av-cs':'av-bus'}">${ini(insId)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:2px">${insId}</div>
-          <div style="font-size:10px;color:#94A3B8;margin-bottom:5px">${d.employment||'Full-Time'} · ${codes.length} course(s)</div>
+          <div style="font-size:10px;color:#64748B;margin-bottom:5px">${d.employment||'Full-Time'} · ${codes.length} course(s)</div>
           <div style="display:flex;flex-wrap:wrap;gap:3px">${chips}</div>
         </div>
         <div style="font-size:13px;font-weight:700;color:#64748B;font-family:'DM Mono',monospace;flex-shrink:0">${codes.length}</div>
@@ -598,12 +599,12 @@ function renderReg1(){
 
   const creditChanges=JSON.parse(localStorage.getItem('cck_credits_shared')||'{}');
   const codes=Object.keys(creditChanges);
-  if(!codes.length){document.getElementById('reg1-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No credit changes found. Registration 1 uses all default credits (3 per course).</div>';return;}
+  if(!codes.length){document.getElementById('reg1-content').innerHTML='<div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No credit changes found. Registration 1 uses all default credits (3 per course).</div>';return;}
 
   document.getElementById('reg1-content').innerHTML=`
     <div class="content-toolbar">
       <span style="font-size:11px;font-weight:600;color:#64748B">${codes.length} course(s) with modified credits</span>
-      <span style="font-size:11px;color:#94A3B8">Default is 3 credits</span>
+      <span style="font-size:11px;color:#64748B">Default is 3 credits</span>
     </div>
     ${codes.sort().map(code=>{
       const newCr=creditChanges[code];
@@ -632,14 +633,14 @@ function renderReg2(){
     'Registration 2 data approved.');
 
   const ids=Object.keys(instData);
-  if(!ids.length){document.getElementById('reg2-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No instructor data found. Registration 2 needs to save and submit first.</div>';return;}
+  if(!ids.length){document.getElementById('reg2-content').innerHTML='<div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No instructor data found. Registration 2 needs to save and submit first.</div>';return;}
 
   const ft=Object.values(instData).filter(d=>d.employment==='Full-Time').length;
   const pt=Object.values(instData).filter(d=>d.employment==='Part-Time').length;
   document.getElementById('reg2-content').innerHTML=`
     <div class="content-toolbar">
       <span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors</span>
-      <span style="font-size:11px;color:#94A3B8">${ft} Full-Time · ${pt} Part-Time</span>
+      <span style="font-size:11px;color:#64748B">${ft} Full-Time · ${pt} Part-Time</span>
     </div>
     ${ids.map(insId=>{
       const d=instData[insId]||{};
@@ -651,7 +652,7 @@ function renderReg2(){
           <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:4px">${insId}</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${isPT?'#FEF3C7':'#DBEAFE'};color:${isPT?'#92400E':'#1E40AF'}">${d.employment||'—'}</span>
-            ${d.qualification?`<span style="font-size:10px;color:#94A3B8">${d.qualification}</span>`:''}
+            ${d.qualification?`<span style="font-size:10px;color:#64748B">${d.qualification}</span>`:''}
             <span style="font-size:10px;color:#64748B">${fmtT(d.timeFrom)} – ${fmtT(d.timeTo)}</span>
           </div>
         </div>
@@ -669,7 +670,7 @@ function renderFacility(){
     'Facility submitted room data — please review and approve.',
     'Facility data approved.');
 
-  if(!rooms.length){document.getElementById('fac-content').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No room data found.</div>';return;}
+  if(!rooms.length){document.getElementById('fac-content').innerHTML='<div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No room data found.</div>';return;}
 
   const TS={classroom:{bg:'#EFF6FF',clr:'#1D4ED8'},lab:{bg:'#F0FDF4',clr:'#15803D'},hall:{bg:'#FFFBEB',clr:'#92400E'}};
   const cl=rooms.filter(r=>(r.type||r.room_type)==='classroom').length;
@@ -678,7 +679,7 @@ function renderFacility(){
   document.getElementById('fac-content').innerHTML=`
     <div class="content-toolbar">
       <span style="font-size:11px;font-weight:600;color:#64748B">${rooms.length} rooms</span>
-      <span style="font-size:11px;color:#94A3B8">${cl} classrooms · ${lb} labs · ${hl} halls</span>
+      <span style="font-size:11px;color:#64748B">${cl} classrooms · ${lb} labs · ${hl} halls</span>
     </div>
     ${rooms.map(r=>{
       const t=r.type||r.room_type||'classroom';
@@ -697,8 +698,8 @@ function renderFacility(){
 // ── Notifications ─────────────────────────────────────────────────────
 function renderNotifications(){
   const notifs=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
-  if(!notifs.length){document.getElementById('notifs-list').innerHTML='<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">No notifications yet.</div>';return;}
-  const PC={HOD:'#EEF2FF|#4338CA','Registration 1':'#F0FDF4|#16A34A','Registration 2':'#FFF7ED|#EA580C',Facility:'#F0F9FF|#0284C7',Admin:'#FEF2F2|#DC2626'};
+  if(!notifs.length){document.getElementById('notifs-list').innerHTML='<div style="padding:32px;text-align:center;color:#64748B;font-size:13px">No notifications yet.</div>';return;}
+  const PC={HOD:'#EEF2FF|#4338CA','Registration 1':'#F0FDF4|#15803D','Registration 2':'#FFF7ED|#EA580C',Facility:'#F0F9FF|#0284C7',Admin:'#FEF2F2|#DC2626'};
   document.getElementById('notifs-list').innerHTML=notifs.map(n=>{
     const [bg,clr]=(PC[n.portal]||'#F1F5F9|#475569').split('|');
     const tLbl=n.type==='approval'?'Approved · ':n.type==='rejection'?'Returned · ':'';
@@ -707,7 +708,7 @@ function renderNotifications(){
       <div style="flex:1">
         <span style="background:${bg};color:${clr};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:5px">${n.portal}</span>
         <div style="font-size:13px;color:#0F172A;font-weight:500">${tLbl}${n.message}</div>
-        <div style="font-size:11px;color:#94A3B8;margin-top:4px">${n.semLabel||n.semKey||''} · ${new Date(n.timestamp).toLocaleString()}</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px">${n.semLabel||n.semKey||''} · ${new Date(n.timestamp).toLocaleString()}</div>
       </div>
     </div>`;
   }).join('');

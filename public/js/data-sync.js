@@ -849,8 +849,8 @@ function renderDatabaseManagementPanel() {
     html += '</button>';
     
     // Sync Current Semester button
-    html += '<button onclick="syncCurrentSemesterToDatabase()" style="padding: 16px; border: 2px solid #3B82F6; border-radius: 12px; background: #EFF6FF; cursor: pointer; text-align: center;">';
-    html += '<svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" style="width: 32px; height: 32px; margin: 0 auto 8px; display: block;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    html += '<button onclick="syncCurrentSemesterToDatabase()" style="padding: 16px; border: 2px solid #1D4ED8; border-radius: 12px; background: #EFF6FF; cursor: pointer; text-align: center;">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" style="width: 32px; height: 32px; margin: 0 auto 8px; display: block;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
     html += '<div style="font-weight: 600; color: #1E40AF;">Sync Current Semester</div>';
     html += '<div style="font-size: 12px; color: #6B7280; margin-top: 4px;">Upload current semester only</div>';
     html += '</button>';
@@ -918,11 +918,11 @@ function updateDbConnectionDisplay() {
     if (!statusEl) return;
     
     if (isDbConnected()) {
-        statusEl.innerHTML = '<span style="color: #10B981;">● Connected</span>';
+        statusEl.innerHTML = '<span style="color: #047857;">● Connected</span>';
         statusEl.style.background = '#F0FDF4';
         statusEl.style.color = '#166534';
     } else {
-        statusEl.innerHTML = '<span style="color: #F59E0B;">● Offline</span>';
+        statusEl.innerHTML = '<span style="color: #B45309;">● Offline</span>';
         statusEl.style.background = '#FFFBEB';
         statusEl.style.color = '#92400E';
     }

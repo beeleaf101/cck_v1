@@ -52,8 +52,8 @@ function updateConnectionStatus(isConnected) {
     const indicator = document.getElementById('db-status-indicator');
     if (indicator) {
         indicator.innerHTML = isConnected 
-            ? '<span style="color: #10B981;">● Connected</span>'
-            : '<span style="color: #F59E0B;">● Offline</span>';
+            ? '<span style="color: #047857;">● Connected</span>'
+            : '<span style="color: #B45309;">● Offline</span>';
     }
 }
 
@@ -485,7 +485,7 @@ function parseSchedule(timeStr) {
     };
     
     // Match patterns like "Sun/Tue 08:00-09:15" or "MW 10:00-11:30"
-    const match = timeStr.match(/([A-Za-z\/]+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+    const match = timeStr.match(/([A-Za-z/]+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
     if (match) {
         const daysStr = match[1];
         const startTime = match[2];

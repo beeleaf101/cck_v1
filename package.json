@@ -14,9 +14,20 @@
     "db:seed:local": "wrangler d1 execute cck-sis-db --local --file=private/seed-public.sql && wrangler d1 execute cck-sis-db --local --file=private/seed-private.sql",
     "test": "node --no-warnings --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
     "test:all": "bash tests/run_all.sh",
-    "test:coverage": "node --no-warnings --test --experimental-test-coverage --test-coverage-include=src/worker.js tests/unit/*.test.mjs tests/integration/*.test.mjs"
+    "test:coverage": "node --no-warnings --test --experimental-test-coverage --test-coverage-include=src/worker.js tests/unit/*.test.mjs tests/integration/*.test.mjs",
+    "lint": "eslint .",
+    "lint:html": "html-validate public/*.html",
+    "scan:secrets": "secretlint \"**/*\"",
+    "check": "npm run lint && npm run lint:html && npm run scan:secrets && npm audit --omit=dev && npm test"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.1.0",
+    "axe-core": "^4.14.1",
+    "eslint": "^10.16.0",
+    "globals": "^17.14.0",
+    "html-validate": "^11.23.0",
+    "secretlint": "^14.1.0",
     "wrangler": "^4.50.0"
   }
 }

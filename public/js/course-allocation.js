@@ -348,7 +348,7 @@ function allocShell() { return `
 .ca-kpi-icon{width:34px;height:34px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
 .ca-kpi-icon svg{width:16px;height:16px;}
 .ca-kpi-icon.red{background:var(--cck-red-bg);color:var(--cck-red);}
-.ca-kpi-icon.green{background:var(--green-100);color:var(--green-500);}
+.ca-kpi-icon.green{background:var(--green-100);color:#15803D;}
 .ca-kpi-icon.blue{background:var(--blue-100);color:var(--blue-500);}
 .ca-kpi-icon.orange{background:var(--orange-100);color:var(--orange-500);}
 .ca-kpi-icon.purple{background:var(--purple-100);color:var(--purple-500);}
@@ -363,7 +363,7 @@ function allocShell() { return `
 .ca-fb:hover{border-color:var(--gray-400);}
 .ca-fb.active{background:var(--cck-red);border-color:var(--cck-red);color:white;}
 .ca-sw{position:relative;}
-.ca-sw svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:12px;height:12px;color:var(--gray-400);pointer-events:none;}
+.ca-sw svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:12px;height:12px;color:var(--gray-500);pointer-events:none;}
 .ca-sw input{padding:6px 10px 6px 28px;border:1px solid var(--gray-200);border-radius:var(--radius-full);font-size:12px;font-family:inherit;width:200px;outline:none;background:var(--gray-50);}
 .ca-sw input:focus{border-color:var(--cck-red);background:white;}
 .ca-seg{display:inline-flex;border:1px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;}
@@ -412,7 +412,7 @@ function allocShell() { return `
 .fc-prog-label{font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
 .fc-prog-dept{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 .fc-prog-dept.cs{background:#4F46E5;}
-.fc-prog-dept.biz{background:#D97706;}
+.fc-prog-dept.biz{background:#B45309;}
 .fc-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
 .fc-row label{font-size:12px;color:var(--gray-600);flex:1;}
 .fc-row input[type=number]{width:80px;padding:6px 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-weight:700;text-align:center;font-family:inherit;outline:none;}
@@ -422,7 +422,7 @@ function allocShell() { return `
 .fc-pass-name{font-size:11px;color:var(--gray-600);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fc-pass-input{width:70px;padding:5px 6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-weight:700;text-align:center;font-family:inherit;outline:none;}
 .fc-pass-input:focus{border-color:var(--cck-red);}
-.fc-pass-pct{font-size:10px;color:var(--gray-400);min-width:28px;text-align:right;}
+.fc-pass-pct{font-size:10px;color:var(--gray-500);min-width:28px;text-align:right;}
 .fc-search{padding:8px 12px 0;}
 .fc-search input{width:100%;padding:7px 11px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;}
 .fc-search input:focus{border-color:var(--cck-red);}
@@ -468,7 +468,7 @@ function allocShell() { return `
   <!-- Controls -->
   <div class="ca-bar">
     <div class="ca-bar-row">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);white-space:nowrap">Filter</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);white-space:nowrap">Filter</span>
       <div class="ca-bar-sep"></div>
       <button class="ca-fb active" onclick="caF('all',this)">All</button>
       <button class="ca-fb" onclick="caF('assigned',this)">Assigned</button>
@@ -480,10 +480,10 @@ function allocShell() { return `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Search code or instructor…" oninput="caSearch(this.value)">
       </div>
-      <div class="ca-ml" style="font-size:12px;color:var(--gray-400)" id="ca-cnt"></div>
+      <div class="ca-ml" style="font-size:12px;color:var(--gray-500)" id="ca-cnt"></div>
     </div>
     <div class="ca-bar-row">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);white-space:nowrap">View</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);white-space:nowrap">View</span>
       <div class="ca-bar-sep"></div>
       <div class="ca-seg">
         <button class="ca-vbtn active" data-v="plan" onclick="caView('plan',this)">Course Plan</button>
@@ -572,7 +572,7 @@ function allocShell() { return `
     </div>
 
     <div class="ca-modal-ft">
-      <div style="font-size:12px;color:var(--gray-400)">Changes applied immediately to the plan</div>
+      <div style="font-size:12px;color:var(--gray-500)">Changes applied immediately to the plan</div>
       <div style="display:flex;gap:8px">
         <button onclick="caCloseForecast()" class="ca-abtn sec">Close</button>
         <button onclick="caSaveForecast()" class="ca-abtn pr">Apply Forecast</button>
@@ -653,7 +653,7 @@ function caRenderRows() {
   const cnt = document.getElementById('ca-cnt');
   if (cnt) cnt.textContent = rows.length + ' courses';
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="padding:40px;text-align:center;color:var(--gray-400)">No courses match the current filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:40px;text-align:center;color:var(--gray-500)">No courses match the current filter.</td></tr>`;
     return;
   }
   const maxP = Math.max(...rows.map(r => r.proj), 1);
@@ -672,19 +672,19 @@ function caRenderRows() {
         return `<span style="font-size:11px;font-weight:600;color:#B45309;background:#FFFBEB;padding:2px 7px;border-radius:3px">Unassigned</span>`;
       const d0 = row.iids[0] ? S.instData[row.iids[0]] || {} : {};
       const isPT = d0.employment === 'Part-Time';
-      const avail = (d0.timeFrom && d0.timeTo) ? `<span style="font-size:9px;color:var(--gray-400);font-family:monospace">${d0.timeFrom}–${d0.timeTo}</span>` : '';
+      const avail = (d0.timeFrom && d0.timeTo) ? `<span style="font-size:9px;color:var(--gray-500);font-family:monospace">${d0.timeFrom}–${d0.timeTo}</span>` : '';
       const empBadge = row.iids[0]
         ? `<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px;background:${isPT ? '#FEF9C3' : '#DBEAFE'};color:${isPT ? '#92400E' : '#1E40AF'}">${isPT ? 'PT' : 'FT'}</span>` : '';
       return `<div style="font-size:12px;font-weight:600;color:var(--gray-800)">${row.inames[0]}</div>`
         + `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">${empBadge}${avail}</div>`
-        + (row.inames.length > 1 ? `<div style="font-size:10px;color:var(--gray-400)">+${row.inames.length - 1} more</div>` : '');
+        + (row.inames.length > 1 ? `<div style="font-size:10px;color:var(--gray-500)">+${row.inames.length - 1} more</div>` : '');
     })();
 
     // Student projection cell with breakdown
     const pct = Math.round(row.proj / maxP * 100);
     const shtml = `<div style="font-size:14px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
       <div class="pred-bar"><div class="pred-bar-fill" style="width:${pct}%;background:var(--cck-red)"></div></div>
-      <div style="font-size:9px;color:var(--gray-400);white-space:nowrap">${row.past} hist · ${row.failBack} re-take · ${row.newShare} new</div>`;
+      <div style="font-size:9px;color:var(--gray-500);white-space:nowrap">${row.past} hist · ${row.failBack} re-take · ${row.newShare} new</div>`;
 
     // Sections + slot hint
     const ttSecs = tt && tt.entries[row.code];
@@ -700,10 +700,10 @@ function caRenderRows() {
     const facRoom = assignedRoom ? S.rooms.find(r => String(r.id || r.room_id || r.name || '').trim() === assignedRoom) : null;
     const roomHtml = assignedRoom
       ? (facRoom
-        ? `<div style="font-size:12px;font-weight:600">${facRoom.name || assignedRoom}</div><div style="font-size:9px;color:var(--gray-400)">${facRoom.type || ''}${facRoom.capacity ? ' · cap ' + facRoom.capacity : ''}</div>`
+        ? `<div style="font-size:12px;font-weight:600">${facRoom.name || assignedRoom}</div><div style="font-size:9px;color:var(--gray-500)">${facRoom.type || ''}${facRoom.capacity ? ' · cap ' + facRoom.capacity : ''}</div>`
         : `<span style="font-size:12px;font-weight:600">${assignedRoom}</span>`)
       : (row.session === 'lecture'
-        ? `<span style="font-size:10px;color:var(--gray-400)">Classroom</span>`
+        ? `<span style="font-size:10px;color:var(--gray-500)">Classroom</span>`
         : row.session === 'lab'
           ? `<span style="font-size:10px;font-weight:600;color:var(--cck-red)">Lab</span>`
           : `<span style="font-size:10px;font-weight:600;color:var(--blue-500)">Lec+Lab</span>`);
@@ -724,7 +724,7 @@ function caRenderRows() {
 function caRenderMiniTT() {
   const inner = document.getElementById('ca-tt-inner'); if (!inner) return;
   if (!S.timetable) {
-    inner.innerHTML = `<div style="padding:56px;text-align:center;color:var(--gray-400)">
+    inner.innerHTML = `<div style="padding:56px;text-align:center;color:var(--gray-500)">
       <p style="margin-bottom:12px">No timetable generated yet.</p>
       <button onclick="caGenTT()" style="padding:8px 16px;background:var(--cck-red);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-family:inherit;font-weight:600">Generate Timetable</button>
     </div>`;
@@ -766,18 +766,18 @@ function caOpenDetail(code) {
         <span style="font-size:13px;font-weight:700">Section ${i + 1}</span>
         <span style="font-size:12px;color:var(--gray-500)">${stu} students</span>
       </div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-400);margin-bottom:5px">Instructor</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:5px">Instructor</div>
       <select onchange="caSecInst('${code}',${i},this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;margin-bottom:10px;background:white">
         <option value="">— TBA —</option>
         ${allInstBase.map(ins => `<option value="${ins.id}" ${ins.id === iid ? 'selected' : ''}>${ins.name}</option>`).join('')}
       </select>
       ${(row.lhrs > 0 || row.session === 'lecture') ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-400);margin-bottom:4px">Lecture Slot</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:4px">Lecture Slot</div>
           <div style="font-size:12px;padding:6px 8px;background:var(--green-100);border-radius:4px">${ls ? ls.days.join(',') + '  ' + ls.start + '–' + ls.end : 'Not scheduled'}</div>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-400);margin-bottom:4px">Classroom</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:4px">Classroom</div>
           <select onchange="caSecRoom('${code}',${i},'lec',this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
             <option value="">— Auto —</option>
             ${lecRooms.map(r => {
@@ -790,11 +790,11 @@ function caOpenDetail(code) {
       </div>` : ''}
       ${(row.lahrs > 0 || row.session === 'lab') ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-400);margin-bottom:4px">Lab Slot</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:4px">Lab Slot</div>
           <div style="font-size:12px;padding:6px 8px;background:var(--cck-red-bg);border-radius:4px">${abs ? abs.days.join(',') + '  ' + abs.start + '–' + abs.end : 'Not scheduled'}</div>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-400);margin-bottom:4px">Lab Room</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:4px">Lab Room</div>
           <select onchange="caSecRoom('${code}',${i},'lab',this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
             <option value="">— Auto —</option>
             ${labRooms.map(r => {
@@ -851,16 +851,16 @@ function caOpenDetail(code) {
       ${instSection}
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
         <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Credits</div>
+          <div style="font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px">Credits</div>
           <div style="font-size:22px;font-weight:800;color:var(--cck-red)">${row.credits}</div>
         </div>
         <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Projected</div>
+          <div style="font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px">Projected</div>
           <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
-          <div style="font-size:9px;color:var(--gray-400)">${row.past} + ${row.failBack} + ${row.newShare}</div>
+          <div style="font-size:9px;color:var(--gray-500)">${row.past} + ${row.failBack} + ${row.newShare}</div>
         </div>
         <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Sections</div>
+          <div style="font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px">Sections</div>
           <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${row.secs}</div>
         </div>
       </div>
@@ -871,7 +871,7 @@ function caOpenDetail(code) {
         <div style="display:flex;gap:14px;font-size:12px">
           <div><div style="color:var(--gray-500);font-size:10px">Historical</div><strong style="color:var(--gray-900)">${row.past}</strong></div>
           <div><div style="color:var(--gray-500);font-size:10px">Re-takers (failed)</div><strong style="color:#DC2626">${row.failBack}</strong></div>
-          <div><div style="color:var(--gray-500);font-size:10px">New students</div><strong style="color:#16A34A">${row.newShare}</strong></div>
+          <div><div style="color:var(--gray-500);font-size:10px">New students</div><strong style="color:#15803D">${row.newShare}</strong></div>
           <div style="margin-left:auto;text-align:right"><div style="color:var(--gray-500);font-size:10px">Pass Rate</div><strong style="color:var(--gray-900)">${pct}%</strong></div>
         </div>
       </div>
@@ -999,9 +999,9 @@ function fcRenderPreview() {
         <div style="display:flex;gap:8px;font-size:10px;flex-wrap:wrap">
           <span style="color:var(--gray-500)">Historical: <strong>${base}</strong></span>
           <span style="color:#DC2626">Re-takers: <strong>+${failBack}</strong></span>
-          <span style="color:#16A34A">New: <strong>+${newShare}</strong></span>
+          <span style="color:#15803D">New: <strong>+${newShare}</strong></span>
           <span style="color:var(--gray-900);font-weight:700">Total: ${projected}</span>
-          <span style="color:var(--gray-400)">Pass: ${pct}%</span>
+          <span style="color:var(--gray-500)">Pass: ${pct}%</span>
           <span style="color:var(--blue-500)">${secs} section${secs > 1 ? 's' : ''}</span>
         </div>
       </div>
@@ -1136,7 +1136,7 @@ function ttShell() { return `
   </div>
   <div class="tt-bar">
     <div class="tt-bar-row">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);white-space:nowrap">Day</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);white-space:nowrap">Day</span>
       <div class="tt-bsep"></div>
       <button class="tt-dbtn active" data-day="all" onclick="ttDay('all',this)">All Days</button>
       <button class="tt-dbtn" data-day="Su" onclick="ttDay('Su',this)">Sunday</button>
@@ -1146,7 +1146,7 @@ function ttShell() { return `
       <button class="tt-dbtn" data-day="Th" onclick="ttDay('Th',this)">Thursday</button>
     </div>
     <div class="tt-bar-row">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);white-space:nowrap">View</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);white-space:nowrap">View</span>
       <div class="tt-bsep"></div>
       <div class="tt-vtgl">
         <button class="tt-vtgl-btn active" data-ttv="grid" onclick="ttView('grid',this)">Grid</button>
@@ -1166,7 +1166,7 @@ function ttShell() { return `
     </div>
   </div>
   <div class="tt-card" id="tt-display">
-    <div style="padding:56px;text-align:center;color:var(--gray-400)">
+    <div style="padding:56px;text-align:center;color:var(--gray-500)">
       <p style="margin-bottom:12px">Click <strong>Generate Timetable</strong> to schedule all courses from portal data.</p>
     </div>
   </div>
@@ -1227,7 +1227,7 @@ function ttRenderDisplay() {
 function renderTTGrid(wrap, tt) { ttRenderGridInner(wrap, tt || S.timetable); }
 
 function ttRenderGridInner(wrap, tt) {
-  if (!tt) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable generated.</div>'; return; }
+  if (!tt) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-500)">No timetable generated.</div>'; return; }
   const filterDay = ttState && ttState.day !== 'all' ? ttState.day : null;
   const activeDays = filterDay ? [filterDay] : DAYS;
   const sessMap = {};
@@ -1250,7 +1250,7 @@ function ttRenderGridInner(wrap, tt) {
     });
   });
   const sortedTimes = [...allTimes].sort();
-  if (!sortedTimes.length) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-400)">No sessions scheduled yet.</div>'; return; }
+  if (!sortedTimes.length) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-500)">No sessions scheduled yet.</div>'; return; }
   wrap.innerHTML = `<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:${activeDays.length * 160 + 100}px;width:100%">
     <thead><tr style="background:var(--gray-50)">
       <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--gray-200);text-align:left;width:80px">Time</th>
@@ -1274,7 +1274,7 @@ function ttRenderGridInner(wrap, tt) {
 }
 
 function ttRenderByInst(wrap) {
-  if (!S.timetable) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable.</div>'; return; }
+  if (!S.timetable) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-500)">No timetable.</div>'; return; }
   const instSess = {};
   Object.entries(S.timetable.entries).forEach(([code, secs]) => {
     secs.forEach((s, si) => {
@@ -1305,7 +1305,7 @@ function ttRenderByInst(wrap) {
 }
 
 function ttRenderByRoom(wrap) {
-  if (!S.timetable) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable.</div>'; return; }
+  if (!S.timetable) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray-500)">No timetable.</div>'; return; }
   const roomSess = {};
   Object.entries(S.timetable.entries).forEach(([code, secs]) => {
     secs.forEach((s, si) => {

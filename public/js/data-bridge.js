@@ -399,14 +399,14 @@ function getHODCourses(instructorName) {
 // ─── RENDER AUDIT LOG PANEL (HTML helper for admin portal) ────────
 function renderAuditLogPanel(entries) {
     if (!entries || !entries.length) {
-        return `<div style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">
+        return `<div style="padding:32px;text-align:center;color:#64748B;font-size:13px">
             No activity recorded yet.
         </div>`;
     }
 
     const portalColors = {
         'HOD Portal':     { bg: '#FEF3C7', color: '#92400E', dot: '#F59E0B' },
-        'Admin Portal':   { bg: '#DBEAFE', color: '#1E40AF', dot: '#3B82F6' },
+        'Admin Portal':   { bg: '#DBEAFE', color: '#1E40AF', dot: '#1D4ED8' },
         'Student Portal': { bg: '#DCFCE7', color: '#166534', dot: '#22C55E' },
         'CCK Portal':     { bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' }
     };
@@ -432,7 +432,7 @@ function renderAuditLogPanel(entries) {
         return `<tr>
             <td style="padding:10px 14px;border-bottom:1px solid #F3F4F6;white-space:nowrap">
                 <div style="font-size:12px;font-weight:600;color:#0F172A">${dateStr}</div>
-                <div style="font-size:10px;color:#94A3B8">${timeStr}</div>
+                <div style="font-size:10px;color:#64748B">${timeStr}</div>
             </td>
             <td style="padding:10px 14px;border-bottom:1px solid #F3F4F6">
                 <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:${pc.bg};color:${pc.color}">
@@ -445,7 +445,7 @@ function renderAuditLogPanel(entries) {
             </td>
             <td style="padding:10px 14px;border-bottom:1px solid #F3F4F6;max-width:360px">
                 <div style="font-size:12px;color:#374151">${e.description || ''}</div>
-                ${e.entity_id ? `<div style="font-size:10px;color:#94A3B8;margin-top:2px">${e.entity_id}</div>` : ''}
+                ${e.entity_id ? `<div style="font-size:10px;color:#64748B;margin-top:2px">${e.entity_id}</div>` : ''}
             </td>
         </tr>`;
     }).join('');

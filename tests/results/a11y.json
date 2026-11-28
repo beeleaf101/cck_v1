@@ -1,0 +1,87 @@
+{
+ "pages": 20,
+ "critical_or_serious_elements": 0,
+ "by_rule": [],
+ "pages_detail": [
+  {
+   "page": "login page",
+   "violations": []
+  },
+  {
+   "page": "student hub login",
+   "violations": []
+  },
+  {
+   "page": "admin / dashboard",
+   "violations": []
+  },
+  {
+   "page": "admin / students",
+   "violations": []
+  },
+  {
+   "page": "admin / allocation",
+   "violations": []
+  },
+  {
+   "page": "admin / instructors",
+   "violations": []
+  },
+  {
+   "page": "admin / timetable",
+   "violations": []
+  },
+  {
+   "page": "admin / analytics",
+   "violations": []
+  },
+  {
+   "page": "admin / predictions",
+   "violations": []
+  },
+  {
+   "page": "admin / advising",
+   "violations": []
+  },
+  {
+   "page": "admin / portal-review",
+   "violations": []
+  },
+  {
+   "page": "portal / hod",
+   "violations": []
+  },
+  {
+   "page": "portal / reg1",
+   "violations": []
+  },
+  {
+   "page": "portal / reg2",
+   "violations": []
+  },
+  {
+   "page": "portal / facility",
+   "violations": []
+  },
+  {
+   "page": "portal / nehad",
+   "violations": []
+  },
+  {
+   "page": "student / schedule",
+   "violations": []
+  },
+  {
+   "page": "student / registration",
+   "violations": []
+  },
+  {
+   "page": "student / prerequisites",
+   "violations": []
+  },
+  {
+   "page": "student / progress",
+   "violations": []
+  }
+ ]
+}

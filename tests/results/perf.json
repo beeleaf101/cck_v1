@@ -3,50 +3,50 @@
  "simulated_students": 100,
  "concurrency": 25,
  "requests": 600,
- "wall_seconds": 1.97,
- "throughput_rps": 304.3,
+ "wall_seconds": 2.38,
+ "throughput_rps": 252.2,
  "error_rate": 0.0,
  "endpoints": {
   "GET /": {
    "requests": 100,
-   "median_ms": 68.8,
-   "p95_ms": 100.2,
-   "max_ms": 111.3,
+   "median_ms": 92.0,
+   "p95_ms": 116.9,
+   "max_ms": 126.8,
    "errors": 0
   },
   "POST /api/auth/login": {
    "requests": 100,
-   "median_ms": 77.7,
-   "p95_ms": 114.9,
-   "max_ms": 126.8,
+   "median_ms": 89.9,
+   "p95_ms": 105.6,
+   "max_ms": 118.3,
    "errors": 0
   },
   "GET /api/state": {
    "requests": 100,
-   "median_ms": 87.0,
-   "p95_ms": 118.7,
-   "max_ms": 130.4,
+   "median_ms": 98.8,
+   "p95_ms": 118.8,
+   "max_ms": 128.5,
    "errors": 0
   },
   "GET /api/data": {
    "requests": 100,
-   "median_ms": 79.2,
-   "p95_ms": 102.8,
-   "max_ms": 118.8,
+   "median_ms": 92.1,
+   "p95_ms": 153.4,
+   "max_ms": 161.0,
    "errors": 0
   },
   "GET /api/historical-grades": {
    "requests": 100,
-   "median_ms": 68.5,
-   "p95_ms": 104.1,
-   "max_ms": 129.3,
+   "median_ms": 89.5,
+   "p95_ms": 130.3,
+   "max_ms": 143.8,
    "errors": 0
   },
   "POST /api/auth/logout": {
    "requests": 100,
-   "median_ms": 65.8,
-   "p95_ms": 107.3,
-   "max_ms": 123.7,
+   "median_ms": 86.7,
+   "p95_ms": 130.6,
+   "max_ms": 137.2,
    "errors": 0
   }
  }

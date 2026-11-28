@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="js/cck-store.js"></script>
+<script src="js/a11y.js" defer></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CCK Course Structure — Dr. Nehad</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -10,7 +11,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --red:#C8102E;--red2:#a00d24;--rtint:#fff0f2;
-  --ink:#1a1a1a;--ink2:#444;--ink3:#888;
+  --ink:#1a1a1a;--ink2:#444;--ink3:#5c5c5c;
   --line:#e8e8e8;--bg:#f5f5f3;--white:#fff;
   --lec-bg:#eef3ff;--lec-ink:#1e3a8a;
   --lab-bg:#fff3ec;--lab-ink:#7c2d12;
@@ -46,13 +47,13 @@ body{font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink);back
 .sb-brand{padding:18px 14px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
 .sb-mark{width:30px;height:30px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-bottom:7px}
 .sb-brand h2{font-size:12px;font-weight:700}
-.sb-brand p{font-size:10px;color:rgba(255,255,255,.38);margin-top:1px}
+.sb-brand p{font-size:10px;color:rgba(255,255,255,.62);margin-top:1px}
 .sb-user{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:9px}
 .sb-av{width:28px;height:28px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
 .sb-uname{font-size:12px;font-weight:600}
-.sb-urole{font-size:10px;color:rgba(255,255,255,.38)}
+.sb-urole{font-size:10px;color:rgba(255,255,255,.62)}
 .sb-nav{flex:1;padding:6px 0}
-.sb-sec{font-size:10px;font-weight:600;letter-spacing:.07em;color:rgba(255,255,255,.28);text-transform:uppercase;padding:9px 14px 3px}
+.sb-sec{font-size:10px;font-weight:600;letter-spacing:.07em;color:rgba(255,255,255,.58);text-transform:uppercase;padding:9px 14px 3px}
 .sb-link{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.58);cursor:pointer;transition:.1s;position:relative}
 .sb-link:hover{background:rgba(255,255,255,.05);color:#fff}
 .sb-link.on{background:rgba(200,16,46,.18);color:#fff}
@@ -60,7 +61,7 @@ body{font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink);back
 .sb-link svg{width:13px;height:13px;flex-shrink:0}
 .sb-num{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:var(--red);color:#fff}
 .sb-foot{padding:10px 14px;border-top:1px solid rgba(255,255,255,.08)}
-.logout-btn{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;background:rgba(255,255,255,.05);border:none;border-radius:6px;font:inherit;font-size:12px;font-weight:500;color:rgba(255,255,255,.45);cursor:pointer;transition:.1s}
+.logout-btn{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;background:rgba(255,255,255,.05);border:none;border-radius:6px;font:inherit;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);cursor:pointer;transition:.1s}
 .logout-btn:hover{background:rgba(200,16,46,.2);color:#fff}
 .logout-btn svg{width:12px;height:12px}
 
@@ -114,7 +115,7 @@ body{font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink);back
 .btn-dark:hover{background:#333}
 .btn-ghost{background:#fff;color:var(--ink2);border-color:var(--line)}
 .btn-ghost:hover{border-color:var(--ink3)}
-.btn-green{background:#16a34a;color:#fff}
+.btn-green{background:#15803D;color:#fff}
 .btn-green:hover{background:#15803d}
 
 /* TABLE */
@@ -163,8 +164,8 @@ tr.chg td{background:#fffbeb}
 .rnote{font-size:11px;color:var(--ink3);margin-top:9px;line-height:1.5}
 .rfoot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:9px;border-top:1px solid var(--line)}
 .rst{font-size:11px;font-weight:600;color:var(--ink3)}
-.rst.saved{color:#16a34a}
-.rst.dirty{color:#d97706}
+.rst.saved{color:#15803D}
+.rst.dirty{color:#B45309}
 
 /* EXPORT */
 .egrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
@@ -196,7 +197,7 @@ tr.chg td{background:#fffbeb}
 
 /* SAVE BADGE */
 .sbadge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--line);color:var(--ink3)}
-.sbadge.saved{background:#dcfce7;color:#16a34a}
+.sbadge.saved{background:#dcfce7;color:#15803D}
 
 /* TIMETABLE */
 .tt-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px}
@@ -241,7 +242,7 @@ td:hover .tt-empty-cell{opacity:1}
 .twrap{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:7px;z-index:9999}
 .toast{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:var(--r);font-size:13px;font-weight:500;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18);opacity:0;transform:translateY(5px);transition:opacity .2s,transform .2s;max-width:320px}
 .toast.show{opacity:1;transform:translateY(0)}
-.toast.ok{background:#16a34a}
+.toast.ok{background:#15803D}
 .toast.err{background:var(--red)}
 .toast.info{background:var(--ink2)}
 .toast svg{flex-shrink:0;width:13px;height:13px}
@@ -1692,7 +1693,7 @@ function buildTTGrid(title, courseCodes, mySlots, key) {
             html += '<tr><td><span class="code">' + code + '</span></td>'
                 + '<td style="font-size:12px">' + escH(c.name) + '</td>'
                 + '<td>' + badge(c.session_type) + '</td>'
-                + '<td><span style="font-weight:600;color:' + (count ? '#16a34a' : 'var(--ink3)') + '">' + count + '</span></td>'
+                + '<td><span style="font-weight:600;color:' + (count ? '#15803D' : 'var(--ink3)') + '">' + count + '</span></td>'
                 + '<td><button class="ebtn" onclick="openTTModalForCourse(\'' + key + '\',\'' + code + '\')">+ Add Slot</button></td>'
                 + '</tr>';
         });
@@ -1828,11 +1829,11 @@ function updateTTSubmitBar() {
         if (st === 'approved') {
             btnEl.textContent = 'Approved ✓';
             btnEl.disabled = true;
-            btnEl.style.background = '#16a34a';
+            btnEl.style.background = '#15803D';
         } else if (st === 'submitted') {
             btnEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Submitted';
             btnEl.disabled = false;
-            btnEl.style.background = '#d97706';
+            btnEl.style.background = '#B45309';
         } else {
             btnEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit to Admin';
             btnEl.disabled = false;

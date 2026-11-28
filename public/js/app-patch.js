@@ -104,9 +104,9 @@ async function injectAuditPanel() {
                 </div>
             </div>
             <div id="audit-log-body" style="max-height:380px;overflow-y:auto">
-                <div style="padding:24px;text-align:center;color:#94A3B8;font-size:13px">Loading activity log…</div>
+                <div style="padding:24px;text-align:center;color:#64748B;font-size:13px">Loading activity log…</div>
             </div>
-            <div style="padding:10px 20px;border-top:1px solid #F3F4F6;font-size:11px;color:#94A3B8;display:flex;justify-content:space-between">
+            <div style="padding:10px 20px;border-top:1px solid #F3F4F6;font-size:11px;color:#64748B;display:flex;justify-content:space-between">
                 <span id="audit-last-refresh">Loading…</span>
                 <span id="audit-entry-count"></span>
             </div>
@@ -123,7 +123,7 @@ async function injectAuditPanel() {
                 </button>
             </div>
             <div id="hod-status-body" style="max-height:320px;overflow-y:auto">
-                <div style="padding:24px;text-align:center;color:#94A3B8;font-size:13px">Loading HOD assignments…</div>
+                <div style="padding:24px;text-align:center;color:#64748B;font-size:13px">Loading HOD assignments…</div>
             </div>
         </div>
     `;
@@ -142,7 +142,7 @@ window.refreshAuditPanel = async function() {
     const semFilter = document.getElementById('audit-semester-filter')?.value || '';
     const portalFilter = document.getElementById('audit-portal-filter')?.value || '';
 
-    body.innerHTML = '<div style="padding:24px;text-align:center;color:#94A3B8;font-size:13px">Refreshing…</div>';
+    body.innerHTML = '<div style="padding:24px;text-align:center;color:#64748B;font-size:13px">Refreshing…</div>';
 
     const { data } = await loadAuditLog(100, semFilter || undefined);
 
@@ -170,7 +170,7 @@ window.refreshHODStatus = async function() {
     const entries = Object.entries(byInstructor);
 
     if (!entries.length) {
-        body.innerHTML = '<div style="padding:24px;text-align:center;color:#94A3B8;font-size:13px">No HOD assignments found. Ask the HOD to save assignments first.</div>';
+        body.innerHTML = '<div style="padding:24px;text-align:center;color:#64748B;font-size:13px">No HOD assignments found. Ask the HOD to save assignments first.</div>';
         return;
     }
 
@@ -182,7 +182,7 @@ window.refreshHODStatus = async function() {
         const busCount = codes.length - csCount;
         const chips = codes.slice(0,8).map(c =>
             `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;background:${isCS(c)?'#DBEAFE':'#FEF3C7'};color:${isCS(c)?'#1E40AF':'#92400E'};margin:1px">${c}</span>`
-        ).join('') + (codes.length > 8 ? `<span style="font-size:10px;color:#94A3B8"> +${codes.length-8} more</span>` : '');
+        ).join('') + (codes.length > 8 ? `<span style="font-size:10px;color:#64748B"> +${codes.length-8} more</span>` : '');
 
         return `<tr>
             <td style="padding:10px 14px;border-bottom:1px solid #F3F4F6;font-size:12px;font-weight:600;color:#0F172A;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis">${name}</td>
@@ -229,10 +229,10 @@ function injectHODSyncBanner() {
     banner.style.cssText = 'margin-bottom:16px;padding:12px 16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;display:flex;align-items:center;justify-content:space-between;';
     banner.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             <div>
                 <div style="font-size:13px;font-weight:600;color:#1E40AF">HOD assignments loaded</div>
-                <div style="font-size:11px;color:#3B82F6">${hodCount} instructors with HOD-assigned courses — timetable generation will use this data</div>
+                <div style="font-size:11px;color:#1D4ED8">${hodCount} instructors with HOD-assigned courses — timetable generation will use this data</div>
             </div>
         </div>
         <button onclick="refreshHODInstructorSection()" style="padding:5px 12px;background:#1E40AF;color:white;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer">Refresh</button>

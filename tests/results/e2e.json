@@ -309,13 +309,13 @@
   }
  ],
  "timings_ms": {
-  "login_page_load_ms": 855,
-  "admin_login_to_dashboard_ms": 1546,
-  "hod_login_ms": 2307,
-  "reg1_login_ms": 2295,
-  "reg2_login_ms": 2286,
-  "facility_login_ms": 2310,
-  "student_hub_load_ms": 861
+  "login_page_load_ms": 891,
+  "admin_login_to_dashboard_ms": 1554,
+  "hod_login_ms": 2299,
+  "reg1_login_ms": 2329,
+  "reg2_login_ms": 2315,
+  "facility_login_ms": 2277,
+  "student_hub_load_ms": 860
  },
  "page_errors": [],
  "passed": 51,

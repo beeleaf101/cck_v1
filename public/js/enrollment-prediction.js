@@ -436,15 +436,15 @@ function renderPredictionDashboard(containerId) {
     html += '<div style="display: flex; justify-content: space-between; align-items: flex-start;">';
     html += '<div>';
     html += '<div style="font-size: 13px; color: #6B7280; margin-bottom: 8px; font-weight: 500;">Total Students</div>';
-    html += '<div style="font-size: 36px; font-weight: 700; color: #3B82F6; line-height: 1;">' + totalStudentsCount + '</div>';
-    html += '<div style="font-size: 12px; color: #22C55E; margin-top: 8px;">' + activeStudentsCount + ' currently enrolled</div>';
+    html += '<div style="font-size: 36px; font-weight: 700; color: #1D4ED8; line-height: 1;">' + totalStudentsCount + '</div>';
+    html += '<div style="font-size: 12px; color: #15803D; margin-top: 8px;">' + activeStudentsCount + ' currently enrolled</div>';
     html += '</div>';
     html += '<div style="width: 56px; height: 56px; background: linear-gradient(135deg, #DBEAFE, #BFDBFE); border-radius: 12px; display: flex; align-items: center; justify-content: center;">';
     html += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width: 28px; height: 28px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
     html += '</div></div>';
     html += '<div style="margin-top: 12px; display: flex; gap: 12px;">';
-    html += '<div style="flex: 1; background: #F0FDF4; padding: 8px; border-radius: 6px; text-align: center;"><div style="font-size: 14px; font-weight: 600; color: #16A34A;">' + activeStudentsCount + '</div><div style="font-size: 10px; color: #166534;">Active</div></div>';
-    html += '<div style="flex: 1; background: #DBEAFE; padding: 8px; border-radius: 6px; text-align: center;"><div style="font-size: 14px; font-weight: 600; color: #2563EB;">' + graduatedCount + '</div><div style="font-size: 10px; color: #1E40AF;">Graduated</div></div>';
+    html += '<div style="flex: 1; background: #F0FDF4; padding: 8px; border-radius: 6px; text-align: center;"><div style="font-size: 14px; font-weight: 600; color: #15803D;">' + activeStudentsCount + '</div><div style="font-size: 10px; color: #166534;">Active</div></div>';
+    html += '<div style="flex: 1; background: #DBEAFE; padding: 8px; border-radius: 6px; text-align: center;"><div style="font-size: 14px; font-weight: 600; color: #1D4ED8;">' + graduatedCount + '</div><div style="font-size: 10px; color: #1E40AF;">Graduated</div></div>';
     html += '</div></div>';
     
     // Card 2: Status Distribution (Updated for all students)
@@ -466,19 +466,19 @@ function renderPredictionDashboard(containerId) {
     html += '<div style="flex: 1;">';
     html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #22C55E; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">Progressing</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.progressing + '</span></div>';
     html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #F59E0B; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">Needs Improvement</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + needsImprovementCount + '</span></div>';
-    html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #EF4444; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">At Risk</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.atRisk + '</span></div>';
-    html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 10px; height: 10px; background: #3B82F6; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">New Students</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + newStudentsCount + '</span></div>';
+    html += '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div style="width: 10px; height: 10px; background: #DC2626; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">At Risk</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + studentPredictions.summary.atRisk + '</span></div>';
+    html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 10px; height: 10px; background: #1D4ED8; border-radius: 2px;"></div><span style="font-size: 12px; color: #6B7280;">New Students</span><span style="font-size: 12px; font-weight: 600; color: #1F2937; margin-left: auto;">' + newStudentsCount + '</span></div>';
     html += '</div></div></div>';
     
     // Card 3: Predicted Enrollment
     html += '<div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
     html += '<div style="font-size: 13px; color: #6B7280; margin-bottom: 12px; font-weight: 500;">Predicted Enrollment</div>';
     html += '<div style="margin-bottom: 10px;">';
-    html += '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; color: #6B7280;">New Students</span><span style="font-size: 12px; font-weight: 600; color: #3B82F6;">' + newStudentsTotal + '</span></div>';
-    html += '<div style="height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden;"><div style="height: 100%; width: ' + newStudentsPct + '%; background: #3B82F6; border-radius: 3px;"></div></div>';
+    html += '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; color: #6B7280;">New Students</span><span style="font-size: 12px; font-weight: 600; color: #1D4ED8;">' + newStudentsTotal + '</span></div>';
+    html += '<div style="height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden;"><div style="height: 100%; width: ' + newStudentsPct + '%; background: #1D4ED8; border-radius: 3px;"></div></div>';
     html += '</div>';
     html += '<div>';
-    html += '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; color: #6B7280;">Repeat Students</span><span style="font-size: 12px; font-weight: 600; color: #F59E0B;">' + totalRepeatStudents + '</span></div>';
+    html += '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 12px; color: #6B7280;">Repeat Students</span><span style="font-size: 12px; font-weight: 600; color: #B45309;">' + totalRepeatStudents + '</span></div>';
     html += '<div style="height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden;"><div style="height: 100%; width: ' + repeatStudentsPct + '%; background: #F59E0B; border-radius: 3px;"></div></div>';
     html += '</div>';
     html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #E5E7EB;">';
@@ -491,9 +491,9 @@ function renderPredictionDashboard(containerId) {
     html += '<div style="font-size: 13px; color: #6B7280; margin-bottom: 12px; font-weight: 500;">Course Risk Analysis</div>';
     html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
     html += '<div style="background: #FEF2F2; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #DC2626;">' + highRiskCourses.length + '</div><div style="font-size: 11px; color: #991B1B;">High Risk</div></div>';
-    html += '<div style="background: #F0FDF4; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #16A34A;">' + (coursePredictions.length - highRiskCourses.length) + '</div><div style="font-size: 11px; color: #166534;">Normal</div></div>';
-    html += '<div style="background: #EFF6FF; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #2563EB;">' + coursePredictions.length + '</div><div style="font-size: 11px; color: #1E40AF;">Total Courses</div></div>';
-    html += '<div style="background: #FEF3C7; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #D97706;">' + HistoricalData.records.length + '</div><div style="font-size: 11px; color: #92400E;">Records</div>' +
+    html += '<div style="background: #F0FDF4; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #15803D;">' + (coursePredictions.length - highRiskCourses.length) + '</div><div style="font-size: 11px; color: #166534;">Normal</div></div>';
+    html += '<div style="background: #EFF6FF; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #1D4ED8;">' + coursePredictions.length + '</div><div style="font-size: 11px; color: #1E40AF;">Total Courses</div></div>';
+    html += '<div style="background: #FEF3C7; border-radius: 8px; padding: 12px; text-align: center;"><div style="font-size: 20px; font-weight: 700; color: #B45309;">' + HistoricalData.records.length + '</div><div style="font-size: 11px; color: #92400E;">Records</div>' +
         (function () {
             var n = HistoricalData.records.filter(function (r) { return r.verification === 'unverified'; }).length;
             return n ? '<div title="2015-2020 grades that could not be fully confirmed from the exports" style="font-size: 10px; color: #92400E; margin-top: 2px;">incl. ' + n + ' unverified</div>' : '';
@@ -628,9 +628,9 @@ function renderCourseTable(container, perPage, searchTerm, confidenceFilter, ris
     var displayCount = Math.min(filtered.length, perPage);
     for (var i = 0; i < displayCount; i++) {
         var pred = filtered[i];
-        var failColor = pred.failRate > 30 ? '#DC2626' : (pred.failRate > 20 ? '#D97706' : '#16A34A');
+        var failColor = pred.failRate > 30 ? '#DC2626' : (pred.failRate > 20 ? '#B45309' : '#15803D');
         var failBg = pred.failRate > 30 ? '#FEE2E2' : (pred.failRate > 20 ? '#FEF3C7' : '#D1FAE5');
-        var confColor = pred.confidence === 'high' ? '#16A34A' : (pred.confidence === 'medium' ? '#D97706' : '#6B7280');
+        var confColor = pred.confidence === 'high' ? '#15803D' : (pred.confidence === 'medium' ? '#B45309' : '#6B7280');
         var confBg = pred.confidence === 'high' ? '#D1FAE5' : (pred.confidence === 'medium' ? '#FEF3C7' : '#F3F4F6');
         var displayName = pred.courseName.length > 35 ? pred.courseName.substring(0, 35) + '...' : pred.courseName;
         
@@ -638,10 +638,10 @@ function renderCourseTable(container, perPage, searchTerm, confidenceFilter, ris
         html += '<td style="padding: 12px 16px;"><strong style="color: #1F2937;">' + pred.courseCode + '</strong></td>';
         html += '<td style="padding: 12px 16px; font-size: 13px; color: #6B7280;">' + displayName + '</td>';
         html += '<td style="padding: 12px 16px; text-align: center;">' + pred.historical + '</td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="font-weight: 600; color: #2563EB;">' + pred.totalPredicted + '</span><div style="font-size: 10px; color: #6B7280;">' + pred.newStudents + ' new + ' + pred.repeatStudents + ' repeat</div></td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #D1FAE5; color: #16A34A; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">' + pred.passRate + '%</span></td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="font-weight: 600; color: #1D4ED8;">' + pred.totalPredicted + '</span><div style="font-size: 10px; color: #6B7280;">' + pred.newStudents + ' new + ' + pred.repeatStudents + ' repeat</div></td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #D1FAE5; color: #15803D; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">' + pred.passRate + '%</span></td>';
         html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: ' + failBg + '; color: ' + failColor + '; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">' + pred.failRate + '%</span></td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #FEF3C7; color: #D97706; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + pred.repeatStudents + '</span></td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #FEF3C7; color: #B45309; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + pred.repeatStudents + '</span></td>';
         html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: ' + confBg + '; color: ' + confColor + '; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; text-transform: uppercase;">' + pred.confidence + '</span></td>';
         html += '</tr>';
     }
@@ -687,7 +687,7 @@ function renderAtRiskTable(container, perPage, searchTerm) {
     for (var i = 0; i < displayCount; i++) {
         var student = filtered[i];
         var gpaVal = student.gpa || student.cgpa || 0;
-        var cgpaColor = gpaVal < 1.5 ? '#DC2626' : (gpaVal < 2.0 ? '#D97706' : '#16A34A');
+        var cgpaColor = gpaVal < 1.5 ? '#DC2626' : (gpaVal < 2.0 ? '#B45309' : '#15803D');
         var cgpaBg = gpaVal < 1.5 ? '#FEE2E2' : (gpaVal < 2.0 ? '#FEF3C7' : '#D1FAE5');
         var cgpaDisplay = gpaVal > 0 ? gpaVal.toFixed(2) : 'N/A';
         var admitTerm = student.admitTerm || 'Unknown';
@@ -769,8 +769,8 @@ function renderRepeatingTable(container, perPage, searchTerm) {
         html += '<td style="padding: 12px 16px;"><strong style="color: #1F2937;">' + student.id + '</strong></td>';
         html += '<td style="padding: 12px 16px; font-size: 13px; color: #6B7280;">' + student.name + '</td>';
         html += '<td style="padding: 12px 16px; text-align: center; font-size: 12px; color: #6B7280;">' + admitTerm + '</td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #FEF3C7; color: #D97706; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + cgpaDisplay + '</span></td>';
-        html += '<td style="padding: 12px 16px; font-size: 12px; color: #D97706;">' + actionNeeded + '</td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #FEF3C7; color: #B45309; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + cgpaDisplay + '</span></td>';
+        html += '<td style="padding: 12px 16px; font-size: 12px; color: #B45309;">' + actionNeeded + '</td>';
         html += '</tr>';
     }
     
@@ -818,8 +818,8 @@ function openPredictionPopup() {
         courseRows += '<td style="text-align: center;">' + (stats.total || 0) + '</td>';
         courseRows += '<td style="text-align: center;"><span class="badge badge-green">' + (stats.pass_rate || 0) + '%</span></td>';
         courseRows += '<td style="text-align: center;"><span class="badge ' + failClass + '">' + (stats.fail_rate || 0) + '%</span></td>';
-        courseRows += '<td style="text-align: center; color: #10B981; font-weight: 600;">' + (stats.passed || 0) + '</td>';
-        courseRows += '<td style="text-align: center; color: #EF4444; font-weight: 600;">' + (stats.failed || 0) + '</td>';
+        courseRows += '<td style="text-align: center; color: #047857; font-weight: 600;">' + (stats.passed || 0) + '</td>';
+        courseRows += '<td style="text-align: center; color: #B91C1C; font-weight: 600;">' + (stats.failed || 0) + '</td>';
         courseRows += '<td style="text-align: center;"><span class="badge badge-yellow">' + pred.repeatStudents + '</span></td>';
         courseRows += '<td style="text-align: center;"><span class="badge badge-purple">' + pred.totalPredicted + '</span></td>';
         courseRows += '</tr>';
@@ -837,8 +837,8 @@ function openPredictionPopup() {
         atRiskRows += '<td style="font-weight: 600;">' + s.id + '</td>';
         atRiskRows += '<td>' + (s.name || 'Unknown') + '</td>';
         atRiskRows += '<td style="text-align: center;"><span class="badge ' + cgpaClass + '">' + cgpaVal + '</span></td>';
-        atRiskRows += '<td style="text-align: center; color: #10B981;">' + (s.passed || 0) + '</td>';
-        atRiskRows += '<td style="text-align: center; color: #EF4444; font-weight: 600;">' + (s.failed || 0) + '</td>';
+        atRiskRows += '<td style="text-align: center; color: #047857;">' + (s.passed || 0) + '</td>';
+        atRiskRows += '<td style="text-align: center; color: #B91C1C; font-weight: 600;">' + (s.failed || 0) + '</td>';
         atRiskRows += '<td style="font-size: 11px; color: #6B7280;">' + failedCourses + more + '</td>';
         atRiskRows += '</tr>';
     }
@@ -858,9 +858,9 @@ function openPredictionPopup() {
     popupHTML += 'th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #F3F4F6; }';
     popupHTML += 'th { background: #F9FAFB; font-weight: 600; color: #374151; position: sticky; top: 0; }';
     popupHTML += '.badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }';
-    popupHTML += '.badge-green { background: #D1FAE5; color: #059669; }';
+    popupHTML += '.badge-green { background: #D1FAE5; color: #047857; }';
     popupHTML += '.badge-red { background: #FEE2E2; color: #DC2626; }';
-    popupHTML += '.badge-yellow { background: #FEF3C7; color: #D97706; }';
+    popupHTML += '.badge-yellow { background: #FEF3C7; color: #B45309; }';
     popupHTML += '.badge-purple { background: #EDE9FE; color: #7C3AED; }';
     popupHTML += '.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }';
     popupHTML += '.stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }';
@@ -871,9 +871,9 @@ function openPredictionPopup() {
     popupHTML += '<div class="container">';
     popupHTML += '<div class="header"><h1>CCK Enrollment Prediction Report</h1><p>Generated on ' + new Date().toLocaleString() + '</p></div>';
     popupHTML += '<div class="stats-grid">';
-    popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #10B981;">' + studentPredictions.summary.progressing + '</div><div class="stat-label">Progressing</div></div>';
-    popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #F59E0B;">' + studentPredictions.summary.repeating + '</div><div class="stat-label">Repeating</div></div>';
-    popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #EF4444;">' + studentPredictions.summary.atRisk + '</div><div class="stat-label">At Risk</div></div>';
+    popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #047857;">' + studentPredictions.summary.progressing + '</div><div class="stat-label">Progressing</div></div>';
+    popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #B45309;">' + studentPredictions.summary.repeating + '</div><div class="stat-label">Repeating</div></div>';
+    popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #B91C1C;">' + studentPredictions.summary.atRisk + '</div><div class="stat-label">At Risk</div></div>';
     popupHTML += '<div class="stat-card"><div class="stat-value" style="color: #6366F1;">' + studentPredictions.summary.progressionRate + '%</div><div class="stat-label">Progression Rate</div></div>';
     popupHTML += '</div>';
     popupHTML += '<div class="card"><div class="card-header">Course Pass/Fail Analysis</div><div class="scroll-table"><table><thead><tr>';

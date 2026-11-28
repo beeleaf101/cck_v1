@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
 <script src="js/cck-store.js"></script>
+<script src="js/a11y.js" defer></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CCK Institution - Timetable & Scheduling System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,6 +11,75 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <!-- Supabase CDN loaded here; client init + app scripts load later in body -->
+<style>
+/* Portal Review section inside index.html admin portal */
+#section-portal-review{font-family:inherit;}
+.pr-tabs{display:flex;gap:4px;margin-bottom:18px;background:#F1F5F9;border-radius:10px;padding:4px;}
+.pr-tab{flex:1;padding:8px 12px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.pr-tab.active{background:white;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.pr-tab .pr-tab-badge{background:#B45309;color:white;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;}
+.pr-panel{display:none;} .pr-panel.active{display:block;}
+.pr-pipeline{display:flex;align-items:stretch;background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:18px;}
+.pr-pipe-step{flex:1;padding:14px 12px;border-right:1px solid #F1F5F9;display:flex;flex-direction:column;align-items:center;gap:7px;transition:background .2s;}
+.pr-pipe-step:last-child{border-right:none;}
+.pr-pipe-icon{width:36px;height:36px;border-radius:9px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;}
+.pr-pipe-icon svg{width:15px;height:15px;stroke:#94A3B8;fill:none;stroke-width:2;}
+.pr-pipe-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748B;}
+.pr-pipe-st{font-size:11px;font-weight:700;color:#64748B;}
+.pr-pipe-step.pr-approved{background:#F7FFF9;}
+.pr-pipe-step.pr-approved .pr-pipe-icon{background:#DCFCE7;}
+.pr-pipe-step.pr-approved .pr-pipe-icon svg{stroke:#15803D;}
+.pr-pipe-step.pr-approved .pr-pipe-st{color:#15803D;}
+.pr-pipe-step.pr-submitted{background:#FFFDF5;}
+.pr-pipe-step.pr-submitted .pr-pipe-icon{background:#FEF3C7;}
+.pr-pipe-step.pr-submitted .pr-pipe-icon svg{stroke:#B45309;}
+.pr-pipe-step.pr-submitted .pr-pipe-st{color:#B45309;}
+.pr-badge-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.pr-badge-pill.approved{background:#DCFCE7;color:#15803D;}
+.pr-badge-pill.submitted{background:#FEF3C7;color:#B45309;}
+.pr-badge-pill.draft{background:#F1F5F9;color:#64748B;}
+.pr-badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.pr-badge-pill.approved .pr-badge-dot{background:#15803D;}
+.pr-badge-pill.submitted .pr-badge-dot{background:#B45309;}
+.pr-badge-pill.draft .pr-badge-dot{background:#CBD5E1;}
+.pr-ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.pr-ov-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;transition:box-shadow .2s,transform .15s;}
+.pr-ov-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07);transform:translateY(-1px);}
+.pr-ov-card-hd{padding:12px 14px;border-bottom:1px solid #F3F6F9;display:flex;align-items:center;justify-content:space-between;}
+.pr-ov-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.pr-ov-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+.pr-ov-label{font-size:13px;font-weight:700;color:#0F172A;}
+.pr-ov-stats{padding:10px 14px;}
+.pr-ov-stat{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F8FAFC;}
+.pr-ov-stat:last-child{border-bottom:none;}
+.pr-ov-stat-k{font-size:11px;color:#64748B;}
+.pr-ov-stat-v{font-size:12px;font-weight:700;color:#0F172A;font-family:monospace;}
+.pr-ov-ft{padding:9px 14px;background:#FAFBFC;border-top:1px solid #F3F6F9;display:flex;gap:8px;}
+.pr-btn-rev{flex:1;padding:6px 10px;background:#F1F5F9;color:#374151;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.pr-btn-rev:hover{background:#E2E8F0;}
+.pr-btn-opn{flex:1;padding:6px 10px;background:#1E293B;color:white;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px;transition:background .15s;}
+.pr-btn-opn:hover{background:#334155;}
+.pr-sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.pr-sec-title{font-size:14px;font-weight:700;color:#0F172A;}
+.pr-sec-sub{font-size:11px;color:#64748B;margin-top:2px;}
+.pr-content-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;}
+.pr-toolbar{padding:10px 14px;background:#F8FAFC;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;}
+.pr-drow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #F9FAFB;transition:background .1s;}
+.pr-drow:last-child{border-bottom:none;}
+.pr-drow:hover{background:#FAFBFF;}
+.pr-av{width:30px;height:30px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:monospace;}
+.pr-av-cs{background:#DBEAFE;color:#1E40AF;} .pr-av-bus{background:#FEF3C7;color:#92400E;}
+.pr-chip{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+.pr-chip-cs{background:#DBEAFE;color:#1E40AF;} .pr-chip-bus{background:#FEF3C7;color:#92400E;} .pr-chip-gen{background:#DCFCE7;color:#166534;}
+.pr-sbanner{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid;display:flex;align-items:center;gap:8px;}
+.pr-sbanner svg{width:13px;height:13px;flex-shrink:0;}
+.btn-pr-approve{padding:7px 14px;background:#15803D;color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:background .15s;}
+.btn-pr-approve:hover{background:#166534;}
+.btn-pr-reject{padding:7px 14px;background:white;color:#DC2626;border:1.5px solid #FECACA;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
+.btn-pr-reject:hover{background:#FEF2F2;}
+.pr-cr-up{color:#15803D;font-weight:700;} .pr-cr-dn{color:#DC2626;font-weight:700;} .pr-cr-eq{color:#64748B;font-weight:700;}
+.pr-notif-card{background:white;border-radius:10px;border:1px solid #E2E8F0;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
+</style>
 </head>
 <body>
     <div id="app">
@@ -44,7 +114,7 @@
                                     <rect x="2" y="5" width="20" height="14" rx="2"/>
                                     <line x1="2" y1="10" x2="22" y2="10"/>
                                 </svg>
-                                <input type="password" id="login-password" placeholder="Civil ID or password" required>
+                                <input type="password" id="login-password" placeholder="Civil ID or password" autocomplete="current-password" required>
                                 <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
                                     <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -112,7 +182,7 @@
                 </div>
             </header>
 
-            <main class="student-main">
+            <div class="student-main" role="region" aria-label="Student view">
                 <!-- Profile Section with Stats -->
                 <div class="profile-section">
                     <div class="profile-card">
@@ -339,7 +409,7 @@
                         </div>
                     </div>
                 </div>
-            </main>
+            </div><!-- /student-main -->
         </div>
         <!-- ==================== ADMIN PORTAL ==================== -->
         <div id="admin-portal" class="screen">
@@ -555,7 +625,7 @@
     <!-- Database Status Indicator -->
     <div id="db-status-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
         <div id="db-status-indicator" style="background: white; padding: 8px 16px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-size: 12px; font-weight: 500;">
-            <span style="color: #F59E0B;">● Offline</span>
+            <span style="color: #B45309;">● Offline</span>
         </div>
         <div id="offline-changes-indicator" style="display: none;"></div>
     </div>
@@ -573,75 +643,7 @@
     
 
 <!-- ── Portal Review Styles ──────────────────────────────────────── -->
-<style>
-/* Portal Review section inside index.html admin portal */
-#section-portal-review{font-family:inherit;}
-.pr-tabs{display:flex;gap:4px;margin-bottom:18px;background:#F1F5F9;border-radius:10px;padding:4px;}
-.pr-tab{flex:1;padding:8px 12px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
-.pr-tab.active{background:white;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,.1);}
-.pr-tab .pr-tab-badge{background:#D97706;color:white;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;}
-.pr-panel{display:none;} .pr-panel.active{display:block;}
-.pr-pipeline{display:flex;align-items:stretch;background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:18px;}
-.pr-pipe-step{flex:1;padding:14px 12px;border-right:1px solid #F1F5F9;display:flex;flex-direction:column;align-items:center;gap:7px;transition:background .2s;}
-.pr-pipe-step:last-child{border-right:none;}
-.pr-pipe-icon{width:36px;height:36px;border-radius:9px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;}
-.pr-pipe-icon svg{width:15px;height:15px;stroke:#94A3B8;fill:none;stroke-width:2;}
-.pr-pipe-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;}
-.pr-pipe-st{font-size:11px;font-weight:700;color:#94A3B8;}
-.pr-pipe-step.pr-approved{background:#F7FFF9;}
-.pr-pipe-step.pr-approved .pr-pipe-icon{background:#DCFCE7;}
-.pr-pipe-step.pr-approved .pr-pipe-icon svg{stroke:#16A34A;}
-.pr-pipe-step.pr-approved .pr-pipe-st{color:#16A34A;}
-.pr-pipe-step.pr-submitted{background:#FFFDF5;}
-.pr-pipe-step.pr-submitted .pr-pipe-icon{background:#FEF3C7;}
-.pr-pipe-step.pr-submitted .pr-pipe-icon svg{stroke:#D97706;}
-.pr-pipe-step.pr-submitted .pr-pipe-st{color:#D97706;}
-.pr-badge-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-.pr-badge-pill.approved{background:#DCFCE7;color:#15803D;}
-.pr-badge-pill.submitted{background:#FEF3C7;color:#B45309;}
-.pr-badge-pill.draft{background:#F1F5F9;color:#64748B;}
-.pr-badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-.pr-badge-pill.approved .pr-badge-dot{background:#16A34A;}
-.pr-badge-pill.submitted .pr-badge-dot{background:#D97706;}
-.pr-badge-pill.draft .pr-badge-dot{background:#CBD5E1;}
-.pr-ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
-.pr-ov-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;transition:box-shadow .2s,transform .15s;}
-.pr-ov-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07);transform:translateY(-1px);}
-.pr-ov-card-hd{padding:12px 14px;border-bottom:1px solid #F3F6F9;display:flex;align-items:center;justify-content:space-between;}
-.pr-ov-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-.pr-ov-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
-.pr-ov-label{font-size:13px;font-weight:700;color:#0F172A;}
-.pr-ov-stats{padding:10px 14px;}
-.pr-ov-stat{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F8FAFC;}
-.pr-ov-stat:last-child{border-bottom:none;}
-.pr-ov-stat-k{font-size:11px;color:#64748B;}
-.pr-ov-stat-v{font-size:12px;font-weight:700;color:#0F172A;font-family:monospace;}
-.pr-ov-ft{padding:9px 14px;background:#FAFBFC;border-top:1px solid #F3F6F9;display:flex;gap:8px;}
-.pr-btn-rev{flex:1;padding:6px 10px;background:#F1F5F9;color:#374151;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
-.pr-btn-rev:hover{background:#E2E8F0;}
-.pr-btn-opn{flex:1;padding:6px 10px;background:#1E293B;color:white;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px;transition:background .15s;}
-.pr-btn-opn:hover{background:#334155;}
-.pr-sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
-.pr-sec-title{font-size:14px;font-weight:700;color:#0F172A;}
-.pr-sec-sub{font-size:11px;color:#94A3B8;margin-top:2px;}
-.pr-content-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;}
-.pr-toolbar{padding:10px 14px;background:#F8FAFC;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;}
-.pr-drow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #F9FAFB;transition:background .1s;}
-.pr-drow:last-child{border-bottom:none;}
-.pr-drow:hover{background:#FAFBFF;}
-.pr-av{width:30px;height:30px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:monospace;}
-.pr-av-cs{background:#DBEAFE;color:#1E40AF;} .pr-av-bus{background:#FEF3C7;color:#92400E;}
-.pr-chip{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
-.pr-chip-cs{background:#DBEAFE;color:#1E40AF;} .pr-chip-bus{background:#FEF3C7;color:#92400E;} .pr-chip-gen{background:#DCFCE7;color:#166534;}
-.pr-sbanner{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid;display:flex;align-items:center;gap:8px;}
-.pr-sbanner svg{width:13px;height:13px;flex-shrink:0;}
-.btn-pr-approve{padding:7px 14px;background:#15803D;color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:background .15s;}
-.btn-pr-approve:hover{background:#166534;}
-.btn-pr-reject{padding:7px 14px;background:white;color:#DC2626;border:1.5px solid #FECACA;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
-.btn-pr-reject:hover{background:#FEF2F2;}
-.pr-cr-up{color:#16A34A;font-weight:700;} .pr-cr-dn{color:#DC2626;font-weight:700;} .pr-cr-eq{color:#64748B;font-weight:700;}
-.pr-notif-card{background:white;border-radius:10px;border:1px solid #E2E8F0;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
-</style>
+
 
 <!-- ── Portal Review JS ───────────────────────────────────────────── -->
 <!-- Portal Review handled entirely by app.js -->

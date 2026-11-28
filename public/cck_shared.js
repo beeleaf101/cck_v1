@@ -141,7 +141,7 @@ CCK.buildSemesterSelector = function(containerId) {
             ${icons[s.status]||'📅'} ${s.label}
           </option>`).join('')}
       </select>
-      ${CCK.isArchived(cur) ? `<span style="background:#374151;color:#9CA3AF;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:700;letter-spacing:.04em;">READ ONLY</span>` : ''}
+      ${CCK.isArchived(cur) ? `<span style="background:#374151;color:#6B7280;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:700;letter-spacing:.04em;">READ ONLY</span>` : ''}
     </div>`;
 };
 
@@ -777,7 +777,7 @@ CCK.initials = function(name) {
 };
 CCK.toast = function(msg,type,dur) {
   type=type||'info'; dur=dur||3000;
-  const c={info:'#3B82F6',success:'#10B981',warning:'#F59E0B',error:'#EF4444'};
+  const c={info:'#1D4ED8',success:'#10B981',warning:'#F59E0B',error:'#EF4444'};
   const t=document.createElement('div');
   t.style.cssText=`position:fixed;bottom:24px;right:24px;z-index:9999;background:${c[type]};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.2);`;
   t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),dur);

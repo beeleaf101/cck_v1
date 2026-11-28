@@ -1309,7 +1309,7 @@ function generateAISuggestions(studyPlan) {
     const suggestions = availableCourses.slice(0, 3);
     
     if (suggestions.length === 0) {
-        container.innerHTML = '<span style="color: var(--gray-400);">All recommended courses completed!</span>';
+        container.innerHTML = '<span style="color: var(--gray-500);">All recommended courses completed!</span>';
         return;
     }
     
@@ -1751,7 +1751,7 @@ function renderCoursesList(courses, container) {
                 ` : `
                     <div style="background: #FEF3C7; border-radius: 8px; padding: 8px 12px; margin: 10px 0; border: 1px solid #FCD34D;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width: 14px; height: 14px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" style="width: 14px; height: 14px;">
                                 <circle cx="12" cy="12" r="10"/>
                                 <path d="M12 16v-4"/>
                                 <path d="M12 8h.01"/>
@@ -2544,7 +2544,7 @@ function updateSelectedCoursesList() {
                     
                     ${course.hasConflict || hasAlternateSections ? `
                         <button onclick="showSectionPicker('${course.code}')" 
-                            style="margin-top: 10px; padding: 8px 12px; background: ${course.hasConflict ? '#3B82F6' : '#6B7280'}; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;">
+                            style="margin-top: 10px; padding: 8px 12px; background: ${course.hasConflict ? '#1D4ED8' : '#6B7280'}; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -2776,19 +2776,19 @@ window.showSectionPicker = function(courseCode) {
                                       (!course.selectedSection && idx === 0);
                     const bgColor = section.hasConflict ? '#FEF2F2' : '#F0FDF4';
                     const borderColor = section.hasConflict ? '#FECACA' : '#BBF7D0';
-                    const statusColor = section.hasConflict ? '#DC2626' : '#16A34A';
+                    const statusColor = section.hasConflict ? '#DC2626' : '#15803D';
                     const statusText = section.hasConflict ? '⚠ Conflicts with your schedule' : '✓ No conflicts';
                     
                     return `
                         <div onclick="selectSection('${courseCode}', ${idx})" 
-                            style="background: ${bgColor}; border: 2px solid ${isSelected ? '#3B82F6' : borderColor}; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; ${isSelected ? 'box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);' : ''}">
+                            style="background: ${bgColor}; border: 2px solid ${isSelected ? '#1D4ED8' : borderColor}; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; ${isSelected ? 'box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);' : ''}">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                 <div>
                                     <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">Section ${section.sectionNum}</div>
                                     <div style="font-size: 12px; color: ${statusColor}; margin-top: 2px;">${statusText}</div>
                                 </div>
                                 ${isSelected ? `
-                                    <span style="background: #3B82F6; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">Selected</span>
+                                    <span style="background: #1D4ED8; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">Selected</span>
                                 ` : ''}
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
@@ -3157,12 +3157,12 @@ function loadPrerequisitesTab() {
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px;">
-                <div style="background: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow-sm);"><div style="font-size: 36px; font-weight: 700; color: var(--green-500);">${completed.length}</div><div style="font-size: 14px; color: var(--gray-500);">Completed</div></div>
+                <div style="background: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow-sm);"><div style="font-size: 36px; font-weight: 700; color: #15803D;">${completed.length}</div><div style="font-size: 14px; color: var(--gray-500);">Completed</div></div>
                 <div style="background: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow-sm);"><div style="font-size: 36px; font-weight: 700; color: var(--cck-red);">${available.length}</div><div style="font-size: 14px; color: var(--gray-500);">Ready to Take</div></div>
-                <div style="background: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow-sm);"><div style="font-size: 36px; font-weight: 700; color: var(--gray-400);">${locked.length}</div><div style="font-size: 14px; color: var(--gray-500);">Upcoming</div></div>
+                <div style="background: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow-sm);"><div style="font-size: 36px; font-weight: 700; color: var(--gray-500);">${locked.length}</div><div style="font-size: 14px; color: var(--gray-500);">Upcoming</div></div>
             </div>
-            ${available.length > 0 ? `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px;"><h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--green-600);">✓ Courses You Can Register Now</h4><div style="display: grid; gap: 12px;">${available.map(item => `<div style="display: flex; align-items: center; padding: 14px 16px; background: var(--green-50); border-radius: var(--radius); border-left: 3px solid var(--green-500);"><div style="flex: 1;"><div style="font-weight: 600; color: var(--gray-900);">${item.course} - ${item.courseName}</div><div style="font-size: 13px; color: var(--gray-500); margin-top: 2px;">✓ Prereq: ${item.prereq} (${item.prereqName})</div></div><span style="padding: 4px 12px; background: var(--green-500); color: white; border-radius: var(--radius-full); font-size: 12px;">Available</span></div>`).join('')}</div></div>` : `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px; text-align: center;"><div style="font-weight: 600; color: var(--gray-600);">All Available Courses Registered</div><div style="font-size: 13px; color: var(--gray-400);">Complete current courses to unlock more.</div></div>`}
-            ${locked.length > 0 ? `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px;"><h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--gray-600);">⏳ Upcoming Courses</h4><div style="display: grid; gap: 10px;">${locked.map(item => `<div style="display: flex; align-items: center; padding: 12px 16px; background: var(--gray-50); border-radius: var(--radius);"><div style="flex: 1;"><div style="font-weight: 500; color: var(--gray-700);">${item.course} - ${item.courseName}</div><div style="font-size: 12px; color: var(--gray-400); margin-top: 2px;">Requires: ${item.prereq} • Semester ${item.sem}</div></div><span style="padding: 4px 10px; background: var(--gray-200); color: var(--gray-600); border-radius: var(--radius-full); font-size: 11px;">Sem ${item.sem}</span></div>`).join('')}</div></div>` : ''}
+            ${available.length > 0 ? `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px;"><h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--green-600);">✓ Courses You Can Register Now</h4><div style="display: grid; gap: 12px;">${available.map(item => `<div style="display: flex; align-items: center; padding: 14px 16px; background: var(--green-50); border-radius: var(--radius); border-left: 3px solid var(--green-500);"><div style="flex: 1;"><div style="font-weight: 600; color: var(--gray-900);">${item.course} - ${item.courseName}</div><div style="font-size: 13px; color: var(--gray-500); margin-top: 2px;">✓ Prereq: ${item.prereq} (${item.prereqName})</div></div><span style="padding: 4px 12px; background: #15803D; color: white; border-radius: var(--radius-full); font-size: 12px;">Available</span></div>`).join('')}</div></div>` : `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px; text-align: center;"><div style="font-weight: 600; color: var(--gray-600);">All Available Courses Registered</div><div style="font-size: 13px; color: var(--gray-500);">Complete current courses to unlock more.</div></div>`}
+            ${locked.length > 0 ? `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px;"><h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--gray-600);">⏳ Upcoming Courses</h4><div style="display: grid; gap: 10px;">${locked.map(item => `<div style="display: flex; align-items: center; padding: 12px 16px; background: var(--gray-50); border-radius: var(--radius);"><div style="flex: 1;"><div style="font-weight: 500; color: var(--gray-700);">${item.course} - ${item.courseName}</div><div style="font-size: 12px; color: var(--gray-500); margin-top: 2px;">Requires: ${item.prereq} • Semester ${item.sem}</div></div><span style="padding: 4px 10px; background: var(--gray-200); color: var(--gray-600); border-radius: var(--radius-full); font-size: 11px;">Sem ${item.sem}</span></div>`).join('')}</div></div>` : ''}
             ${completed.length > 0 ? `<div style="background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);"><h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--gray-500);">✓ Completed Prerequisites</h4><div style="display: flex; flex-wrap: wrap; gap: 8px;">${completed.map(item => `<span style="padding: 6px 12px; background: var(--gray-100); color: var(--gray-500); border-radius: var(--radius-full); font-size: 12px;">${item.prereq} → ${item.course} ✓</span>`).join('')}</div></div>` : ''}
         </div>
     `;
@@ -3199,7 +3199,7 @@ function loadProgressTab() {
                     <div style="font-size: 14px; color: var(--gray-500);">Courses Remaining</div>
                 </div>
                 <div style="background: white; padding: 24px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow-sm);">
-                    <div style="font-size: 36px; font-weight: 700; color: var(--green-500);">${progressPercent}%</div>
+                    <div style="font-size: 36px; font-weight: 700; color: #15803D;">${progressPercent}%</div>
                     <div style="font-size: 14px; color: var(--gray-500);">Overall Progress</div>
                 </div>
             </div>
@@ -3308,7 +3308,7 @@ function loadAdminDashboard() {
     
     container.innerHTML = `
         <!-- Semester Banner -->
-        <div style="background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); border-radius: 12px; padding: 16px 24px; margin-bottom: 20px; color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%); border-radius: 12px; padding: 16px 24px; margin-bottom: 20px; color: white; display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <div style="font-size: 14px; opacity: 0.9;">Currently Viewing</div>
                 <div style="font-size: 24px; font-weight: 700;">${semesterLabel}</div>
@@ -3536,7 +3536,7 @@ function renderStudentTypeChart() {
     const colors = { 
         'Normal': '#B91C1C', 
         'Working': '#EAB308', 
-        'English': '#3B82F6',
+        'English': '#1D4ED8',
         'Sport': '#6B7280',
         'Arabic': '#22C55E',
         'Visitor': '#8B5CF6'
@@ -3610,7 +3610,7 @@ function renderMajorDistribution() {
     });
     
     const total = AppState.students.length;
-    const colors = ['#B91C1C', '#3B82F6', '#22C55E', '#EAB308', '#8B5CF6', '#EC4899'];
+    const colors = ['#B91C1C', '#1D4ED8', '#22C55E', '#EAB308', '#8B5CF6', '#EC4899'];
     
     // Sort by count descending
     const sortedMajors = Object.entries(majors).sort((a, b) => b[1] - a[1]);
@@ -3643,7 +3643,7 @@ function renderLevelDistribution() {
     AppState.students.forEach(s => {
         // Convert level to string to handle numeric values
         const level = String(s.level || 'First Year');
-        if (levels.hasOwnProperty(level)) {
+        if (Object.prototype.hasOwnProperty.call(levels, level)) {
             levels[level]++;
         } else {
             // Try to match partial level names
@@ -3657,7 +3657,7 @@ function renderLevelDistribution() {
     });
     
     const total = AppState.students.length;
-    const colors = ['#3B82F6', '#22C55E', '#EAB308', '#B91C1C'];
+    const colors = ['#1D4ED8', '#22C55E', '#EAB308', '#B91C1C'];
     const icons = ['🎓', '📚', '💻', '🏆'];
     
     return Object.entries(levels).map(([level, count], idx) => {
@@ -3771,11 +3771,11 @@ function showAIAllocationResults() {
                     <div style="font-size: 12px; color: var(--gray-500);">Students Assigned</div>
                 </div>
                 <div style="background: var(--gray-50); padding: 16px; border-radius: var(--radius); text-align: center;">
-                    <div style="font-size: 24px; font-weight: 700; color: #3B82F6;">${sectionsCreated}</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #1D4ED8;">${sectionsCreated}</div>
                     <div style="font-size: 12px; color: var(--gray-500);">Sections Created</div>
                 </div>
                 <div style="background: var(--gray-50); padding: 16px; border-radius: var(--radius); text-align: center;">
-                    <div style="font-size: 24px; font-weight: 700; color: #22C55E;">${conflictsResolved}</div>
+                    <div style="font-size: 24px; font-weight: 700; color: #15803D;">${conflictsResolved}</div>
                     <div style="font-size: 12px; color: var(--gray-500);">Conflicts Resolved</div>
                 </div>
                 <div style="background: var(--gray-50); padding: 16px; border-radius: var(--radius); text-align: center;">
@@ -4371,8 +4371,8 @@ function loadStudentManagement() {
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Active Students</div>
-                        <div style="font-size: 36px; font-weight: 700; color: #059669; line-height: 1;">${displayActiveCount}</div>
-                        <div style="font-size: 12px; color: #059669; margin-top: 8px;">${((displayActiveCount/total)*100).toFixed(1)}% of total</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #047857; line-height: 1;">${displayActiveCount}</div>
+                        <div style="font-size: 12px; color: #047857; margin-top: 8px;">${((displayActiveCount/total)*100).toFixed(1)}% of total</div>
                     </div>
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width: 28px; height: 28px;">
@@ -4388,8 +4388,8 @@ function loadStudentManagement() {
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Graduated</div>
-                        <div style="font-size: 36px; font-weight: 700; color: #2563EB; line-height: 1;">${graduatedCount}</div>
-                        <div style="font-size: 12px; color: #2563EB; margin-top: 8px;">${((graduatedCount/(total + former.length || 1))*100).toFixed(1)}% of all students</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #1D4ED8; line-height: 1;">${graduatedCount}</div>
+                        <div style="font-size: 12px; color: #1D4ED8; margin-top: 8px;">${((graduatedCount/(total + former.length || 1))*100).toFixed(1)}% of all students</div>
                     </div>
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width: 28px; height: 28px;">
@@ -4405,11 +4405,11 @@ function loadStudentManagement() {
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Inactive/Stopped</div>
-                        <div style="font-size: 36px; font-weight: 700; color: #D97706; line-height: 1;">${inactiveCount + stoppedCount}</div>
-                        <div style="font-size: 12px; color: #D97706; margin-top: 8px;">${(((inactiveCount+stoppedCount)/(total + former.length || 1))*100).toFixed(1)}% of all students</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #B45309; line-height: 1;">${inactiveCount + stoppedCount}</div>
+                        <div style="font-size: 12px; color: #B45309; margin-top: 8px;">${(((inactiveCount+stoppedCount)/(total + former.length || 1))*100).toFixed(1)}% of all students</div>
                     </div>
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width: 28px; height: 28px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" style="width: 28px; height: 28px;">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -4424,7 +4424,7 @@ function loadStudentManagement() {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     ${(() => {
                         const typeConfig = [
-                            { key: 'Normal', color: '#3B82F6', bg: '#EFF6FF', label: 'Normal' },
+                            { key: 'Normal', color: '#1D4ED8', bg: '#EFF6FF', label: 'Normal' },
                             { key: 'Working', color: '#F59E0B', bg: '#FFFBEB', label: 'Working' },
                             { key: 'Visitor', color: '#8B5CF6', bg: '#F5F3FF', label: 'Visitor' },
                             { key: 'Sport', color: '#22C55E', bg: '#F0FDF4', label: 'Sport' },
@@ -4631,13 +4631,13 @@ function renderStudentRows(students) {
                 <td style="color: var(--gray-600);">${levelShort}</td>
                 <td style="text-align: center;">
                     <div style="display: inline-flex; gap: 4px;">
-                        <button onclick="viewStudentDetail('${student.student_id}')" title="View" style="width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #EFF6FF; color: #3B82F6; transition: all 0.2s;">
+                        <button onclick="viewStudentDetail('${student.student_id}')" title="View" style="width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #EFF6FF; color: #1D4ED8; transition: all 0.2s;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
-                        <button onclick="editStudent('${student.student_id}')" title="Edit" style="width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #FEF3C7; color: #D97706; transition: all 0.2s;">
+                        <button onclick="editStudent('${student.student_id}')" title="Edit" style="width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #FEF3C7; color: #B45309; transition: all 0.2s;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -5161,7 +5161,7 @@ window.viewStudentDetail = function(studentId) {
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 12px; color: var(--gray-600);">${e.time || 'TBA'}</div>
-                            <div style="font-size: 11px; color: var(--gray-400);">${e.room || 'TBA'}</div>
+                            <div style="font-size: 11px; color: var(--gray-500);">${e.room || 'TBA'}</div>
                         </div>
                     </div>
                 `).join('') : '<p style="color: var(--gray-500); text-align: center; padding: 20px;">No courses enrolled</p>'}
@@ -6058,13 +6058,13 @@ function allocShell() { return `
 .ca-kpi-icon{width:32px;height:32px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;}
 .ca-kpi-icon svg{width:15px;height:15px;}
 .ca-kpi-icon.red{background:#FEE2E2;color:#DC2626;}
-.ca-kpi-icon.green{background:#DCFCE7;color:#16A34A;}
-.ca-kpi-icon.blue{background:#DBEAFE;color:#2563EB;}
+.ca-kpi-icon.green{background:#DCFCE7;color:#15803D;}
+.ca-kpi-icon.blue{background:#DBEAFE;color:#1D4ED8;}
 .ca-kpi-icon.orange{background:#FFEDD5;color:#EA580C;}
 .ca-kpi-icon.purple{background:#F3E8FF;color:#9333EA;}
 .ca-kpi-val{font-size:22px;font-weight:800;color:var(--gray-900);margin-top:2px;}
 .ca-kpi-lbl{font-size:12px;font-weight:600;color:var(--gray-700);}
-.ca-kpi-sub{font-size:11px;color:var(--gray-400);}
+.ca-kpi-sub{font-size:11px;color:var(--gray-500);}
 .ca-bar{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px;}
 .ca-bar-row{display:flex;align-items:center;gap:8px;padding:10px 14px;}
 .ca-bar-row+.ca-bar-row{border-top:1px solid var(--gray-100);}
@@ -6072,7 +6072,7 @@ function allocShell() { return `
 .ca-fb{padding:5px 11px;border:1px solid var(--gray-200);border-radius:var(--radius-full);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:white;color:var(--gray-600);transition:var(--transition-fast);white-space:nowrap;}
 .ca-fb:hover,.ca-fb.active{background:var(--gray-900);border-color:var(--gray-900);color:white;}
 .ca-sw{display:flex;align-items:center;gap:6px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-full);padding:5px 12px;}
-.ca-sw svg{width:13px;height:13px;color:var(--gray-400);flex-shrink:0;}
+.ca-sw svg{width:13px;height:13px;color:var(--gray-500);flex-shrink:0;}
 .ca-sw input{border:none;background:transparent;font-size:12px;font-family:inherit;outline:none;width:180px;color:var(--gray-700);}
 .ca-seg{display:inline-flex;border:1px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;}
 .ca-vbtn{padding:6px 14px;border:none;border-right:1px solid var(--gray-200);background:white;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--gray-600);white-space:nowrap;}
@@ -6118,21 +6118,21 @@ function allocShell() { return `
 .fc-prog-item{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px;}
 .fc-prog-head{font-size:12px;font-weight:700;color:var(--gray-800);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .fc-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-.fc-dot.cs{background:#4F46E5;} .fc-dot.biz{background:#D97706;}
+.fc-dot.cs{background:#4F46E5;} .fc-dot.biz{background:#B45309;}
 .fc-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 .fc-row label{font-size:12px;color:var(--gray-600);flex:1;min-width:0;}
 .fc-num{width:80px;flex-shrink:0;padding:6px 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-weight:700;text-align:center;font-family:inherit;outline:none;color:var(--gray-900);}
 .fc-num:focus{border-color:var(--cck-red);}
 .fc-total-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:14px;}
 /* Pass rate tab */
-.fc-pr-header{display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;padding:6px 12px;background:var(--gray-50);border-radius:var(--radius);margin-bottom:8px;font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;}
+.fc-pr-header{display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;padding:6px 12px;background:var(--gray-50);border-radius:var(--radius);margin-bottom:8px;font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;}
 .fc-pr-row{display:grid;grid-template-columns:90px 1fr 70px 28px;gap:8px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--gray-100);}
 .fc-pr-row:last-child{border-bottom:none;}
 .fc-pr-code{font-size:11px;font-weight:700;font-family:monospace;color:var(--gray-900);}
 .fc-pr-name{font-size:11px;color:var(--gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fc-pr-inp{width:100%;padding:5px 6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-weight:700;text-align:center;font-family:inherit;outline:none;}
 .fc-pr-inp:focus{border-color:var(--cck-red);}
-.fc-pr-pct{font-size:10px;color:var(--gray-400);text-align:right;}
+.fc-pr-pct{font-size:10px;color:var(--gray-500);text-align:right;}
 /* Preview tab */
 .fc-pv-row{display:grid;grid-template-columns:88px 1fr 60px 60px 60px 60px 50px;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--gray-100);font-size:11px;}
 .fc-pv-row:last-child{border-bottom:none;}
@@ -6193,7 +6193,7 @@ function allocShell() { return `
   <!-- Controls -->
   <div class="ca-bar">
     <div class="ca-bar-row">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400)">Filter</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500)">Filter</span>
       <div class="ca-bar-sep"></div>
       <button class="ca-fb active" onclick="caF('all',this)">All</button>
       <button class="ca-fb" onclick="caF('assigned',this)">Assigned</button>
@@ -6205,10 +6205,10 @@ function allocShell() { return `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Search course or instructor..." oninput="caSearch(this.value)">
       </div>
-      <div class="ca-ml" style="font-size:12px;color:var(--gray-400)" id="ca-cnt"></div>
+      <div class="ca-ml" style="font-size:12px;color:var(--gray-500)" id="ca-cnt"></div>
     </div>
     <div class="ca-bar-row">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400)">View</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500)">View</span>
       <div class="ca-bar-sep"></div>
       <div class="ca-seg">
         <button class="ca-vbtn active" onclick="caView('plan',this)">Course Plan</button>
@@ -6341,7 +6341,7 @@ function allocShell() { return `
 
     </div>
     <div class="ca-mft">
-      <div style="font-size:12px;color:var(--gray-400)">Changes apply immediately when you click Apply</div>
+      <div style="font-size:12px;color:var(--gray-500)">Changes apply immediately when you click Apply</div>
       <div style="display:flex;gap:8px">
         <button onclick="caCloseForecast()" class="ca-abtn sec">Cancel</button>
         <button onclick="caSaveForecast()" class="ca-abtn pr">Apply Forecast</button>
@@ -6371,7 +6371,7 @@ function allocRenderSources() {
   const cnt = pd.counts;
 
   const statusInfo = (s) => {
-    if (s === 'approved')  return { dot:'#22C55E', label:'Approved',  bg:'#F0FDF4', lc:'#16A34A' };
+    if (s === 'approved')  return { dot:'#22C55E', label:'Approved',  bg:'#F0FDF4', lc:'#15803D' };
     if (s === 'submitted') return { dot:'#F59E0B', label:'Submitted', bg:'#FFFBEB', lc:'#B45309' };
     return                        { dot:'#CBD5E1', label:'Draft',     bg:'#F8FAFC', lc:'#94A3B8' };
   };
@@ -6400,7 +6400,7 @@ function allocRenderSources() {
   const anyPending  = [st.hod, st.reg1, st.reg2, st.facility].some(s => s === 'submitted');
   const banner = !hodApproved
     ? `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span><strong>HOD assignments not yet approved.</strong> Course allocation uses instructor assignments from the approved HOD portal.
         ${anyPending ? ' Some portals are submitted — approve them in <strong>Portal Review</strong>.' : ' Portals need to submit first.'}</span>
        </div>` : '';
@@ -6467,7 +6467,7 @@ function allocRenderRows() {
   }
   const cnt = document.getElementById('ca-cnt');
   if (cnt) cnt.textContent = rows.length+' courses';
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="11" style="padding:40px;text-align:center;color:var(--gray-400)">No courses match the filter.</td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="11" style="padding:40px;text-align:center;color:var(--gray-500)">No courses match the filter.</td></tr>`; return; }
   const tt = AS.timetable;
   tbody.innerHTML = rows.map(row => {
     const stag = row.session==='lecture'?'<span class="c-tag c-lec">Lecture</span>':row.session==='lab'?'<span class="c-tag c-lab">Lab</span>':'<span class="c-tag c-both">Lec+Lab</span>';
@@ -6479,14 +6479,14 @@ function allocRenderRows() {
         const dispN = hasN ? d0.name.trim() : iid0;
         const nameHtml = hasN
           ? `<div style="font-size:12px;font-weight:600;color:var(--gray-900)">${dispN}</div>`
-          : `<div style="font-size:12px;font-weight:600;color:var(--orange-500)">${dispN} <span style="font-size:10px;font-weight:400;color:var(--gray-400)">(add name in Reg 2)</span></div>`;
-        const availHtml = d0.timeFrom ? `<div style="font-size:10px;color:var(--gray-400)">${d0.timeFrom}–${d0.timeTo||'?'}</div>` : '';
+          : `<div style="font-size:12px;font-weight:600;color:var(--orange-500)">${dispN} <span style="font-size:10px;font-weight:400;color:var(--gray-500)">(add name in Reg 2)</span></div>`;
+        const availHtml = d0.timeFrom ? `<div style="font-size:10px;color:var(--gray-500)">${d0.timeFrom}–${d0.timeTo||'?'}</div>` : '';
         return nameHtml + availHtml;
       })();
     const isLab = row.session !== 'lecture';
     const roomTag = isLab ? '<span class="c-tag c-lab">Lab needed</span>' : '<span class="c-tag c-lec">Classroom</span>';
     const prPct = Math.round(row.passRate*100);
-    const prColor = prPct >= 80 ? '#16A34A' : prPct >= 65 ? '#D97706' : '#DC2626';
+    const prColor = prPct >= 80 ? '#15803D' : prPct >= 65 ? '#B45309' : '#DC2626';
     return `<tr style="cursor:pointer" onclick="caOpenDetail('${row.code}')">
       <td><strong style="font-family:monospace;font-size:12px">${row.code}</strong></td>
       <td style="font-size:12px;max-width:220px">${row.name}</td>
@@ -6494,7 +6494,7 @@ function allocRenderRows() {
       <td style="text-align:center">${stag}</td>
       <td style="text-align:center;font-size:12px">${row.base}</td>
       <td style="text-align:center;font-size:12px;color:#DC2626;font-weight:600">+${row.retakers}</td>
-      <td style="text-align:center;font-size:12px;color:#16A34A;font-weight:600">+${row.newShare}</td>
+      <td style="text-align:center;font-size:12px;color:#15803D;font-weight:600">+${row.newShare}</td>
       <td style="text-align:center">
         <div style="font-size:14px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
         <div style="font-size:9px;color:${prColor}">${prPct}% pass rate</div>
@@ -6527,25 +6527,25 @@ function caOpenDetail(code) {
     return `<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:12px;margin-bottom:8px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);margin-bottom:8px">Section ${i+1}</div>
       <div style="margin-bottom:8px">
-        <div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Instructor</div>
+        <div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Instructor</div>
         <select onchange="caSecInst('${code}',${i},this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
           <option value="">— TBA —</option>
           ${allInstBase.map(ins=>`<option value="${ins.id}" ${ins.id===s.iid?'selected':''}>${ins.name}</option>`).join('')}
         </select>
       </div>
       ${row.lhrs>0||row.session==='lecture'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lecture Slot</div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lecture Slot</div>
           <div style="font-size:12px;padding:6px 8px;background:var(--green-100);border-radius:4px">${s.lecSlot?s.lecSlot.days.join(',')+'  '+s.lecSlot.start+'–'+s.lecSlot.end:'Not scheduled'}</div></div>
-        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Classroom</div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Classroom</div>
           <select onchange="caSecRoom('${code}',${i},'lec',this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
             <option value="">— Auto —</option>
             ${(lecRooms.length?lecRooms:['BG-023','BG-024','B1-023','B2-023']).map(r=>`<option value="${r}" ${r===lr?'selected':''}>${r}</option>`).join('')}
           </select></div>
       </div>`:''}
       ${row.lahrs>0||row.session==='lab'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lab Slot</div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lab Slot</div>
           <div style="font-size:12px;padding:6px 8px;background:var(--cck-red-bg);border-radius:4px">${s.labSlot?s.labSlot.days.join(',')+'  '+s.labSlot.start+'–'+s.labSlot.end:'Not scheduled'}</div></div>
-        <div><div style="font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lab Room</div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Lab Room</div>
           <select onchange="caSecRoom('${code}',${i},'lab',this.value)" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:inherit;outline:none;background:white">
             <option value="">— Auto —</option>
             ${(labRooms.length?labRooms:['LAB-015','LAB-016','LAB-031']).map(r=>`<option value="${r}" ${r===ar?'selected':''}>${r}</option>`).join('')}
@@ -6564,7 +6564,7 @@ function caOpenDetail(code) {
           ? name.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i,'').split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase()||'?'
           : '?';
         const avail=(d.timeFrom&&d.timeTo)?`${d.timeFrom}–${d.timeTo}`:null;
-        const nameLabel=hasName?name:`<span style="color:var(--orange-500)">${iid}</span><span style="font-size:10px;font-weight:400;color:var(--gray-400);margin-left:6px">(name not set in Reg 2)</span>`;
+        const nameLabel=hasName?name:`<span style="color:var(--orange-500)">${iid}</span><span style="font-size:10px;font-weight:400;color:var(--gray-500);margin-left:6px">(name not set in Reg 2)</span>`;
         return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:6px">
           <div style="width:36px;height:36px;border-radius:50%;background:${isPT?'#FEF9C3':'#DBEAFE'};border:2px solid ${isPT?'#FDE68A':'#BFDBFE'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${isPT?'#92400E':'#1D4ED8'};flex-shrink:0">${ini}</div>
           <div style="flex:1;min-width:0">
@@ -6595,16 +6595,16 @@ function caOpenDetail(code) {
       ${instSection}
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
         <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Credits</div>
+          <div style="font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px">Credits</div>
           <div style="font-size:22px;font-weight:800;color:var(--cck-red)">${row.credits}</div>
         </div>
         <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Projected</div>
+          <div style="font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px">Projected</div>
           <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
-          <div style="font-size:9px;color:var(--gray-400)">${row.base} hist + ${row.retakers} retake + ${row.newShare} new</div>
+          <div style="font-size:9px;color:var(--gray-500)">${row.base} hist + ${row.retakers} retake + ${row.newShare} new</div>
         </div>
         <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;text-align:center">
-          <div style="font-size:10px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px">Sections</div>
+          <div style="font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px">Sections</div>
           <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${row.secs}</div>
         </div>
       </div>
@@ -6613,7 +6613,7 @@ function caOpenDetail(code) {
         <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap">
           <div><div style="color:var(--gray-500);font-size:10px">Historical</div><strong>${row.base}</strong></div>
           <div><div style="color:var(--gray-500);font-size:10px">Re-takers (failed)</div><strong style="color:#DC2626">${row.retakers}</strong></div>
-          <div><div style="color:var(--gray-500);font-size:10px">New students</div><strong style="color:#16A34A">${row.newShare}</strong></div>
+          <div><div style="color:var(--gray-500);font-size:10px">New students</div><strong style="color:#15803D">${row.newShare}</strong></div>
           <div style="margin-left:auto;text-align:right"><div style="color:var(--gray-500);font-size:10px">Pass Rate (hist.)</div><strong>${pct}%</strong></div>
         </div>
       </div>
@@ -6690,7 +6690,7 @@ function fcRenderPR(filter) {
     const cur=stored[code]!==undefined?stored[code]:base;
     const pct=Math.round(cur*100);
     const name=ALLOC_COURSES[code]?ALLOC_COURSES[code].name:code;
-    const color=pct>=80?'#16A34A':pct>=65?'#D97706':'#DC2626';
+    const color=pct>=80?'#15803D':pct>=65?'#B45309':'#DC2626';
     return `<div class="fc-pr-row">
       <div class="fc-pr-code">${code}</div>
       <div class="fc-pr-name" title="${name}">${name}</div>
@@ -6705,7 +6705,7 @@ function fcSyncPR(code,val) {
   AS.forecast._pass_rates[code]=v;
   if(ALLOC_HIST[code]) ALLOC_HIST[code].pass_rate=v;
   const lbl=document.getElementById('fcpr-'+code.replace(/\W/g,'_'))?.parentElement?.querySelector('.fc-pr-pct');
-  if(lbl){const pct=Math.round(v*100);const color=pct>=80?'#16A34A':pct>=65?'#D97706':'#DC2626';lbl.textContent=pct+'%';lbl.style.color=color;}
+  if(lbl){const pct=Math.round(v*100);const color=pct>=80?'#15803D':pct>=65?'#B45309':'#DC2626';lbl.textContent=pct+'%';lbl.style.color=color;}
 }
 function fcRenderPreview() {
   const el=document.getElementById('fc-pv-list'); if(!el) return;
@@ -6715,13 +6715,13 @@ function fcRenderPreview() {
     const cap=isLab?ALLOC_CAP.lab:ALLOC_CAP.lecture;
     const secs=row.proj>0?Math.max(1,Math.ceil(row.proj/cap)):1;
     const pct=Math.round(row.passRate*100);
-    const color=pct>=80?'#16A34A':pct>=65?'#D97706':'#DC2626';
+    const color=pct>=80?'#15803D':pct>=65?'#B45309':'#DC2626';
     return `<div class="fc-pv-row">
       <div style="font-family:monospace;font-size:11px;font-weight:700;color:var(--gray-900)">${row.code}</div>
       <div style="font-size:11px;color:var(--gray-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${row.name}">${row.name}</div>
       <div style="text-align:center;font-size:11px">${row.base}</div>
       <div style="text-align:center;font-size:11px;color:#DC2626;font-weight:600">+${row.retakers}</div>
-      <div style="text-align:center;font-size:11px;color:#16A34A;font-weight:600">+${row.newShare}</div>
+      <div style="text-align:center;font-size:11px;color:#15803D;font-weight:600">+${row.newShare}</div>
       <div style="text-align:center;font-size:12px;font-weight:800;color:var(--gray-900)">${row.proj}</div>
       <div style="text-align:center"><span style="background:${isLab?'var(--cck-red-bg)':'var(--blue-100)'};color:${isLab?'var(--cck-red-dark)':'#1E40AF'};font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px">${secs}</span></div>
     </div>`;
@@ -6747,7 +6747,7 @@ function caSaveForecast() {
 // ─────────────────────────────────────────────────────────────────────────────
 function allocRenderTT() {
   const wrap=document.getElementById('ca-tt-inner'); if(!wrap) return;
-  if(!AS.timetable) { wrap.innerHTML='<div style="padding:56px;text-align:center;color:var(--gray-400)"><p>Click <strong>Generate Timetable</strong> to schedule all courses.</p></div>'; return; }
+  if(!AS.timetable) { wrap.innerHTML='<div style="padding:56px;text-align:center;color:var(--gray-500)"><p>Click <strong>Generate Timetable</strong> to schedule all courses.</p></div>'; return; }
   if(_ttView==='grid') ttRenderGrid(wrap);
   else if(_ttView==='inst') ttRenderByInst(wrap);
   else ttRenderByRoom(wrap);
@@ -6776,7 +6776,7 @@ function ttRenderGrid(wrap) {
     });
   });
   const times=[...allTimes].sort();
-  if(!times.length){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-400)">No sessions scheduled yet.</div>';return;}
+  if(!times.length){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-500)">No sessions scheduled yet.</div>';return;}
   wrap.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:${days.length*160+100}px;width:100%">
     <thead><tr style="background:var(--gray-50)">
       <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;border-bottom:1px solid var(--gray-200);text-align:left;width:80px">Time</th>
@@ -6799,7 +6799,7 @@ function ttRenderGrid(wrap) {
   </table></div>`;
 }
 function ttRenderByInst(wrap) {
-  const tt=AS.timetable; if(!tt){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable.</div>';return;}
+  const tt=AS.timetable; if(!tt){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-500)">No timetable.</div>';return;}
   const instS={};
   Object.entries(tt.entries).forEach(([code,secs])=>{
     secs.forEach((s,si)=>{
@@ -6829,7 +6829,7 @@ function ttRenderByInst(wrap) {
   </table></div>`;
 }
 function ttRenderByRoom(wrap) {
-  const tt=AS.timetable; if(!tt){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-400)">No timetable.</div>';return;}
+  const tt=AS.timetable; if(!tt){wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--gray-500)">No timetable.</div>';return;}
   const roomS={};
   Object.entries(tt.entries).forEach(([code,secs])=>{
     secs.forEach((s,si)=>{
@@ -7134,7 +7134,7 @@ window.openPopulationPlanner = function() {
           <svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" style="width:20px;height:20px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Student Population Planner
         </h3>
-        <p style="font-size:11px;color:#94A3B8;margin:0;">Set new intake per program → engine projects course demand using pass/fail progression and portal data</p>
+        <p style="font-size:11px;color:#64748B;margin:0;">Set new intake per program → engine projects course demand using pass/fail progression and portal data</p>
       </div>
       <button onclick="document.getElementById('modal').classList.remove('active')"
         style="background:rgba(255,255,255,0.1);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
@@ -7144,19 +7144,19 @@ window.openPopulationPlanner = function() {
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;">
       <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:${totalInstructors>0?'#4ADE80':'#F87171'}">${totalInstructors}</div>
-        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Instructors (${portal.status?.reg2==='approved'?'Reg2 ✓':'base data'})</div>
+        <div style="font-size:9px;color:#64748B;margin-top:2px;">Instructors (${portal.status?.reg2==='approved'?'Reg2 ✓':'base data'})</div>
       </div>
       <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:${assignedCourses>0?'#4ADE80':'#F87171'}">${assignedCourses}</div>
-        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Courses (HOD${portal.status?.hod==='approved'?' ✓':' pending'})</div>
+        <div style="font-size:9px;color:#64748B;margin-top:2px;">Courses (HOD${portal.status?.hod==='approved'?' ✓':' pending'})</div>
       </div>
       <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:${labCount>0?'#4ADE80':'#F87171'}">${labCount} / ${classCount}</div>
-        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Labs / Classrooms (${portal.status?.facility==='approved'?'Facility ✓':'default'})</div>
+        <div style="font-size:9px;color:#64748B;margin-top:2px;">Labs / Classrooms (${portal.status?.facility==='approved'?'Facility ✓':'default'})</div>
       </div>
       <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:#60A5FA">${Object.keys(portal.creditsShared).length}</div>
-        <div style="font-size:9px;color:#94A3B8;margin-top:2px;">Credits (Reg1${portal.status?.reg1==='approved'?' ✓':' defaults'})</div>
+        <div style="font-size:9px;color:#64748B;margin-top:2px;">Credits (Reg1${portal.status?.reg1==='approved'?' ✓':' defaults'})</div>
       </div>
     </div>
   </div>
@@ -7173,7 +7173,7 @@ window.openPopulationPlanner = function() {
             <span style="font-size:22px;">${g.icon}</span>
             <div>
               <div style="font-size:13px;font-weight:700;color:#1F2937;">${g.label}</div>
-              <div style="font-size:10px;color:#9CA3AF;">${g.programs.join(' + ')}</div>
+              <div style="font-size:10px;color:#6B7280;">${g.programs.join(' + ')}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -7199,7 +7199,7 @@ window.openPopulationPlanner = function() {
           <!-- Pass rate slider -->
           <div style="margin-top:10px;padding-top:10px;border-top:1px solid #F1F5F9;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <label style="font-size:10px;color:#9CA3AF;">Historical pass rate</label>
+              <label style="font-size:10px;color:#6B7280;">Historical pass rate</label>
               <span id="pr-label-${g.key}" style="font-size:12px;font-weight:700;color:${g.color}">${PopulationState.passRates[g.key]||82}%</span>
             </div>
             <input type="range" id="passrate-${g.key}" min="40" max="100" step="1"
@@ -7218,7 +7218,7 @@ window.openPopulationPlanner = function() {
         <h4 style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;margin:0;">Next Semester Projection</h4>
       </div>
       <div id="pop-proj-table" style="padding:16px;">
-        <p style="color:#9CA3AF;font-size:12px;text-align:center;">Adjust intake above...</p>
+        <p style="color:#6B7280;font-size:12px;text-align:center;">Adjust intake above...</p>
       </div>
     </div>
 
@@ -7226,22 +7226,22 @@ window.openPopulationPlanner = function() {
     <div style="background:white;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;">
       <div style="padding:12px 16px;border-bottom:1px solid #F1F5F9;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;">
         <h4 style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;margin:0;">🎓 Top Courses by Projected Enrollment</h4>
-        <span style="font-size:10px;color:#9CA3AF;">Sorted by demand · includes repeaters</span>
+        <span style="font-size:10px;color:#6B7280;">Sorted by demand · includes repeaters</span>
       </div>
       <div id="pop-courses-preview" style="padding:0;max-height:260px;overflow-y:auto;">
-        <p style="color:#9CA3AF;font-size:12px;padding:16px;text-align:center;">Adjust intake above...</p>
+        <p style="color:#6B7280;font-size:12px;padding:16px;text-align:center;">Adjust intake above...</p>
       </div>
     </div>
   </div>
 
   <!-- Footer -->
   <div style="padding:14px 28px;background:white;border-top:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;position:sticky;bottom:0;">
-    <div style="font-size:11px;color:#9CA3AF;">Instructor availability and room constraints will be enforced during allocation</div>
+    <div style="font-size:11px;color:#6B7280;">Instructor availability and room constraints will be enforced during allocation</div>
     <div style="display:flex;gap:8px;">
       <button onclick="document.getElementById('modal').classList.remove('active')"
         style="padding:9px 18px;border:1px solid #E5E7EB;border-radius:8px;background:white;color:#374151;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
       <button onclick="applyPopulationPlan()"
-        style="padding:9px 22px;border:none;border-radius:8px;background:linear-gradient(135deg,#3B82F6,#6366F1);color:white;font-size:12px;font-weight:700;cursor:pointer;">
+        style="padding:9px 22px;border:none;border-radius:8px;background:linear-gradient(135deg,#1D4ED8,#6366F1);color:white;font-size:12px;font-weight:700;cursor:pointer;">
         ✓ Apply Plan
       </button>
     </div>
@@ -7280,13 +7280,13 @@ window.updatePopPreview = function() {
           <span style="font-size:12px;font-weight:600;color:#1F2937;">${g.label}</span>
         </div></td>
         <td style="padding:8px 12px;text-align:center;font-size:13px;font-weight:700;color:#1F2937;">${count}</td>
-        <td style="padding:8px 12px;text-align:center;font-size:12px;font-weight:600;color:#059669;">+${passers}</td>
+        <td style="padding:8px 12px;text-align:center;font-size:12px;font-weight:600;color:#047857;">+${passers}</td>
         <td style="padding:8px 12px;text-align:center;font-size:12px;font-weight:600;color:#DC2626;">${fail} repeat</td>
         <td style="padding:8px 12px;text-align:center;">
           <div style="height:6px;background:#F1F5F9;border-radius:3px;overflow:hidden;width:80px;margin:0 auto;">
             <div style="height:100%;width:${pr}%;background:${g.color};border-radius:3px;"></div>
           </div>
-          <div style="font-size:9px;color:#9CA3AF;margin-top:2px;">${pr}% pass</div>
+          <div style="font-size:9px;color:#6B7280;margin-top:2px;">${pr}% pass</div>
         </td>
       </tr>`;
     }).join('');
@@ -7294,17 +7294,17 @@ window.updatePopPreview = function() {
     projEl.innerHTML = `
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="background:#F8FAFC;">
-          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Program</th>
-          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Total Students</th>
-          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Advance</th>
-          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Repeat</th>
-          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;">Pass Rate</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;">Program</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;">Total Students</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;">Advance</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;">Repeat</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;">Pass Rate</th>
         </thead>
         <tbody>${rows}</tbody>
         <tfoot><tr style="border-top:2px solid #E5E7EB;background:#F8FAFC;">
           <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#374151;">TOTAL</td>
           <td style="padding:10px 12px;text-align:center;font-size:14px;font-weight:800;color:#1F2937;">${summary.totalStudents}</td>
-          <td style="padding:10px 12px;text-align:center;font-size:12px;font-weight:700;color:#059669;">+${summary.advancingStudents}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;font-weight:700;color:#047857;">+${summary.advancingStudents}</td>
           <td style="padding:10px 12px;text-align:center;font-size:12px;font-weight:700;color:#DC2626;">${summary.repeatingStudents} repeating</td>
           <td></td>
         </tr></tfoot>
@@ -7336,7 +7336,7 @@ window.updatePopPreview = function() {
       const dotColor = progGroup?.color || '#6B7280';
 
       return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid #F8FAFC;${idx%2===0?'':'background:#FAFAFA'}">
-        <span style="width:22px;text-align:center;font-size:10px;color:#9CA3AF;font-weight:700;">${idx+1}</span>
+        <span style="width:22px;text-align:center;font-size:10px;color:#6B7280;font-weight:700;">${idx+1}</span>
         <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;"></div>
         <div style="width:72px;flex-shrink:0;">
           <div style="font-size:11px;font-weight:800;color:#1F2937;">${code}</div>
@@ -7347,7 +7347,7 @@ window.updatePopPreview = function() {
         </div>
         <div style="width:60px;text-align:right;flex-shrink:0;">
           <div style="font-size:13px;font-weight:700;color:#1F2937;">${data.count}</div>
-          <div style="font-size:9px;color:#9CA3AF;">${sections} sec</div>
+          <div style="font-size:9px;color:#6B7280;">${sections} sec</div>
         </div>
         <div style="width:50px;flex-shrink:0;">
           <div style="height:5px;background:#F1F5F9;border-radius:3px;overflow:hidden;">
@@ -7357,7 +7357,7 @@ window.updatePopPreview = function() {
       </div>`;
     }).join('');
 
-    coursesEl.innerHTML = rows || '<p style="color:#9CA3AF;font-size:12px;padding:16px;text-align:center;">No courses with projected enrollment</p>';
+    coursesEl.innerHTML = rows || '<p style="color:#6B7280;font-size:12px;padding:16px;text-align:center;">No courses with projected enrollment</p>';
   }
 };
 
@@ -7437,8 +7437,8 @@ function initAIAllocationEngine() {
     AppState.courses.forEach(course => {
         const currentEnrollment = courseEnrollments[course.code] || 0;
         let predicted = Math.ceil(currentEnrollment * growthFactor);
-        let repeatStudents = 0;
-        let newStudentsCount = predicted;
+        let repeatStudents;
+        let newStudentsCount;
 
         // ── Population Model: use program-based projections if configured ──
         if (typeof PopulationState !== 'undefined' && PopulationState.configured) {
@@ -7528,7 +7528,7 @@ function renderInitialAllocationTable() {
     
     for (const course of sortedCourses.slice(0, 30)) {
         const pred = AIAllocation.predictedEnrollments[course.code];
-        let total = 0, newStudents = 0, repeatStudents = 0, failRate = null, hasHistorical = false;
+        let total, newStudents, repeatStudents = 0, failRate = null, hasHistorical = false;
         
         if (pred && typeof pred === 'object') {
             total = pred.total || 0;
@@ -7544,7 +7544,7 @@ function renderInitialAllocationTable() {
         const sectionsNeeded = Math.ceil(total / 35) || 1;
         
         // Build prediction display
-        let predDisplay = '';
+        let predDisplay;
         const _pd = AIAllocation.predictedEnrollments[course.code];
         const _showRepeat = _pd ? _pd.repeat : repeatStudents;
         const _showNew    = _pd ? _pd.new    : newStudents;
@@ -7561,7 +7561,7 @@ function renderInitialAllocationTable() {
         // Build fail rate badge if available
         let failBadge = '';
         if (hasHistorical && failRate !== null && failRate !== undefined) {
-            const badgeColor = failRate > 30 ? '#DC2626' : (failRate > 20 ? '#D97706' : '#059669');
+            const badgeColor = failRate > 30 ? '#DC2626' : (failRate > 20 ? '#B45309' : '#059669');
             const badgeBg = failRate > 30 ? '#FEE2E2' : (failRate > 20 ? '#FEF3C7' : '#D1FAE5');
             failBadge = '<span style="font-size: 10px; padding: 2px 6px; border-radius: 8px; background: ' + badgeBg + '; color: ' + badgeColor + '; margin-left: 4px;">' + failRate + '% fail</span>';
         }
@@ -7579,9 +7579,9 @@ function renderInitialAllocationTable() {
             '<td style="font-size: 13px;">' + displayName + '</td>' +
             '<td>' + predDisplay + '</td>' +
             '<td style="text-align: center;">' + sectionsNeeded + '</td>' +
-            '<td style="color: var(--gray-400); font-style: italic;">Pending...</td>' +
-            '<td style="color: var(--gray-400); font-style: italic;">Pending...</td>' +
-            '<td style="color: var(--gray-400); font-style: italic;">Pending...</td>' +
+            '<td style="color: var(--gray-500); font-style: italic;">Pending...</td>' +
+            '<td style="color: var(--gray-500); font-style: italic;">Pending...</td>' +
+            '<td style="color: var(--gray-500); font-style: italic;">Pending...</td>' +
             '<td><span style="padding: 4px 10px; background: var(--gray-100); color: var(--gray-500); border-radius: 20px; font-size: 11px;">Waiting</span></td>' +
             '</tr>';
     }
@@ -7600,12 +7600,12 @@ window.runSmartAIAllocation = function() {
         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px;">Status</div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
-            <span style="font-size: 14px; font-weight: 500; color: #3B82F6;">Running AI Allocation...</span>
+            <span style="font-size: 14px; font-weight: 500; color: #1D4ED8;">Running AI Allocation...</span>
         </div>
         <div style="margin-top: 12px;">
-            <div style="font-size: 11px; color: var(--gray-400); margin-bottom: 4px;">Progress</div>
+            <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 4px;">Progress</div>
             <div style="height: 6px; background: var(--gray-100); border-radius: 3px; overflow: hidden;">
-                <div id="progress-bar" style="height: 100%; width: 0%; background: #3B82F6; border-radius: 3px; transition: width 0.3s;"></div>
+                <div id="progress-bar" style="height: 100%; width: 0%; background: #1D4ED8; border-radius: 3px; transition: width 0.3s;"></div>
             </div>
         </div>
     `;
@@ -7642,7 +7642,7 @@ window.runSmartAIAllocation = function() {
             <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px;">Status</div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <div style="width: 8px; height: 8px; background: #22C55E; border-radius: 50%;"></div>
-                <span style="font-size: 14px; font-weight: 500; color: #22C55E;">Saved ✓</span>
+                <span style="font-size: 14px; font-weight: 500; color: #15803D;">Saved ✓</span>
             </div>
             <div style="margin-top: 8px; padding: 8px; background: #DCFCE7; border-radius: 6px; text-align: center;">
                 <span style="font-size: 11px; color: #166534;">✓ Auto-saved for use in other pages</span>
@@ -7658,11 +7658,11 @@ window.runSmartAIAllocation = function() {
                     <div style="font-size: 11px; color: var(--gray-500);">Sections Created</div>
                 </div>
                 <div style="text-align: center; padding: 12px; background: #DCFCE7; border-radius: 8px;">
-                    <div style="font-size: 20px; font-weight: 700; color: #22C55E;">0</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #15803D;">0</div>
                     <div style="font-size: 11px; color: #166534;">Conflicts</div>
                 </div>
                 <div style="text-align: center; padding: 12px; background: var(--gray-50); border-radius: 8px;">
-                    <div style="font-size: 20px; font-weight: 700; color: #3B82F6;">${allocations.instructorsUsed}</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #1D4ED8;">${allocations.instructorsUsed}</div>
                     <div style="font-size: 11px; color: var(--gray-500);">Instructors</div>
                 </div>
                 <div style="text-align: center; padding: 12px; background: var(--gray-50); border-radius: 8px;">
@@ -8151,7 +8151,7 @@ window.saveCurrentAllocation = function() {
             <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px;">Status</div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <div style="width: 8px; height: 8px; background: #22C55E; border-radius: 50%;"></div>
-                <span style="font-size: 14px; font-weight: 500; color: #22C55E;">Saved ✓</span>
+                <span style="font-size: 14px; font-weight: 500; color: #15803D;">Saved ✓</span>
             </div>
             <div style="margin-top: 8px; padding: 8px; background: #DBEAFE; border-radius: 6px;">
                 <span style="font-size: 11px; color: #1E40AF;">Saved: ${new Date().toLocaleString()}</span>
@@ -8326,9 +8326,9 @@ function filterInitialAllocationTable(filter) {
                 <td style="font-size: 13px;">${course.name.substring(0, 30)}${course.name.length > 30 ? '...' : ''}</td>
                 <td style="text-align: center;">${predicted}</td>
                 <td style="text-align: center;">${sectionsNeeded}</td>
-                <td style="color: var(--gray-400); font-style: italic;">Pending...</td>
-                <td style="color: var(--gray-400); font-style: italic;">Pending...</td>
-                <td style="color: var(--gray-400); font-style: italic;">Pending...</td>
+                <td style="color: var(--gray-500); font-style: italic;">Pending...</td>
+                <td style="color: var(--gray-500); font-style: italic;">Pending...</td>
+                <td style="color: var(--gray-500); font-style: italic;">Pending...</td>
                 <td><span style="padding: 4px 10px; background: var(--gray-100); color: var(--gray-500); border-radius: 20px; font-size: 11px;">Waiting</span></td>
             </tr>
         `;
@@ -8616,7 +8616,7 @@ function loadInstructorManagement() {
         bannerHtml = `
         <div style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:40px;height:40px;background:#3B82F6;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                <div style="width:40px;height:40px;background:#1D4ED8;border-radius:10px;display:flex;align-items:center;justify-content:center;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:20px;height:20px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
                 <div>
@@ -8664,15 +8664,15 @@ function loadInstructorManagement() {
             </div>
             <div style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);">
                 <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Total Sections</div>
-                <div style="font-size:28px;font-weight:700;color:#3B82F6;">${totalSectionsAll}</div>
+                <div style="font-size:28px;font-weight:700;color:#1D4ED8;">${totalSectionsAll}</div>
             </div>
             <div style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);">
                 <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Avg Courses / Instructor</div>
-                <div style="font-size:28px;font-weight:700;color:#22C55E;">${avgCourses}</div>
+                <div style="font-size:28px;font-weight:700;color:#15803D;">${avgCourses}</div>
             </div>
             <div onclick="document.getElementById('inst-status-filter').value='Overloaded';filterInstructorTable();" style="background:white;border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);cursor:pointer;border:2px solid transparent;" onmouseover="this.style.borderColor='#EF4444'" onmouseout="this.style.borderColor='transparent'">
-                <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Overloaded <span style="font-size:9px;color:#9CA3AF;">(click)</span></div>
-                <div style="font-size:28px;font-weight:700;color:#EF4444;">${overloadedCount}</div>
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:4px;">Overloaded <span style="font-size:9px;color:#6B7280;">(click)</span></div>
+                <div style="font-size:28px;font-weight:700;color:#B91C1C;">${overloadedCount}</div>
             </div>
         </div>
 
@@ -8714,8 +8714,8 @@ function loadInstructorManagement() {
                     </thead>
                     <tbody id="instructor-table-body">
                         ${instructorList.map((instructor, idx) => {
-                            const statusColor = instructor.status === 'Available'    ? '#22C55E' :
-                                               instructor.status === 'Overloaded'   ? '#EF4444' : '#F59E0B';
+                            const statusColor = instructor.status === 'Available'    ? '#15803D' :
+                                               instructor.status === 'Overloaded'   ? '#B91C1C' : '#B45309';
                             const statusBg    = instructor.status === 'Available'    ? '#DCFCE7' :
                                                instructor.status === 'Overloaded'   ? '#FEE2E2' : '#FEF3C7';
                             const courseCodes = instructor.courses.map(c => c.code).slice(0, 3);
@@ -8723,7 +8723,7 @@ function loadInstructorManagement() {
                             // Tiny portal-source dots shown under the name
                             const portalDots  = instructor.portals.map(p => {
                                 const col = p === 'Timetable'  ? '#22C55E' :
-                                            p === 'Allocation' ? '#3B82F6' :
+                                            p === 'Allocation' ? '#1D4ED8' :
                                             p === 'HOD'        ? '#F59E0B' :
                                             p === 'Reg2'       ? '#8B5CF6' : '#94A3B8';
                                 return `<span title="${p}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${col};margin-right:2px;"></span>`;
@@ -8760,7 +8760,7 @@ function loadInstructorManagement() {
                                     <td>
                                         <div style="display:flex;gap:4px;">
                                             <button onclick="openInstructorSchedule(${idx})" class="btn-secondary" style="padding:6px 12px;font-size:11px;">View Schedule</button>
-                                            ${instructor.status === 'Overloaded' ? `<button onclick="openOverloadDetail(${idx})" class="btn-primary" style="padding:6px 10px;font-size:11px;background:#EF4444;">Fix</button>` : ''}
+                                            ${instructor.status === 'Overloaded' ? `<button onclick="openOverloadDetail(${idx})" class="btn-primary" style="padding:6px 10px;font-size:11px;background:#DC2626;">Fix</button>` : ''}
                                         </div>
                                     </td>
                                 </tr>`;
@@ -8771,7 +8771,7 @@ function loadInstructorManagement() {
             <div style="padding:12px 20px;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;">
                 <span id="inst-shown-count" style="font-size:13px;color:var(--gray-500);">Showing all ${instructorList.length} instructors</span>
                 ${overloadedCount > 0 ? `
-                    <button onclick="fixAllInstructorOverloads()" class="btn-primary" style="padding:8px 16px;font-size:12px;background:#EF4444;">
+                    <button onclick="fixAllInstructorOverloads()" class="btn-primary" style="padding:8px 16px;font-size:12px;background:#DC2626;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                         Fix All Overloads (${overloadedCount})
                     </button>` : ''}
@@ -8959,7 +8959,7 @@ window.exportScheduleToPDF = function() {
             .badge-time{background:#DBEAFE;color:#1D4ED8;}
             .badge-room{background:#FEF3C7;color:#92400E;}
             .badge-lab{background:#F3E8FF;color:#7C3AED;}
-            .footer{margin-top:30px;padding-top:15px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;}
+            .footer{margin-top:30px;padding-top:15px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:10px;color:#6B7280;}
             @media print{body{padding:20px;}@page{margin:1cm;}}
         </style></head><body>
         <div class="header">
@@ -9047,7 +9047,7 @@ window.openOverloadDetail = function(idx) {
                 <div style="background:#F3F4F6;border-radius:8px;padding:14px 16px;">
                     <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:8px;">
                         <span>Credit Load</span>
-                        <span style="color:#EF4444;font-weight:700;">${inst.totalCredits} / ${MAX} hrs</span>
+                        <span style="color:#B91C1C;font-weight:700;">${inst.totalCredits} / ${MAX} hrs</span>
                     </div>
                     <div style="background:#E5E7EB;border-radius:99px;height:10px;overflow:hidden;">
                         <div style="background:linear-gradient(90deg,#22C55E ${Math.round(MAX/inst.totalCredits*100)}%,#EF4444);height:100%;width:${Math.min(100,Math.round(inst.totalCredits/MAX*100))}%;border-radius:99px;"></div>
@@ -9059,12 +9059,12 @@ window.openOverloadDetail = function(idx) {
                     <div style="display:flex;flex-direction:column;gap:5px;">
                         ${overCourses.map(c=>`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
                             <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-                                <span style="background:#EF4444;color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;">${c.code}</span>
+                                <span style="background:#DC2626;color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;">${c.code}</span>
                                 <span style="font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name||c.code}</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                                 <span style="font-size:11px;font-weight:700;color:#B91C1C;">${c.credits||3} cr</span>
-                                <button onclick="window._reassignOneCourse('${c.code}',${idx})" style="background:#EF4444;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;">Reassign</button>
+                                <button onclick="window._reassignOneCourse('${c.code}',${idx})" style="background:#DC2626;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;">Reassign</button>
                             </div>
                         </div>`).join('')}
                     </div>
@@ -9073,13 +9073,13 @@ window.openOverloadDetail = function(idx) {
                 <div>
                     <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Resolution Options</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                        <div onclick="window._doReduceOverload(${idx})" style="border:2px solid #BFDBFE;border-radius:12px;padding:14px;background:#EFF6FF;cursor:pointer;" onmouseover="this.style.borderColor='#3B82F6'" onmouseout="this.style.borderColor='#BFDBFE'">
+                        <div onclick="window._doReduceOverload(${idx})" style="border:2px solid #BFDBFE;border-radius:12px;padding:14px;background:#EFF6FF;cursor:pointer;" onmouseover="this.style.borderColor='#1D4ED8'" onmouseout="this.style.borderColor='#BFDBFE'">
                             <div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:4px;">📤 Reduce Load</div>
-                            <div style="font-size:11px;color:#3B82F6;">Reassign ${overCourses.length} course${overCourses.length!==1?'s':''} to ${available.length} available instructor${available.length!==1?'s':''}</div>
+                            <div style="font-size:11px;color:#1D4ED8;">Reassign ${overCourses.length} course${overCourses.length!==1?'s':''} to ${available.length} available instructor${available.length!==1?'s':''}</div>
                         </div>
                         <div onclick="window._doApproveOverloadPay(${idx})" style="border:2px solid #BBF7D0;border-radius:12px;padding:14px;background:#F0FDF4;cursor:pointer;" onmouseover="this.style.borderColor='#22C55E'" onmouseout="this.style.borderColor='#BBF7D0'">
                             <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:4px;">💰 Approve Overload Pay</div>
-                            <div style="font-size:11px;color:#22C55E;">Keep all courses, flag for extra compensation (+${extra} cr hrs)</div>
+                            <div style="font-size:11px;color:#15803D;">Keep all courses, flag for extra compensation (+${extra} cr hrs)</div>
                         </div>
                         <div onclick="window._doRaiseLimit(${idx})" style="border:2px solid #DDD6FE;border-radius:12px;padding:14px;background:#F5F3FF;cursor:pointer;" onmouseover="this.style.borderColor='#7C3AED'" onmouseout="this.style.borderColor='#DDD6FE'">
                             <div style="font-size:13px;font-weight:700;color:#5B21B6;margin-bottom:4px;">⬆ Raise Credit Limit</div>
@@ -9100,7 +9100,7 @@ window.openOverloadDetail = function(idx) {
                             onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
                             <span style="font-size:10px;background:#E5E7EB;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;">${av.name.split(' ').map(n=>n[0]).join('').substring(0,2)}</span>
                             ${av.name.split(' ').slice(0,2).join(' ')}
-                            <span style="color:#9CA3AF;">(${av.maxCredits-(av.totalCredits||0)} cr free)</span>
+                            <span style="color:#6B7280;">(${av.maxCredits-(av.totalCredits||0)} cr free)</span>
                         </button>`).join('')}
                     </div>
                 </div>` : ''}
@@ -9186,7 +9186,7 @@ window.openInstructorTimetableGrid = function() {
     if (!window.currentScheduleExport) return;
     const { instructor, courses, meta } = window.currentScheduleExport;
 
-    const PALETTE = ['#A855F7','#3B82F6','#22C55E','#F59E0B','#EF4444',
+    const PALETTE = ['#A855F7','#1D4ED8','#22C55E','#F59E0B','#EF4444',
                      '#06B6D4','#EC4899','#8B5CF6','#10B981','#F97316',
                      '#6366F1','#14B8A6','#D946EF','#84CC16','#0EA5E9'];
     const colorOf = {};
@@ -9239,9 +9239,9 @@ window.openInstructorTimetableGrid = function() {
     if (!seen.size) {
         courses.forEach(c => {
             if (!c.time || c.time==='TBA') return;
-            const m = c.time.match(/^([A-Za-z\/,\s]+?)\s+(\d{1,2}:\d{2})[–\-](\d{1,2}:\d{2})/);
+            const m = c.time.match(/^([A-Za-z/,\s]+?)\s+(\d{1,2}:\d{2})[–-](\d{1,2}:\d{2})/);
             if (!m) return;
-            m[1].split(/[\/,]/).forEach(dp => {
+            m[1].split(/[/,]/).forEach(dp => {
                 const fd = TO_FULL[dp.trim()]||dp.trim();
                 if (!dayMap[fd]) return;
                 dayMap[fd].push({code:c.code,name:c.name||c.code,
@@ -9313,7 +9313,7 @@ window.openInstructorTimetableGrid = function() {
         th:first-child{background:#374151;width:64px;}
         .legend{margin-top:16px;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 14px;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;}
         .lt{font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.6px;width:100%;margin-bottom:2px;}
-        .footer{margin-top:16px;display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;border-top:1px solid #E5E7EB;padding-top:10px;}
+        .footer{margin-top:16px;display:flex;justify-content:space-between;font-size:10px;color:#6B7280;border-top:1px solid #E5E7EB;padding-top:10px;}
         @media print{body{padding:8px;}@page{margin:.5cm;size:A4 landscape;}}
     </style></head><body>
     <h1>${instructor}</h1>
@@ -9330,7 +9330,7 @@ window.openInstructorTimetableGrid = function() {
     </table>
     <div class="legend"><div class="lt">Course Legend</div>${legend}</div>
     <div class="footer"><span>Canadian College of Kuwait — Instructor Timetable</span><span>Generated: ${new Date().toLocaleDateString()}</span></div>
-    <script>window.onload=function(){window.print();}<\/script>
+    <script>window.onload=function(){window.print();}</script>
     </body></html>`);
     pw.document.close();
     if (typeof showToast==='function') showToast('Timetable opened — Print to save as PDF', 'success');
@@ -9433,32 +9433,32 @@ function loadPortalReview() {
 const PR_STYLE_TEXT = `/* Portal Review section inside index.html admin portal */
 #section-portal-review{font-family:inherit;}
 .pr-tabs{display:flex;gap:4px;margin-bottom:18px;background:#F1F5F9;border-radius:10px;padding:4px;}
-.pr-tab{flex:1;padding:8px 12px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.pr-tab{flex:1;padding:8px 12px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
 .pr-tab.active{background:white;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,.1);}
-.pr-tab .pr-tab-badge{background:#D97706;color:white;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;}
+.pr-tab .pr-tab-badge{background:#B45309;color:white;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;}
 .pr-panel{display:none;} .pr-panel.active{display:block;}
 .pr-pipeline{display:flex;align-items:stretch;background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:18px;}
 .pr-pipe-step{flex:1;padding:14px 12px;border-right:1px solid #F1F5F9;display:flex;flex-direction:column;align-items:center;gap:7px;transition:background .2s;}
 .pr-pipe-step:last-child{border-right:none;}
 .pr-pipe-icon{width:36px;height:36px;border-radius:9px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;}
 .pr-pipe-icon svg{width:15px;height:15px;stroke:#94A3B8;fill:none;stroke-width:2;}
-.pr-pipe-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;}
-.pr-pipe-st{font-size:11px;font-weight:700;color:#94A3B8;}
+.pr-pipe-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748B;}
+.pr-pipe-st{font-size:11px;font-weight:700;color:#64748B;}
 .pr-pipe-step.pr-approved{background:#F7FFF9;}
 .pr-pipe-step.pr-approved .pr-pipe-icon{background:#DCFCE7;}
-.pr-pipe-step.pr-approved .pr-pipe-icon svg{stroke:#16A34A;}
-.pr-pipe-step.pr-approved .pr-pipe-st{color:#16A34A;}
+.pr-pipe-step.pr-approved .pr-pipe-icon svg{stroke:#15803D;}
+.pr-pipe-step.pr-approved .pr-pipe-st{color:#15803D;}
 .pr-pipe-step.pr-submitted{background:#FFFDF5;}
 .pr-pipe-step.pr-submitted .pr-pipe-icon{background:#FEF3C7;}
-.pr-pipe-step.pr-submitted .pr-pipe-icon svg{stroke:#D97706;}
-.pr-pipe-step.pr-submitted .pr-pipe-st{color:#D97706;}
+.pr-pipe-step.pr-submitted .pr-pipe-icon svg{stroke:#B45309;}
+.pr-pipe-step.pr-submitted .pr-pipe-st{color:#B45309;}
 .pr-badge-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
 .pr-badge-pill.approved{background:#DCFCE7;color:#15803D;}
 .pr-badge-pill.submitted{background:#FEF3C7;color:#B45309;}
 .pr-badge-pill.draft{background:#F1F5F9;color:#64748B;}
 .pr-badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-.pr-badge-pill.approved .pr-badge-dot{background:#16A34A;}
-.pr-badge-pill.submitted .pr-badge-dot{background:#D97706;}
+.pr-badge-pill.approved .pr-badge-dot{background:#15803D;}
+.pr-badge-pill.submitted .pr-badge-dot{background:#B45309;}
 .pr-badge-pill.draft .pr-badge-dot{background:#CBD5E1;}
 .pr-ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
 .pr-ov-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;transition:box-shadow .2s,transform .15s;}
@@ -9479,7 +9479,7 @@ const PR_STYLE_TEXT = `/* Portal Review section inside index.html admin portal *
 .pr-btn-opn:hover{background:#334155;}
 .pr-sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
 .pr-sec-title{font-size:14px;font-weight:700;color:#0F172A;}
-.pr-sec-sub{font-size:11px;color:#94A3B8;margin-top:2px;}
+.pr-sec-sub{font-size:11px;color:#64748B;margin-top:2px;}
 .pr-content-card{background:white;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;}
 .pr-toolbar{padding:10px 14px;background:#F8FAFC;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;}
 .pr-drow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #F9FAFB;transition:background .1s;}
@@ -9495,7 +9495,7 @@ const PR_STYLE_TEXT = `/* Portal Review section inside index.html admin portal *
 .btn-pr-approve:hover{background:#166534;}
 .btn-pr-reject{padding:7px 14px;background:white;color:#DC2626;border:1.5px solid #FECACA;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
 .btn-pr-reject:hover{background:#FEF2F2;}
-.pr-cr-up{color:#16A34A;font-weight:700;} .pr-cr-dn{color:#DC2626;font-weight:700;} .pr-cr-eq{color:#64748B;font-weight:700;}
+.pr-cr-up{color:#15803D;font-weight:700;} .pr-cr-dn{color:#DC2626;font-weight:700;} .pr-cr-eq{color:#64748B;font-weight:700;}
 .pr-notif-card{background:white;border-radius:10px;border:1px solid #E2E8F0;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
 `;
 
@@ -9591,16 +9591,16 @@ const SVG_EXT=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 function prActionBtns(p, st){
   if(st==='submitted') return `<button class="btn-pr-approve" onclick="prApprove('${p}')">${SVG_CHECK}Approve</button><button class="btn-pr-reject" onclick="prReject('${p}')">${SVG_X}Request Changes</button>`;
   if(st==='approved') return `<button class="btn-pr-reject" onclick="prReject('${p}')">${SVG_UNDO}Revert to Draft</button>`;
-  return `<span style="font-size:12px;color:#94A3B8">Waiting for ${p.toUpperCase()} to submit</span>`;
+  return `<span style="font-size:12px;color:#64748B">Waiting for ${p.toUpperCase()} to submit</span>`;
 }
 
 function prBanner(el,st,subMsg,appMsg){
   if(st==='submitted'){
-    el.style.cssText='display:flex;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid #D97706;background:#FFFCF0;color:#92400E;align-items:center;gap:8px;';
-    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${subMsg}`;
+    el.style.cssText='display:flex;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid #B45309;background:#FFFCF0;color:#92400E;align-items:center;gap:8px;';
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${subMsg}`;
   }else if(st==='approved'){
-    el.style.cssText='display:flex;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid #16A34A;background:#F0FDF4;color:#166534;align-items:center;gap:8px;';
-    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>${appMsg}`;
+    el.style.cssText='display:flex;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:500;border-left:3px solid #15803D;background:#F0FDF4;color:#166534;align-items:center;gap:8px;';
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>${appMsg}`;
   }else{el.style.display='none';}
 }
 
@@ -9634,7 +9634,7 @@ function prAddNotif(portal,message,type){
 // ── overview cards ────────────────────────────────────────────────────
 const PR_IC={
   hod:{bg:'#EEF2FF',clr:'#4F46E5'},
-  reg1:{bg:'#F0FDF4',clr:'#16A34A'},
+  reg1:{bg:'#F0FDF4',clr:'#15803D'},
   reg2:{bg:'#FFF7ED',clr:'#EA580C'},
   facility:{bg:'#F0F9FF',clr:'#0284C7'}
 };
@@ -9822,19 +9822,19 @@ function prRenderHOD(){
       ${ids.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors · ${total} assignments</span></div>
       ${ids.map(insId=>{
         const codes=asgn[insId]||[];const d=instData[insId]||{};const cs=codes.some(c=>prIsCS(c));
-        const chips=codes.slice(0,8).map(c=>`<span class="pr-chip pr-chip-${prGrp(c)}">${c}</span>`).join(' ')+(codes.length>8?`<span style="font-size:10px;color:#94A3B8">+${codes.length-8}</span>`:'');
+        const chips=codes.slice(0,8).map(c=>`<span class="pr-chip pr-chip-${prGrp(c)}">${c}</span>`).join(' ')+(codes.length>8?`<span style="font-size:10px;color:#64748B">+${codes.length-8}</span>`:'');
         return `<div class="pr-drow">
           <div class="pr-av ${cs?'pr-av-cs':'pr-av-bus'}">${prIni(d.name||insId)}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:2px">${d.name||insId}</div>
-            ${d.name?`<div style="font-size:10px;color:#94A3B8;font-family:monospace;margin-bottom:2px">${insId}</div>`:''}
-            <div style="font-size:10px;color:#94A3B8;margin-bottom:4px">${d.employment||'Full-Time'} · ${codes.length} course(s)</div>
+            ${d.name?`<div style="font-size:10px;color:#64748B;font-family:monospace;margin-bottom:2px">${insId}</div>`:''}
+            <div style="font-size:10px;color:#64748B;margin-bottom:4px">${d.employment||'Full-Time'} · ${codes.length} course(s)</div>
             <div style="display:flex;flex-wrap:wrap;gap:3px">${chips}</div>
           </div>
           <div style="font-size:12px;font-weight:700;color:#64748B;font-family:monospace">${codes.length}</div>
         </div>`;
       }).join('')}`
-      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No assignments found. HOD needs to assign and submit first.</div>'}
+      :'<div style="padding:28px;text-align:center;color:#64748B;font-size:13px">No assignments found. HOD needs to assign and submit first.</div>'}
     </div>`;
   prBanner(document.getElementById('pr-ban-hod'),st,'HOD submitted assignments — please review and approve.','HOD assignments approved.');
 }
@@ -9852,7 +9852,7 @@ function prRenderReg1(){
     </div>
     <div id="pr-ban-reg1"></div>
     <div class="pr-content-card">
-      ${codes.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${codes.length} course(s) modified</span><span style="font-size:11px;color:#94A3B8">Default 3 credits</span></div>
+      ${codes.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${codes.length} course(s) modified</span><span style="font-size:11px;color:#64748B">Default 3 credits</span></div>
       ${codes.sort().map(code=>{
         const n=creditChanges[code];const cls=n>3?'pr-cr-up':n<3?'pr-cr-dn':'pr-cr-eq';const arr=n>3?'↑':n<3?'↓':'=';
         return `<div class="pr-drow">
@@ -9866,7 +9866,7 @@ function prRenderReg1(){
           </div>
         </div>`;
       }).join('')}`
-      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No credit changes. Registration 1 uses all default credits (3 per course).</div>'}
+      :'<div style="padding:28px;text-align:center;color:#64748B;font-size:13px">No credit changes. Registration 1 uses all default credits (3 per course).</div>'}
     </div>`;
   prBanner(document.getElementById('pr-ban-reg1'),st,'Registration 1 submitted course credits — please review and approve.','Registration 1 course credits approved.');
 }
@@ -9884,24 +9884,24 @@ function prRenderReg2(){
     </div>
     <div id="pr-ban-reg2"></div>
     <div class="pr-content-card">
-      ${ids.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors</span><span style="font-size:11px;color:#94A3B8">${ft} FT · ${pt} PT</span></div>
+      ${ids.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${ids.length} instructors</span><span style="font-size:11px;color:#64748B">${ft} FT · ${pt} PT</span></div>
       ${ids.map(insId=>{
         const d=instData[insId]||{};const cs=d.teachDepts?.includes('Computer Science');const isPT=d.employment==='Part-Time';
         return `<div class="pr-drow">
           <div class="pr-av ${cs?'pr-av-cs':'pr-av-bus'}">${prIni(d.name||insId)}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:2px">${d.name||insId}</div>
-            ${d.name?`<div style="font-size:10px;color:#94A3B8;font-family:monospace;margin-bottom:2px">${insId}</div>`:''}
+            ${d.name?`<div style="font-size:10px;color:#64748B;font-family:monospace;margin-bottom:2px">${insId}</div>`:''}
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${isPT?'#FEF3C7':'#DBEAFE'};color:${isPT?'#92400E':'#1E40AF'}">${d.employment||'—'}</span>
-              ${d.qualification?`<span style="font-size:10px;color:#94A3B8">${d.qualification}</span>`:''}
+              ${d.qualification?`<span style="font-size:10px;color:#64748B">${d.qualification}</span>`:''}
               <span style="font-size:10px;color:#64748B">${prFmtT(d.timeFrom)} – ${prFmtT(d.timeTo)}</span>
             </div>
           </div>
           <div style="font-size:11px;font-weight:700;color:#64748B;font-family:monospace">${d.maxCredits||21} cr</div>
         </div>`;
       }).join('')}`
-      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No instructor data found.</div>'}
+      :'<div style="padding:28px;text-align:center;color:#64748B;font-size:13px">No instructor data found.</div>'}
     </div>`;
   prBanner(document.getElementById('pr-ban-reg2'),st,'Registration 2 submitted instructor data — please review and approve.','Registration 2 data approved.');
 }
@@ -9918,7 +9918,7 @@ function prRenderFacility(){
     </div>
     <div id="pr-ban-fac"></div>
     <div class="pr-content-card">
-      ${rooms.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${rooms.length} rooms</span><span style="font-size:11px;color:#94A3B8">${rooms.filter(r=>(r.type||r.room_type)==='classroom').length} classrooms · ${rooms.filter(r=>(r.type||r.room_type)==='lab').length} labs · ${rooms.filter(r=>(r.type||r.room_type)==='hall').length} halls</span></div>
+      ${rooms.length?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${rooms.length} rooms</span><span style="font-size:11px;color:#64748B">${rooms.filter(r=>(r.type||r.room_type)==='classroom').length} classrooms · ${rooms.filter(r=>(r.type||r.room_type)==='lab').length} labs · ${rooms.filter(r=>(r.type||r.room_type)==='hall').length} halls</span></div>
       ${rooms.map(r=>{const t=r.type||r.room_type||'classroom';const ts=TS[t]||{bg:'#F1F5F9',clr:'#64748B'};
         return `<div class="pr-drow">
           <div style="flex:1;min-width:0">
@@ -9929,7 +9929,7 @@ function prRenderFacility(){
           <div style="font-size:12px;font-weight:700;color:#64748B;font-family:monospace;min-width:60px;text-align:right">Cap ${r.capacity||'—'}</div>
         </div>`;
       }).join('')}`
-      :'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No room data found.</div>'}
+      :'<div style="padding:28px;text-align:center;color:#64748B;font-size:13px">No room data found.</div>'}
     </div>`;
   prBanner(document.getElementById('pr-ban-fac'),st,'Facility submitted room data — please review and approve.','Facility data approved.');
 }
@@ -9951,7 +9951,7 @@ function prRenderNehad(){
   });
   panel.innerHTML=`<div class="pr-sec-hd"><div><div class="pr-sec-title">Nehad – Timetables</div><div class="pr-sec-sub">Review timetable slots submitted by Dr. Nehad</div></div><div style="display:flex;gap:8px;align-items:center">${prActionBtns('nehad',st)}</div></div>
     <div id="pr-ban-nehad"></div>
-    <div class="pr-content-card">${totalSlots?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${totalSlots} time slots · ${Object.keys(slots).length} instructors</span></div><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#F8FAFC"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Instructor</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Course</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Day</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Time</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Room</th></tr></thead><tbody>${rows}</tbody></table>`:'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No timetable submitted yet.</div>'}</div>`;
+    <div class="pr-content-card">${totalSlots?`<div class="pr-toolbar"><span style="font-size:11px;font-weight:600;color:#64748B">${totalSlots} time slots · ${Object.keys(slots).length} instructors</span></div><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#F8FAFC"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Instructor</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Course</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Day</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Time</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748B;border-bottom:1px solid #E2E8F0">Room</th></tr></thead><tbody>${rows}</tbody></table>`:'<div style="padding:28px;text-align:center;color:#64748B;font-size:13px">No timetable submitted yet.</div>'}</div>`;
   const banEl=document.getElementById('pr-ban-nehad');
   if(banEl) prBanner(banEl,st,`Submitted on ${submittedAt} — ${totalSlots} slot(s) across ${Object.keys(slots).length} instructor(s).`,`Approved ✓ — Timetable is now live across all portals.`);
 }
@@ -9960,7 +9960,7 @@ function prRenderNehad(){
 function prRenderNotifs(){
   const panel=document.getElementById('pr-panel-notifications');if(!panel)return;
   const notifs=JSON.parse(localStorage.getItem('cck_admin_notifications')||'[]');
-  const PC={HOD:'#EEF2FF|#4338CA','Registration 1':'#F0FDF4|#16A34A','Registration 2':'#FFF7ED|#EA580C',Facility:'#F0F9FF|#0284C7',Admin:'#FEF2F2|#DC2626'};
+  const PC={HOD:'#EEF2FF|#4338CA','Registration 1':'#F0FDF4|#15803D','Registration 2':'#FFF7ED|#EA580C',Facility:'#F0F9FF|#0284C7',Admin:'#FEF2F2|#DC2626'};
   panel.innerHTML=`
     <div class="pr-sec-hd">
       <div><div class="pr-sec-title">Notifications</div><div class="pr-sec-sub">Submissions and updates from all portals</div></div>
@@ -9975,10 +9975,10 @@ function prRenderNotifs(){
         <div style="flex:1">
           <span style="background:${bg};color:${clr};padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:4px">${n.portal}</span>
           <div style="font-size:13px;color:#0F172A;font-weight:500">${tl}${n.message}</div>
-          <div style="font-size:11px;color:#94A3B8;margin-top:3px">${n.semLabel||n.semKey||''} · ${new Date(n.timestamp).toLocaleString()}</div>
+          <div style="font-size:11px;color:#64748B;margin-top:3px">${n.semLabel||n.semKey||''} · ${new Date(n.timestamp).toLocaleString()}</div>
         </div>
       </div>`;
-    }).join(''):'<div style="padding:28px;text-align:center;color:#94A3B8;font-size:13px">No notifications yet.</div>'}
+    }).join(''):'<div style="padding:28px;text-align:center;color:#64748B;font-size:13px">No notifications yet.</div>'}
     </div>`;
   notifs.forEach(n=>n.read=true);
   localStorage.setItem('cck_admin_notifications',JSON.stringify(notifs));
@@ -10025,21 +10025,21 @@ document.addEventListener('DOMContentLoaded', function(){
     if(old) old.remove();
     const el=document.createElement('div');
     el.id='pr-submission-alert';
-    el.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:white;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.2);border:2px solid #D97706;width:320px;overflow:hidden;animation:prSlideIn .3s ease;';
+    el.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:white;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.2);border:2px solid #B45309;width:320px;overflow:hidden;animation:prSlideIn .3s ease;';
     el.innerHTML=`
       <style>@keyframes prSlideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}</style>
       <div style="background:#FFFBEB;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #FEF3C7;">
         <div style="width:40px;height:40px;background:#FEF3C7;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" style="width:20px;height:20px"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" style="width:20px;height:20px"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
         </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:800;color:#92400E;">New Submission!</div>
           <div style="font-size:12px;color:#B45309;margin-top:2px;">${portalName} submitted for approval</div>
         </div>
-        <button onclick="document.getElementById('pr-submission-alert').remove()" style="background:none;border:none;cursor:pointer;color:#94A3B8;font-size:18px;padding:0;line-height:1;flex-shrink:0;">✕</button>
+        <button onclick="document.getElementById('pr-submission-alert').remove()" style="background:none;border:none;cursor:pointer;color:#64748B;font-size:18px;padding:0;line-height:1;flex-shrink:0;">✕</button>
       </div>
       <div style="padding:12px 16px;display:flex;gap:8px;">
-        <button onclick="document.querySelector('[data-section=portal-review]').click();document.getElementById('pr-submission-alert').remove();" style="flex:1;padding:8px;background:#D97706;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Go to Portal Review</button>
+        <button onclick="document.querySelector('[data-section=portal-review]').click();document.getElementById('pr-submission-alert').remove();" style="flex:1;padding:8px;background:#B45309;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Go to Portal Review</button>
         <button onclick="document.getElementById('pr-submission-alert').remove()" style="padding:8px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Dismiss</button>
       </div>`;
     document.body.appendChild(el);
@@ -10482,7 +10482,7 @@ function loadTimetableGeneration() {
                     <span style="font-weight: 600; color: #374151;">Optimization</span>
                 </div>
                 <div style="height: 6px; background: #E5E7EB; border-radius: 3px; overflow: hidden;">
-                    <div id="progress-optimize" style="height: 100%; width: 0%; background: #3B82F6; transition: width 0.5s;"></div>
+                    <div id="progress-optimize" style="height: 100%; width: 0%; background: #1D4ED8; transition: width 0.5s;"></div>
                 </div>
                 <p style="font-size: 12px; color: #6B7280; margin-top: 6px;">Ready</p>
             </div>
@@ -10583,7 +10583,7 @@ function loadTimetableGeneration() {
                     </svg>
                     Generate All Timetables
                 </button>
-                <button onclick="exportTimetableExcel()" style="padding: 16px 24px; background: #059669; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 10px;">
+                <button onclick="exportTimetableExcel()" style="padding: 16px 24px; background: #047857; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 10px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 22px; height: 22px;">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <line x1="9" y1="3" x2="9" y2="21"/>
@@ -10612,7 +10612,7 @@ function loadTimetableGeneration() {
                     <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
                 <p style="font-size: 14px;">Click "Generate All Timetables" to create schedules from real course data</p>
-                <p style="font-size: 12px; margin-top: 8px; color: #9CA3AF;">Uses actual class times and durations for all 7 days</p>
+                <p style="font-size: 12px; margin-top: 8px; color: #6B7280;">Uses actual class times and durations for all 7 days</p>
             </div>
         </div>
     `;
@@ -11215,7 +11215,7 @@ function generateMajorTimetableHTML(major, majorName) {
     
     // Color palette for courses
     const courseColors = [
-        { bg: '#DBEAFE', border: '#3B82F6', text: '#1E40AF' },  // Blue
+        { bg: '#DBEAFE', border: '#1D4ED8', text: '#1E40AF' },  // Blue
         { bg: '#DCFCE7', border: '#22C55E', text: '#166534' },  // Green
         { bg: '#FEF3C7', border: '#F59E0B', text: '#92400E' },  // Yellow
         { bg: '#F3E8FF', border: '#A855F7', text: '#7C3AED' },  // Purple
@@ -11229,7 +11229,7 @@ function generateMajorTimetableHTML(major, majorName) {
     
     // Level header colors (Semester-based: odd = Fall colors, even = Spring colors)
     const levelColors = {
-        'Level 01': '#3B82F6',   // Blue - Year 1, Sem 1
+        'Level 01': '#1D4ED8',   // Blue - Year 1, Sem 1
         'Level 02': '#22C55E',   // Green - Year 1, Sem 2
         'Level 03': '#F59E0B',   // Yellow - Year 2, Sem 3
         'Level 04': '#A855F7',   // Purple - Year 2, Sem 4
@@ -11532,7 +11532,7 @@ function generateMajorTimetableHTML(major, majorName) {
 }
 function getMethodColor(method) {
     if (method === 'Lab') return '#8B5CF6';
-    if (method === 'Lecture') return '#3B82F6';
+    if (method === 'Lecture') return '#1D4ED8';
     if (method === 'Tutorial') return '#10B981';
     return '#6B7280';
 }
@@ -11780,11 +11780,11 @@ window.exportMajorPDF = function(majorName) {
         timeSlots.push(h.toString().padStart(2, '0') + ':00');
     }
     
-    const courseColors = ['#3B82F6', '#22C55E', '#F59E0B', '#A855F7', '#EC4899', '#F97316', '#6366F1', '#14B8A6', '#EF4444', '#10B981'];
+    const courseColors = ['#1D4ED8', '#22C55E', '#F59E0B', '#A855F7', '#EC4899', '#F97316', '#6366F1', '#14B8A6', '#EF4444', '#10B981'];
     const courseBgColors = ['#DBEAFE', '#DCFCE7', '#FEF3C7', '#F3E8FF', '#FCE7F3', '#FFEDD5', '#E0E7FF', '#CCFBF1', '#FEE2E2', '#D1FAE5'];
     
     const levelColors = {
-        'Level 01': '#3B82F6', 'Level 02': '#22C55E', 'Level 03': '#F59E0B', 'Level 04': '#A855F7',
+        'Level 01': '#1D4ED8', 'Level 02': '#22C55E', 'Level 03': '#F59E0B', 'Level 04': '#A855F7',
         'Level 05': '#EC4899', 'Level 06': '#F97316', 'Level 07': '#6366F1', 'Level 08': '#14B8A6'
     };
     
@@ -11876,7 +11876,7 @@ window.exportMajorPDF = function(majorName) {
     });
     
     const printWindow = window.open('', '_blank');
-    printWindow.document.write('<!DOCTYPE html><html><head><title>' + majorName + '</title><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: "Segoe UI", Arial, sans-serif; padding: 15px; font-size: 10px; } .page { page-break-after: always; margin-bottom: 20px; } .page:last-child { page-break-after: avoid; } .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #B91C1C; } .logo { display: flex; align-items: center; gap: 10px; } .logo-box { width: 40px; height: 40px; background: #B91C1C; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; } h1 { font-size: 14px; color: #B91C1C; } .subtitle { font-size: 9px; color: #666; } .level-header { color: white; padding: 10px 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; } .level-title { font-size: 14px; font-weight: bold; } .level-info { font-size: 9px; opacity: 0.9; } .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; } .grid-table th { background: #F3F4F6; padding: 6px; font-size: 9px; font-weight: 600; color: #374151; border: 1px solid #E5E7EB; } .grid-table td { padding: 3px; border: 1px solid #E5E7EB; height: 40px; vertical-align: top; } .time-cell { background: #FAFAFA; font-weight: 500; color: #6B7280; text-align: center; width: 55px; font-size: 8px; } .course-block { padding: 3px 5px; border-radius: 3px; margin: 1px; font-size: 7px; border-left: 2px solid; } .course-code { font-weight: bold; } .course-time { font-size: 6px; opacity: 0.8; } .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; padding: 8px; background: #F9FAFB; border-radius: 4px; } .legend-item { display: inline-flex; align-items: center; gap: 3px; font-size: 8px; } .legend-dot { width: 8px; height: 8px; border-radius: 2px; } .details-table { width: 100%; border-collapse: collapse; font-size: 9px; } .details-table th { background: #374151; color: white; padding: 5px 6px; text-align: left; } .details-table td { padding: 5px 6px; border: 1px solid #E5E7EB; } .details-table tr:nth-child(even) { background: #F9FAFB; } .code { font-weight: bold; } .level-badge { padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: 600; } .total-row { background: #F3F4F6; font-weight: bold; } @media print { body { padding: 10px; } .page { page-break-after: always; } }</style></head><body>' + pagesHtml + '<script>window.onload = function() { window.print(); }<\/script></body></html>');
+    printWindow.document.write('<!DOCTYPE html><html><head><title>' + majorName + '</title><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: "Segoe UI", Arial, sans-serif; padding: 15px; font-size: 10px; } .page { page-break-after: always; margin-bottom: 20px; } .page:last-child { page-break-after: avoid; } .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #B91C1C; } .logo { display: flex; align-items: center; gap: 10px; } .logo-box { width: 40px; height: 40px; background: #B91C1C; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; } h1 { font-size: 14px; color: #B91C1C; } .subtitle { font-size: 9px; color: #666; } .level-header { color: white; padding: 10px 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; } .level-title { font-size: 14px; font-weight: bold; } .level-info { font-size: 9px; opacity: 0.9; } .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; } .grid-table th { background: #F3F4F6; padding: 6px; font-size: 9px; font-weight: 600; color: #374151; border: 1px solid #E5E7EB; } .grid-table td { padding: 3px; border: 1px solid #E5E7EB; height: 40px; vertical-align: top; } .time-cell { background: #FAFAFA; font-weight: 500; color: #6B7280; text-align: center; width: 55px; font-size: 8px; } .course-block { padding: 3px 5px; border-radius: 3px; margin: 1px; font-size: 7px; border-left: 2px solid; } .course-code { font-weight: bold; } .course-time { font-size: 6px; opacity: 0.8; } .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; padding: 8px; background: #F9FAFB; border-radius: 4px; } .legend-item { display: inline-flex; align-items: center; gap: 3px; font-size: 8px; } .legend-dot { width: 8px; height: 8px; border-radius: 2px; } .details-table { width: 100%; border-collapse: collapse; font-size: 9px; } .details-table th { background: #374151; color: white; padding: 5px 6px; text-align: left; } .details-table td { padding: 5px 6px; border: 1px solid #E5E7EB; } .details-table tr:nth-child(even) { background: #F9FAFB; } .code { font-weight: bold; } .level-badge { padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: 600; } .total-row { background: #F3F4F6; font-weight: bold; } @media print { body { padding: 10px; } .page { page-break-after: always; } }</style></head><body>' + pagesHtml + '<script>window.onload = function() { window.print(); }</script></body></html>');
     printWindow.document.close();
 };
 
@@ -11955,8 +11955,8 @@ function loadAnalytics() {
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Currently Enrolled</div>
-                        <div style="font-size: 36px; font-weight: 700; color: #059669; line-height: 1;">${stats.statusCounts.active}</div>
-                        <div style="font-size: 12px; color: #059669; margin-top: 8px;">${((stats.statusCounts.active/stats.totalStudents)*100).toFixed(1)}% of total</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #047857; line-height: 1;">${stats.statusCounts.active}</div>
+                        <div style="font-size: 12px; color: #047857; margin-top: 8px;">${((stats.statusCounts.active/stats.totalStudents)*100).toFixed(1)}% of total</div>
                     </div>
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width: 28px; height: 28px;">
@@ -11972,8 +11972,8 @@ function loadAnalytics() {
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="font-size: 13px; color: var(--gray-500); margin-bottom: 8px; font-weight: 500;">Active Courses</div>
-                        <div style="font-size: 36px; font-weight: 700; color: #2563EB; line-height: 1;">${stats.totalCourses}</div>
-                        <div style="font-size: 12px; color: #2563EB; margin-top: 8px;">${stats.avgStudentsPerCourse.toFixed(0)} avg class size</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #1D4ED8; line-height: 1;">${stats.totalCourses}</div>
+                        <div style="font-size: 12px; color: #1D4ED8; margin-top: 8px;">${stats.avgStudentsPerCourse.toFixed(0)} avg class size</div>
                     </div>
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width: 28px; height: 28px;">
@@ -12040,21 +12040,21 @@ function loadAnalytics() {
                                 <div style="width: 10px; height: 10px; background: #22c55e; border-radius: 50%;"></div>
                                 <span style="font-weight: 500; color: #166534;">Active</span>
                             </div>
-                            <span style="font-size: 18px; font-weight: 700; color: #22c55e;">${stats.statusCounts.active}</span>
+                            <span style="font-size: 18px; font-weight: 700; color: #15803D;">${stats.statusCounts.active}</span>
                         </div>
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #DBEAFE; border-radius: 8px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="width: 10px; height: 10px; background: #3b82f6; border-radius: 50%;"></div>
+                                <div style="width: 10px; height: 10px; background: #1D4ED8; border-radius: 50%;"></div>
                                 <span style="font-weight: 500; color: #1e40af;">Graduated</span>
                             </div>
-                            <span style="font-size: 18px; font-weight: 700; color: #3b82f6;">${stats.statusCounts.graduated}</span>
+                            <span style="font-size: 18px; font-weight: 700; color: #1D4ED8;">${stats.statusCounts.graduated}</span>
                         </div>
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #FEF3C7; border-radius: 8px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div style="width: 10px; height: 10px; background: #f59e0b; border-radius: 50%;"></div>
                                 <span style="font-weight: 500; color: #92400e;">Inactive</span>
                             </div>
-                            <span style="font-size: 18px; font-weight: 700; color: #f59e0b;">${stats.statusCounts.inactive}</span>
+                            <span style="font-size: 18px; font-weight: 700; color: #B45309;">${stats.statusCounts.inactive}</span>
                         </div>
                     </div>
                 </div>
@@ -12065,7 +12065,7 @@ function loadAnalytics() {
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 13px; color: var(--gray-600);">Diploma (2-year)</span>
-                            <span style="font-size: 15px; font-weight: 600; color: #667eea;">${stats.programType.diploma}</span>
+                            <span style="font-size: 15px; font-weight: 600; color: #4F46E5;">${stats.programType.diploma}</span>
                         </div>
                         <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
                             <div style="height: 100%; width: ${(stats.programType.diploma/stats.totalStudents)*100}%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px;"></div>
@@ -12079,10 +12079,10 @@ function loadAnalytics() {
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                             <span style="font-size: 13px; color: var(--gray-600);">Foundation</span>
-                            <span style="font-size: 15px; font-weight: 600; color: #22c55e;">${stats.programType.foundation || 0}</span>
+                            <span style="font-size: 15px; font-weight: 600; color: #15803D;">${stats.programType.foundation || 0}</span>
                         </div>
                         <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
-                            <div style="height: 100%; width: ${((stats.programType.foundation || 0)/stats.totalStudents)*100}%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 4px;"></div>
+                            <div style="height: 100%; width: ${((stats.programType.foundation || 0)/stats.totalStudents)*100}%; background: linear-gradient(90deg, #22c55e, #15803D); border-radius: 4px;"></div>
                         </div>
                     </div>
                 </div>
@@ -12343,7 +12343,7 @@ function calculateRealAnalytics() {
     
     students.forEach(s => {
         const admitTerm = s.admit_term || '';
-        if (semesterCounts.hasOwnProperty(admitTerm)) {
+        if (Object.prototype.hasOwnProperty.call(semesterCounts, admitTerm)) {
             semesterCounts[admitTerm]++;
         } else if (admitTerm) {
             semesterCounts['Earlier']++;
@@ -12453,7 +12453,7 @@ function calculateRealAnalytics() {
         if (status === 'completed' || status === 'alumni') status = 'graduated';
         if (status === 'stopped' || status === 'dropped' || status === 'withdrawn') status = 'inactive';
         
-        if (statusCounts.hasOwnProperty(status)) {
+        if (Object.prototype.hasOwnProperty.call(statusCounts, status)) {
             statusCounts[status]++;
         } else {
             statusCounts['unknown']++;
@@ -12658,7 +12658,7 @@ function renderProgramBars(filter, totalStudents, gradients) {
             <div style="background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <span style="font-size: 13px; font-weight: 600; color: #334155;" title="${major}">${shortName}</span>
-                    <span style="font-size: 14px; font-weight: 700; color: #667eea;">${count} <span style="font-size: 11px; color: #94a3b8;">(${pct}%)</span></span>
+                    <span style="font-size: 14px; font-weight: 700; color: #4F46E5;">${count} <span style="font-size: 11px; color: #64748B;">(${pct}%)</span></span>
                 </div>
                 <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
                     <div style="height: 100%; width: ${(count/maxMajor)*100}%; background: ${gradients[i % gradients.length]}; border-radius: 5px; transition: width 0.5s ease;"></div>
@@ -12781,7 +12781,7 @@ function generateEnrollmentAnalytics(stats) {
                                 </linearGradient>
                                 <linearGradient id="foundationGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                                     <stop offset="0%" style="stop-color:#22c55e"/>
-                                    <stop offset="100%" style="stop-color:#16a34a"/>
+                                    <stop offset="100%" style="stop-color:#15803D"/>
                                 </linearGradient>
                             </defs>
                             <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#e2e8f0" stroke-width="6"/>
@@ -12806,7 +12806,7 @@ function generateEnrollmentAnalytics(stats) {
                                 <div style="font-size: 11px; color: #64748b;">2-year programs</div>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 22px; font-weight: 800; color: #667eea;">${stats.programType.diploma}</div>
+                                <div style="font-size: 22px; font-weight: 800; color: #4F46E5;">${stats.programType.diploma}</div>
                                 <div style="font-size: 11px; color: #64748b;">${((stats.programType.diploma/stats.totalStudents)*100).toFixed(1)}%</div>
                             </div>
                         </div>
@@ -12826,7 +12826,7 @@ function generateEnrollmentAnalytics(stats) {
                                 <div style="font-size: 11px; color: #64748b;">Pre-degree preparation</div>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 22px; font-weight: 800; color: #22c55e;">${stats.programType.foundation || 0}</div>
+                                <div style="font-size: 22px; font-weight: 800; color: #15803D;">${stats.programType.foundation || 0}</div>
                                 <div style="font-size: 11px; color: #64748b;">${(((stats.programType.foundation || 0)/stats.totalStudents)*100).toFixed(1)}%</div>
                             </div>
                         </div>
@@ -12919,7 +12919,7 @@ function generateCourseAnalytics(stats) {
                                     <div style="height: 100%; width: ${(course.count/maxCount)*100}%; background: linear-gradient(90deg, #667eea, #f5576c); border-radius: 3px;"></div>
                                 </div>
                             </div>
-                            <div style="font-size: 16px; font-weight: 700; color: #667eea;">${course.count}</div>
+                            <div style="font-size: 16px; font-weight: 700; color: #4F46E5;">${course.count}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -12949,9 +12949,9 @@ function generateCourseAnalytics(stats) {
                             const fillColor = fillRate > 80 ? '#10B981' : fillRate > 50 ? '#F59E0B' : '#64748b';
                             return `
                                 <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                                    <td style="padding: 12px 16px; font-weight: 600; color: #667eea;">${code}</td>
+                                    <td style="padding: 12px 16px; font-weight: 600; color: #4F46E5;">${code}</td>
                                     <td style="padding: 12px 16px; color: #334155; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${course?.name || 'Unknown'}</td>
-                                    <td style="padding: 12px 16px; text-align: center;"><span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #667eea; padding: 4px 14px; border-radius: 20px; font-weight: 600;">${count}</span></td>
+                                    <td style="padding: 12px 16px; text-align: center;"><span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #4F46E5; padding: 4px 14px; border-radius: 20px; font-weight: 600;">${count}</span></td>
                                     <td style="padding: 12px 16px; text-align: center;">
                                         <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                                             <div style="width: 50px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;"><div style="height: 100%; width: ${fillRate}%; background: ${fillColor}; border-radius: 3px;"></div></div>
@@ -12999,13 +12999,13 @@ function generateInstructorAnalytics(stats) {
                     </div>
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: #FEF2F2; border-radius: 10px; border-left: 4px solid #EF4444;">
-                            <div style="flex: 1;"><div style="font-size: 12px; color: #64748b;">High Load (150+)</div><div style="font-size: 20px; font-weight: 700; color: #EF4444;">${highLoad}</div></div>
+                            <div style="flex: 1;"><div style="font-size: 12px; color: #64748b;">High Load (150+)</div><div style="font-size: 20px; font-weight: 700; color: #B91C1C;">${highLoad}</div></div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: #FFFBEB; border-radius: 10px; border-left: 4px solid #F59E0B;">
-                            <div style="flex: 1;"><div style="font-size: 12px; color: #64748b;">Medium (80-149)</div><div style="font-size: 20px; font-weight: 700; color: #F59E0B;">${medLoad}</div></div>
+                            <div style="flex: 1;"><div style="font-size: 12px; color: #64748b;">Medium (80-149)</div><div style="font-size: 20px; font-weight: 700; color: #B45309;">${medLoad}</div></div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: #ECFDF5; border-radius: 10px; border-left: 4px solid #10B981;">
-                            <div style="flex: 1;"><div style="font-size: 12px; color: #64748b;">Normal (&lt;80)</div><div style="font-size: 20px; font-weight: 700; color: #10B981;">${normalLoad}</div></div>
+                            <div style="flex: 1;"><div style="font-size: 12px; color: #64748b;">Normal (&lt;80)</div><div style="font-size: 20px; font-weight: 700; color: #047857;">${normalLoad}</div></div>
                         </div>
                     </div>
                 </div>
@@ -13058,7 +13058,7 @@ function generateInstructorAnalytics(stats) {
                                 <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                                     <td style="padding: 12px; text-align: center; font-weight: 600; color: #64748b;">${i + 1}</td>
                                     <td style="padding: 12px 16px; font-weight: 500; color: #334155;">${inst.name}</td>
-                                    <td style="padding: 12px; text-align: center;"><span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #667eea; padding: 4px 14px; border-radius: 20px; font-weight: 600;">${inst.students}</span></td>
+                                    <td style="padding: 12px; text-align: center;"><span style="background: linear-gradient(135deg, #667eea20, #764ba220); color: #4F46E5; padding: 4px 14px; border-radius: 20px; font-weight: 600;">${inst.students}</span></td>
                                     <td style="padding: 12px; text-align: center;"><span style="background: ${loadBg}; color: ${loadColor}; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 600;">${loadLevel}</span></td>
                                 </tr>
                             `;
@@ -13322,7 +13322,7 @@ function loadCourseAdvising() {
                                     <span id="student-level-badge" style="display: inline-block; font-size: 11px; background: var(--blue-100); color: var(--blue-600); padding: 4px 10px; border-radius: 20px; font-weight: 600;">--</span>
                                     <div id="student-major-display" style="font-size: 11px; color: var(--gray-500); margin-top: 4px; max-width: 150px; text-align: right;">--</div>
                                 </div>
-                                <button type="button" onclick="clearSelectedStudent()" style="padding: 8px; background: none; border: none; cursor: pointer; color: var(--gray-400);">
+                                <button type="button" onclick="clearSelectedStudent()" style="padding: 8px; background: none; border: none; cursor: pointer; color: var(--gray-500);">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
                             </div>
@@ -13338,7 +13338,7 @@ function loadCourseAdvising() {
                                 <span id="current-course-count" style="font-size: 11px; color: var(--gray-500);">0 courses</span>
                             </div>
                             <div id="current-courses-list" style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px; min-height: 60px; max-height: 180px; overflow-y: auto;">
-                                <p style="text-align: center; color: var(--gray-400); font-size: 13px; margin: 0;">Search for a student to view courses</p>
+                                <p style="text-align: center; color: var(--gray-500); font-size: 13px; margin: 0;">Search for a student to view courses</p>
                             </div>
                         </div>
                         
@@ -13351,7 +13351,7 @@ function loadCourseAdvising() {
                                 <span id="next-course-count" style="font-size: 11px; color: var(--gray-500);">0 courses</span>
                             </div>
                             <div id="next-courses-list" style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px; min-height: 100px; max-height: 280px; overflow-y: auto;">
-                                <p style="text-align: center; color: var(--gray-400); font-size: 13px; margin: 0;">Search for a student to view available courses</p>
+                                <p style="text-align: center; color: var(--gray-500); font-size: 13px; margin: 0;">Search for a student to view available courses</p>
                             </div>
                         </div>
                         
@@ -13369,7 +13369,7 @@ function loadCourseAdvising() {
                         <!-- Advisor Notes -->
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">
-                                Advisor Notes <span style="font-weight: 400; color: var(--gray-400);">(optional)</span>
+                                Advisor Notes <span style="font-weight: 400; color: var(--gray-500);">(optional)</span>
                             </label>
                             <textarea id="advisor-notes" rows="2" placeholder="Add any notes..." style="width: 100%; padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; resize: vertical; font-family: inherit;"></textarea>
                         </div>
@@ -13500,8 +13500,8 @@ function selectStudent(studentId) {
 function clearSelectedStudent() {
     document.getElementById('selected-student-card').style.display = 'none';
     document.getElementById('selected-student-id').value = '';
-    document.getElementById('current-courses-list').innerHTML = '<p style="text-align: center; color: var(--gray-400); font-size: 13px; margin: 0;">Search for a student to view courses</p>';
-    document.getElementById('next-courses-list').innerHTML = '<p style="text-align: center; color: var(--gray-400); font-size: 13px; margin: 0;">Search for a student to view available courses</p>';
+    document.getElementById('current-courses-list').innerHTML = '<p style="text-align: center; color: var(--gray-500); font-size: 13px; margin: 0;">Search for a student to view courses</p>';
+    document.getElementById('next-courses-list').innerHTML = '<p style="text-align: center; color: var(--gray-500); font-size: 13px; margin: 0;">Search for a student to view available courses</p>';
     document.getElementById('current-course-count').textContent = '0 courses';
     document.getElementById('next-course-count').textContent = '0 courses';
     document.getElementById('selection-summary').style.display = 'none';
@@ -13516,7 +13516,7 @@ function loadStudentCourses(student) {
     document.getElementById('current-course-count').textContent = `${enrollments.length} courses`;
     
     if (enrollments.length === 0) {
-        currentList.innerHTML = '<p style="text-align: center; color: var(--gray-400); font-size: 13px; margin: 0;">No current enrollments</p>';
+        currentList.innerHTML = '<p style="text-align: center; color: var(--gray-500); font-size: 13px; margin: 0;">No current enrollments</p>';
     } else {
         currentList.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -13592,7 +13592,7 @@ function loadStudentCourses(student) {
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
                 <p style="color: var(--gray-500); font-size: 13px; margin: 0;">No additional courses available</p>
-                <p style="color: var(--gray-400); font-size: 11px; margin: 4px 0 0 0;">Student may have completed all requirements</p>
+                <p style="color: var(--gray-500); font-size: 11px; margin: 4px 0 0 0;">Student may have completed all requirements</p>
             </div>
         `;
     } else {
@@ -13613,7 +13613,7 @@ function loadStudentCourses(student) {
                             <span style="font-size: 10px; background: ${c.isNextLevel ? 'var(--blue-100)' : 'var(--purple-100)'}; color: ${c.isNextLevel ? 'var(--blue-600)' : 'var(--purple-600)'}; padding: 3px 8px; border-radius: 12px; font-weight: 600;">
                                 ${c.semester}
                             </span>
-                            <div style="font-size: 10px; color: var(--gray-400); margin-top: 2px;">${c.credits || 3} cr</div>
+                            <div style="font-size: 10px; color: var(--gray-500); margin-top: 2px;">${c.credits || 3} cr</div>
                         </div>
                     </label>
                 `).join('')}
@@ -13711,7 +13711,7 @@ function renderAdvisingRecords() {
                     <line x1="16" y1="17" x2="8" y2="17"/>
                 </svg>
                 <div style="font-size: 14px; font-weight: 500; color: var(--gray-500); margin-bottom: 4px;">No Records Yet</div>
-                <div style="font-size: 12px; color: var(--gray-400);">Submit an advising session to see it here</div>
+                <div style="font-size: 12px; color: var(--gray-500);">Submit an advising session to see it here</div>
             </div>
         `;
     }
@@ -13736,9 +13736,9 @@ function renderAdvisingRecords() {
                 ${record.selectedCourses.slice(0, 4).map(code => `
                     <span style="font-size: 10px; background: var(--blue-100); color: var(--blue-600); padding: 3px 8px; border-radius: 4px; font-weight: 500;">${code}</span>
                 `).join('')}
-                ${record.selectedCourses.length > 4 ? `<span style="font-size: 10px; color: var(--gray-400);">+${record.selectedCourses.length - 4}</span>` : ''}
+                ${record.selectedCourses.length > 4 ? `<span style="font-size: 10px; color: var(--gray-500);">+${record.selectedCourses.length - 4}</span>` : ''}
             </div>
-            <div style="font-size: 10px; color: var(--gray-400); margin-top: 8px;">
+            <div style="font-size: 10px; color: var(--gray-500); margin-top: 8px;">
                 ${new Date(record.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
         </div>
@@ -13751,7 +13751,7 @@ function renderDemandPreview() {
     
     if (entries.length === 0) {
         return `
-            <div style="text-align: center; padding: 20px; color: var(--gray-400);">
+            <div style="text-align: center; padding: 20px; color: var(--gray-500);">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 8px; opacity: 0.5;">
                     <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
                 </svg>
@@ -14210,7 +14210,7 @@ window.showRequestDetails = function(requestId) {
                 <div style="flex: 1;">
                     <div style="font-size: 18px; font-weight: 600; color: var(--gray-900);">${escHtml(request.studentName)}</div>
                     <div style="font-size: 13px; color: var(--gray-500);">${request.studentId} • ${request.major || 'N/A'}</div>
-                    <div style="font-size: 12px; color: var(--gray-400);">Level: ${request.level || 'N/A'} • GPA: ${request.gpa || 'N/A'}</div>
+                    <div style="font-size: 12px; color: var(--gray-500);">Level: ${request.level || 'N/A'} • GPA: ${request.gpa || 'N/A'}</div>
                 </div>
                 <div style="text-align: right;">
                     <span style="display: inline-block; padding: 6px 14px; background: ${status.bg}; color: ${status.color}; border-radius: 20px; font-size: 12px; font-weight: 600;">
@@ -14236,8 +14236,8 @@ window.showRequestDetails = function(requestId) {
                             <div style="text-align: right;">
                                 <div style="font-size: 12px; font-weight: 500; color: var(--gray-700);">${course.credits} cr</div>
                                 ${hasIssues ? `<div style="font-size: 10px; color: #DC2626;">⚠ ${escHtml(validation.issues.join(', '))}</div>` : ''}
-                                ${hasWarnings ? `<div style="font-size: 10px; color: #F59E0B;">⚡ ${escHtml(validation.warnings.join(', '))}</div>` : ''}
-                                ${!hasIssues && !hasWarnings ? `<div style="font-size: 10px; color: #22C55E;">✓ Eligible</div>` : ''}
+                                ${hasWarnings ? `<div style="font-size: 10px; color: #B45309;">⚡ ${escHtml(validation.warnings.join(', '))}</div>` : ''}
+                                ${!hasIssues && !hasWarnings ? `<div style="font-size: 10px; color: #15803D;">✓ Eligible</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -14305,7 +14305,7 @@ window.showRequestDetails = function(requestId) {
             `}
             
             <!-- Submitted Time -->
-            <div style="margin-top: 16px; text-align: center; font-size: 11px; color: var(--gray-400);">
+            <div style="margin-top: 16px; text-align: center; font-size: 11px; color: var(--gray-500);">
                 Submitted: ${new Date(request.submittedAt).toLocaleString()}
             </div>
         </div>
@@ -14340,7 +14340,7 @@ function renderPendingRegistrationRequests() {
                     <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
                 <div style="font-size: 14px; font-weight: 500; color: var(--gray-500); margin-bottom: 4px;">No Pending Requests</div>
-                <div style="font-size: 12px; color: var(--gray-400);">All registration requests have been processed</div>
+                <div style="font-size: 12px; color: var(--gray-500);">All registration requests have been processed</div>
             </div>
         `;
     }
@@ -14375,10 +14375,10 @@ function renderPendingRegistrationRequests() {
                     ${request.courses.slice(0, 4).map(c => `
                         <span style="font-size: 10px; background: var(--blue-100); color: var(--blue-600); padding: 3px 8px; border-radius: 4px; font-weight: 500;">${c.code}</span>
                     `).join('')}
-                    ${request.courses.length > 4 ? `<span style="font-size: 10px; color: var(--gray-400);">+${request.courses.length - 4}</span>` : ''}
+                    ${request.courses.length > 4 ? `<span style="font-size: 10px; color: var(--gray-500);">+${request.courses.length - 4}</span>` : ''}
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 10px; color: var(--gray-400);">
+                    <div style="font-size: 10px; color: var(--gray-500);">
                         ${new Date(request.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                     <div style="font-size: 10px; color: var(--gray-500);">
@@ -14392,7 +14392,7 @@ function renderPendingRegistrationRequests() {
 
 // Update the loadCourseAdvising function to include registration requests
 const originalLoadCourseAdvising = loadCourseAdvising;
-loadCourseAdvising = function() {
+window.loadCourseAdvising = function() {
     const container = document.getElementById('section-advising');
     if (!container) return;
     

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="js/cck-store.js"></script>
+<script src="js/a11y.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registration 2 – Instructor Management | CCK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,14 +31,14 @@ body{background:#F3F4F6;overflow:hidden;}
 
 /* Form fields */
 .fl{display:flex;flex-direction:column;gap:3px;}
-.fl label{font-size:10px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;}
+.fl label{font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.05em;}
 .fi,.fs{padding:7px 10px;border:1.5px solid #E5E7EB;border-radius:7px;font-size:12px;color:#1E293B;background:white;width:100%;transition:border-color .15s;font-family:inherit;}
 .fi:focus,.fs:focus{outline:none;border-color:#1E293B;box-shadow:0 0 0 3px rgba(30,41,59,.07);}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
 /* Employment toggle */
 .emp-tog{display:flex;border-radius:7px;overflow:hidden;border:1.5px solid #E5E7EB;}
-.emp-tog button{flex:1;padding:6px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .15s;background:white;color:#94A3B8;font-family:inherit;}
+.emp-tog button{flex:1;padding:6px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .15s;background:white;color:#64748B;font-family:inherit;}
 .emp-tog .ft-on{background:#1E3A8A;color:white;}
 .emp-tog .pt-on{background:#B45309;color:white;}
 
@@ -123,7 +124,7 @@ body{background:#F3F4F6;overflow:hidden;}
 .btn-add-inst:hover{background:#14532D;}
 
 /* ── Workflow status nav item ──────────────────────────────────────────── */
-.nav-submit-section{padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#94A3B8;}
+.nav-submit-section{padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#A3B1C2;}
 #btn-submit-admin{
   display:flex;align-items:center;gap:9px;
   width:calc(100% - 16px);margin:2px 8px;
@@ -175,7 +176,7 @@ body{background:#F3F4F6;overflow:hidden;}
 /* Archived — grey */
 #btn-submit-admin[data-status="archived"]{
   background:rgba(148,163,184,.10);
-  color:#94A3B8;
+  color:#64748B;
   pointer-events:none;
   opacity:.8;
 }
@@ -186,8 +187,8 @@ body{background:#F3F4F6;overflow:hidden;}
   width:7px;height:7px;border-radius:50%;flex-shrink:0;
   margin-left:auto;
 }
-#btn-submit-admin[data-status="draft"]      .submit-dot{background:#16A34A;}
-#btn-submit-admin[data-status="submitted"]  .submit-dot{background:#D97706;}
+#btn-submit-admin[data-status="draft"]      .submit-dot{background:#15803D;}
+#btn-submit-admin[data-status="submitted"]  .submit-dot{background:#B45309;}
 #btn-submit-admin[data-status="approved"]   .submit-dot{background:#2563EB;}
 #btn-submit-admin[data-status="resubmit"]   .submit-dot{background:#EA580C;}
 #btn-submit-admin[data-status="archived"]   .submit-dot{background:#94A3B8;}
@@ -239,7 +240,7 @@ body{background:#F3F4F6;overflow:hidden;}
     <button class="portal-nav-link" onclick="setFilter('timetable',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Timetable
-      <span id="tt-approved-badge-r2" style="margin-left:auto;background:#16A34A;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">✓</span>
+      <span id="tt-approved-badge-r2" style="margin-left:auto;background:#15803D;color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none">✓</span>
     </button>
 
       <div class="nav-submit-section">Workflow</div>
@@ -294,7 +295,6 @@ body{background:#F3F4F6;overflow:hidden;}
         </button>
       </div>
       <div class="inst-grid" id="grid"></div>
-    </div>
     </div>
 
     <!-- TIMETABLE SECTION -->
@@ -373,13 +373,13 @@ body{background:#F3F4F6;overflow:hidden;}
   <div class="modal-box" style="width:540px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div class="modal-title" style="margin-bottom:0">Edit Instructor</div>
-      <button onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:#94A3B8;padding:4px;">
+      <button onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:#64748B;padding:4px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <!-- Instructor identity -->
     <div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #F1F5F9;">
-      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Identity</div>
+      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Identity</div>
       <div class="modal-grid">
         <div class="fl full">
           <label>Full Name *</label>
@@ -407,7 +407,7 @@ body{background:#F3F4F6;overflow:hidden;}
     </div>
     <!-- Employment & Qualification -->
     <div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #F1F5F9;">
-      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Employment</div>
+      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Employment</div>
       <div class="modal-grid">
         <div class="fl">
           <label>Employment Type</label>
@@ -434,7 +434,7 @@ body{background:#F3F4F6;overflow:hidden;}
     </div>
     <!-- Availability -->
     <div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #F1F5F9;">
-      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Availability</div>
+      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Availability</div>
       <div class="modal-grid">
         <div class="fl">
           <label>Available From</label>
@@ -630,14 +630,14 @@ function renderCards(){
   });
 
   const g=document.getElementById('grid');
-  if(!list.length){g.innerHTML='<p style="color:#94A3B8;padding:20px">No instructors found.</p>';return;}
+  if(!list.length){g.innerHTML='<p style="color:#64748B;padding:20px">No instructors found.</p>';return;}
 
   g.innerHTML=list.map(ins=>{
     const d=instData[ins.id],cs=isCS(ins);
     const coursesArr=ins.courses||[];
     const max=d.maxCredits,assigned=coursesArr.length*3;
     const pct=Math.min(100,Math.round(assigned/max*100));
-    const crClr=pct>100?'#DC2626':pct>80?'#D97706':'#16A34A';
+    const crClr=pct>100?'#DC2626':pct>80?'#B45309':'#15803D';
     const qCls={'PhD':'qual-phd','Master':'qual-master','Associate':'qual-assoc','Bachelor':'qual-bachelor'}[d.qualification]||'qual-bachelor';
     return `<div class="ic">
       <div class="ic-head">
@@ -689,14 +689,14 @@ function renderCards(){
         </div>
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:10px;font-weight:600;color:#94A3B8">COURSES ASSIGNED (${coursesArr.length})</span>
+            <span style="font-size:10px;font-weight:600;color:#64748B">COURSES ASSIGNED (${coursesArr.length})</span>
             <span style="font-size:12px;font-weight:800;color:${crClr}">${assigned} / ${max} cr.</span>
           </div>
           <div class="cr-bar"><div class="cr-fill" style="width:${pct}%;background:${crClr}"></div></div>
           <div class="chips">
             ${coursesArr.slice(0,12).map(c=>`<span class="chip ${codeIsCS(c)?'chip-cs':codeIsGen(c)?'chip-gen':'chip-bus'}">${c}</span>`).join('')}
-            ${coursesArr.length>12?`<span style="font-size:10px;color:#94A3B8">+${coursesArr.length-12} more</span>`:''}
-            ${!coursesArr.length?'<span style="font-size:11px;color:#94A3B8">None assigned yet</span>':''}
+            ${coursesArr.length>12?`<span style="font-size:10px;color:#64748B">+${coursesArr.length-12} more</span>`:''}
+            ${!coursesArr.length?'<span style="font-size:11px;color:#64748B">None assigned yet</span>':''}
           </div>
         </div>
       </div>
@@ -895,7 +895,7 @@ function renderTutoring(){
 
   const tbody=document.getElementById('tut-body');
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:30px;font-size:13px">No tutoring assignments yet.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#64748B;padding:30px;font-size:13px">No tutoring assignments yet.</td></tr>';
     return;
   }
 
@@ -915,7 +915,7 @@ function renderTutoring(){
           value="${t.payAmount}" onchange="updTut('${tk}','payAmount',this.value)">
         <span style="font-size:10px;color:#64748B;white-space:nowrap">${PAY_UNIT[t.payType]||''}</span>
       </div>`
-    :`<span style="font-size:11px;color:#94A3B8;font-style:italic">Included in salary</span>`;
+    :`<span style="font-size:11px;color:#64748B;font-style:italic">Included in salary</span>`;
 
     return `<tr>
       <td>
@@ -923,7 +923,7 @@ function renderTutoring(){
           <div class="av ${cs?'av-cs':'av-bus'}" style="width:30px;height:30px;font-size:11px;flex-shrink:0">${ini(ins.name)}</div>
           <div>
             <div style="font-size:12px;font-weight:600;color:#0F172A">${ins.name}</div>
-            <div style="font-size:10px;color:#94A3B8">${ins.email||ins.department}</div>
+            <div style="font-size:10px;color:#64748B">${ins.email||ins.department}</div>
           </div>
         </div>
       </td>
@@ -1141,7 +1141,7 @@ function renderApprovedTimetableR2(){
   try{att=JSON.parse(localStorage.getItem('cck_nehad_timetable_approved')||'null');}catch(e){}
   const slots=att&&att.slots;
   if(!slots||!Object.keys(slots).length){
-    cont.innerHTML='<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px;background:white;border-radius:10px;border:1px solid #F1F5F9">No approved timetable available yet. Waiting for Dr. Nehad to submit and Admin to approve.</div>';
+    cont.innerHTML='<div style="padding:40px;text-align:center;color:#64748B;font-size:13px;background:white;border-radius:10px;border:1px solid #F1F5F9">No approved timetable available yet. Waiting for Dr. Nehad to submit and Admin to approve.</div>';
     return;
   }
   const approvedAt=att.approvedAt?new Date(att.approvedAt).toLocaleString():'—';
