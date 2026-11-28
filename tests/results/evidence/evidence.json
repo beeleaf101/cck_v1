@@ -104,7 +104,7 @@
  {
   "step": 18,
   "file": "18-hod-blocked.png",
-  "check": "HOD cannot open the admin page",
+  "check": "HOD asks for /admin.html: refused (HTTP 302) and sent back to its own portal",
   "pass": true
  },
  {
@@ -116,7 +116,7 @@
  {
   "step": 20,
   "file": "20-reg2-blocked.png",
-  "check": "REG2 cannot open the admin page",
+  "check": "REG2 asks for /admin.html: refused (HTTP 302) and sent back to its own portal",
   "pass": true
  },
  {
@@ -128,7 +128,7 @@
  {
   "step": 22,
   "file": "22-facility-blocked.png",
-  "check": "FACILITY cannot open the admin page",
+  "check": "FACILITY asks for /admin.html: refused (HTTP 302) and sent back to its own portal",
   "pass": true
  },
  {
@@ -140,7 +140,7 @@
  {
   "step": 24,
   "file": "24-nehad-blocked.png",
-  "check": "NEHAD cannot open the admin page",
+  "check": "NEHAD asks for /admin.html: refused (HTTP 302) and sent back to its own portal",
   "pass": true
  },
  {

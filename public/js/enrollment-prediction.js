@@ -628,9 +628,9 @@ function renderCourseTable(container, perPage, searchTerm, confidenceFilter, ris
     var displayCount = Math.min(filtered.length, perPage);
     for (var i = 0; i < displayCount; i++) {
         var pred = filtered[i];
-        var failColor = pred.failRate > 30 ? '#DC2626' : (pred.failRate > 20 ? '#B45309' : '#15803D');
+        var failColor = pred.failRate > 30 ? '#B91C1C' : (pred.failRate > 20 ? '#92400E' : '#166534');
         var failBg = pred.failRate > 30 ? '#FEE2E2' : (pred.failRate > 20 ? '#FEF3C7' : '#D1FAE5');
-        var confColor = pred.confidence === 'high' ? '#15803D' : (pred.confidence === 'medium' ? '#B45309' : '#6B7280');
+        var confColor = pred.confidence === 'high' ? '#166534' : (pred.confidence === 'medium' ? '#92400E' : '#4B5563');
         var confBg = pred.confidence === 'high' ? '#D1FAE5' : (pred.confidence === 'medium' ? '#FEF3C7' : '#F3F4F6');
         var displayName = pred.courseName.length > 35 ? pred.courseName.substring(0, 35) + '...' : pred.courseName;
         
@@ -639,7 +639,7 @@ function renderCourseTable(container, perPage, searchTerm, confidenceFilter, ris
         html += '<td style="padding: 12px 16px; font-size: 13px; color: #6B7280;">' + displayName + '</td>';
         html += '<td style="padding: 12px 16px; text-align: center;">' + pred.historical + '</td>';
         html += '<td style="padding: 12px 16px; text-align: center;"><span style="font-weight: 600; color: #1D4ED8;">' + pred.totalPredicted + '</span><div style="font-size: 10px; color: #6B7280;">' + pred.newStudents + ' new + ' + pred.repeatStudents + ' repeat</div></td>';
-        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #D1FAE5; color: #15803D; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">' + pred.passRate + '%</span></td>';
+        html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #D1FAE5; color: #166534; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">' + pred.passRate + '%</span></td>';
         html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: ' + failBg + '; color: ' + failColor + '; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">' + pred.failRate + '%</span></td>';
         html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: #FEF3C7; color: #B45309; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + pred.repeatStudents + '</span></td>';
         html += '<td style="padding: 12px 16px; text-align: center;"><span style="background: ' + confBg + '; color: ' + confColor + '; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; text-transform: uppercase;">' + pred.confidence + '</span></td>';
@@ -687,7 +687,7 @@ function renderAtRiskTable(container, perPage, searchTerm) {
     for (var i = 0; i < displayCount; i++) {
         var student = filtered[i];
         var gpaVal = student.gpa || student.cgpa || 0;
-        var cgpaColor = gpaVal < 1.5 ? '#DC2626' : (gpaVal < 2.0 ? '#B45309' : '#15803D');
+        var cgpaColor = gpaVal < 1.5 ? '#B91C1C' : (gpaVal < 2.0 ? '#92400E' : '#166534');
         var cgpaBg = gpaVal < 1.5 ? '#FEE2E2' : (gpaVal < 2.0 ? '#FEF3C7' : '#D1FAE5');
         var cgpaDisplay = gpaVal > 0 ? gpaVal.toFixed(2) : 'N/A';
         var admitTerm = student.admitTerm || 'Unknown';
@@ -858,10 +858,10 @@ function openPredictionPopup() {
     popupHTML += 'th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #F3F4F6; }';
     popupHTML += 'th { background: #F9FAFB; font-weight: 600; color: #374151; position: sticky; top: 0; }';
     popupHTML += '.badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }';
-    popupHTML += '.badge-green { background: #D1FAE5; color: #047857; }';
-    popupHTML += '.badge-red { background: #FEE2E2; color: #DC2626; }';
+    popupHTML += '.badge-green { background: #D1FAE5; color: #065F46; }';
+    popupHTML += '.badge-red { background: #FEE2E2; color: #B91C1C; }';
     popupHTML += '.badge-yellow { background: #FEF3C7; color: #B45309; }';
-    popupHTML += '.badge-purple { background: #EDE9FE; color: #7C3AED; }';
+    popupHTML += '.badge-purple { background: #EDE9FE; color: #5B21B6; }';
     popupHTML += '.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }';
     popupHTML += '.stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }';
     popupHTML += '.stat-value { font-size: 36px; font-weight: 700; color: #1F2937; }';

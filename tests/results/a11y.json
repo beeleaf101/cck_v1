@@ -1,7 +1,14 @@
 {
  "pages": 20,
- "critical_or_serious_elements": 0,
- "by_rule": [],
+ "critical_or_serious_elements": 7,
+ "by_rule": [
+  {
+   "impact": "serious",
+   "rule": "color-contrast",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "elements": 7
+  }
+ ],
  "pages_detail": [
   {
    "page": "login page",
@@ -45,11 +52,32 @@
   },
   {
    "page": "admin / portal-review",
-   "violations": []
+   "violations": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "nodes": 4,
+     "sample": [
+      ".pr-ov-card:nth-child(1) > .pr-ov-card-hd > .draft.pr-badge-pill",
+      ".pr-ov-card:nth-child(3) > .pr-ov-card-hd > .draft.pr-badge-pill"
+     ]
+    }
+   ]
   },
   {
    "page": "portal / hod",
-   "violations": []
+   "violations": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "nodes": 1,
+     "sample": [
+      "#submit-admin-lbl"
+     ]
+    }
+   ]
   },
   {
    "page": "portal / reg1",
@@ -57,11 +85,31 @@
   },
   {
    "page": "portal / reg2",
-   "violations": []
+   "violations": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "nodes": 1,
+     "sample": [
+      "#submit-admin-lbl"
+     ]
+    }
+   ]
   },
   {
    "page": "portal / facility",
-   "violations": []
+   "violations": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "nodes": 1,
+     "sample": [
+      "#submit-admin-lbl"
+     ]
+    }
+   ]
   },
   {
    "page": "portal / nehad",

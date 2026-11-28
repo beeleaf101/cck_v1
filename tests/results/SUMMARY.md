@@ -1,7 +1,7 @@
 # CCK SIS – test results
 
-Run: 2026-11-28 13:05 +03  
-**Overall: COMPLETE – ALL PASSED**
+Run: 2026-11-28 13:23 +03  
+**Overall: COMPLETE – FAILURES**
 
 | Suite | Tool | Checks | Failed | Status |
 |---|---|---|---|---|
@@ -15,5 +15,5 @@ Run: 2026-11-28 13:05 +03
 | Data validation (real files) | validate_dataset.py | 19 | 0 | Complete – Passed |
 | End-to-end workflow | Playwright (Chromium) | 51 | 0 | Complete – Passed |
 | Every button, every screen | Playwright crawl | 457 clicks / 41 screens | 0 | Complete – Passed |
-| Accessibility (WCAG 2.1 AA) | axe-core 4 | 20 screens | 0 | Complete – Passed |
+| Accessibility (WCAG 2.1 AA) | axe-core 4 | 20 screens | 7 | Complete – 7 failed |
 | Load (100 students) | Python threads | 600 requests | 0 | Complete – Passed (252.2 req/s) |

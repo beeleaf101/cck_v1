@@ -1,6 +1,6 @@
 {
- "run": "2026-11-28 13:05 +03",
- "overall": "complete-passed",
+ "run": "2026-11-28 13:23 +03",
+ "overall": "complete-failed",
  "suites": [
   {
    "suite": "Unit + integration + security",
@@ -86,8 +86,8 @@
    "suite": "Accessibility (WCAG 2.1 AA)",
    "tool": "axe-core 4",
    "checks": "20 screens",
-   "failed": 0,
-   "status": "Complete \u2013 Passed",
+   "failed": 7,
+   "status": "Complete \u2013 7 failed",
    "note": ""
   },
   {

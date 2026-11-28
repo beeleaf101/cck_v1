@@ -107,8 +107,12 @@ with sync_playwright() as p:
     for role, page in [('hod', '/hod'), ('reg2', '/registration2'), ('facility', '/facility'), ('nehad', '/nehad')]:
         q = ctx().new_page(); login(q, role, STAFF[role])
         shot(q, f'{role}-portal', f'{role.upper()} logs in and lands on its own portal', page in q.url)
-        q.goto(BASE + '/admin.html')
-        shot(q, f'{role}-blocked', f'{role.upper()} cannot open the admin page', 'login=required' in q.url)
+        code = q.evaluate("async () => (await fetch('/admin.html', {redirect: 'manual'})).type === 'opaqueredirect' ? 302 : (await fetch('/admin.html')).status")
+        q.goto(BASE + '/admin.html'); q.wait_for_timeout(1500)
+        back = page in q.url
+        q.evaluate("(c) => { const d = document.createElement('div'); d.id='__note'; d.style.cssText='position:fixed;top:20px;right:20px;z-index:99999;background:#fff;border:2px solid #1B5E20;border-radius:8px;padding:12px 16px;font:600 14px Arial'; d.textContent='GET /admin.html \u2192 HTTP ' + c + ' redirect; sent back to own portal'; document.body.appendChild(d); }", code)
+        shot(q, f'{role}-blocked', f'{role.upper()} asks for /admin.html: refused (HTTP {code}) and sent back to its own portal', code == 302 and back)
+        q.evaluate("document.getElementById('__note').remove()")
 
     hub = ctx(390, 844).new_page()
     hub.goto(BASE + '/student_hub.html'); hub.fill('#li-id', STUDENT[0]); hub.fill('#li-pw', STUDENT[1])

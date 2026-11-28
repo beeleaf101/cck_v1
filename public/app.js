@@ -4425,10 +4425,10 @@ function loadStudentManagement() {
                     ${(() => {
                         const typeConfig = [
                             { key: 'Normal', color: '#1D4ED8', bg: '#EFF6FF', label: 'Normal' },
-                            { key: 'Working', color: '#F59E0B', bg: '#FFFBEB', label: 'Working' },
-                            { key: 'Visitor', color: '#8B5CF6', bg: '#F5F3FF', label: 'Visitor' },
-                            { key: 'Sport', color: '#22C55E', bg: '#F0FDF4', label: 'Sport' },
-                            { key: 'Disabled', color: '#EC4899', bg: '#FDF2F8', label: 'Disabled' }
+                            { key: 'Working', color: '#B45309', bg: '#FFFBEB', label: 'Working' },
+                            { key: 'Visitor', color: '#6D28D9', bg: '#F5F3FF', label: 'Visitor' },
+                            { key: 'Sport', color: '#15803D', bg: '#F0FDF4', label: 'Sport' },
+                            { key: 'Disabled', color: '#BE185D', bg: '#FDF2F8', label: 'Disabled' }
                         ];
                         return typeConfig.slice(0, 4).map(t => {
                             const count = studentTypes[t.key] || 0;
@@ -7561,7 +7561,7 @@ function renderInitialAllocationTable() {
         // Build fail rate badge if available
         let failBadge = '';
         if (hasHistorical && failRate !== null && failRate !== undefined) {
-            const badgeColor = failRate > 30 ? '#DC2626' : (failRate > 20 ? '#B45309' : '#059669');
+            const badgeColor = failRate > 30 ? '#B91C1C' : (failRate > 20 ? '#92400E' : '#065F46');
             const badgeBg = failRate > 30 ? '#FEE2E2' : (failRate > 20 ? '#FEF3C7' : '#D1FAE5');
             failBadge = '<span style="font-size: 10px; padding: 2px 6px; border-radius: 8px; background: ' + badgeBg + '; color: ' + badgeColor + '; margin-left: 4px;">' + failRate + '% fail</span>';
         }
@@ -12072,7 +12072,7 @@ function loadAnalytics() {
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                             <span style="font-size: 13px; color: var(--gray-600);">Bachelor (4-year)</span>
-                            <span style="font-size: 15px; font-weight: 600; color: #f5576c;">${stats.programType.bachelor}</span>
+                            <span style="font-size: 15px; font-weight: 600; color: #C81E3A;">${stats.programType.bachelor}</span>
                         </div>
                         <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
                             <div style="height: 100%; width: ${(stats.programType.bachelor/stats.totalStudents)*100}%; background: linear-gradient(90deg, #f093fb, #f5576c); border-radius: 4px;"></div>
