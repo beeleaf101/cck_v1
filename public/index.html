@@ -95,7 +95,7 @@
                     
                     <form id="login-form" class="login-form">
                         <div class="form-group">
-                            <label>STUDENT / STAFF ID</label>
+                            <label for="login-id">STUDENT / STAFF ID</label>
                             <div class="input-wrapper">
                                 <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -107,7 +107,7 @@
                         
                         <div class="form-group">
                             <div class="label-row">
-                                <label>CIVIL ID / PASSWORD</label>
+                                <label for="login-password">CIVIL ID / PASSWORD</label>
                                 <a href="#" class="forgot-link">Forgot password?</a>
                             </div>
                             <div class="input-wrapper">
@@ -116,7 +116,7 @@
                                     <line x1="2" y1="10" x2="22" y2="10"/>
                                 </svg>
                                 <input type="password" id="login-password" placeholder="Civil ID or password" autocomplete="current-password" required>
-                                <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
+                                <button type="button" class="toggle-password" aria-label="Show or hide password" onclick="togglePasswordVisibility()">
                                     <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                         <circle cx="12" cy="12" r="3"/>
@@ -281,7 +281,7 @@
                                                     <circle cx="11" cy="11" r="8"/>
                                                     <path d="m21 21-4.35-4.35"/>
                                                 </svg>
-                                                <input type="text" id="course-search" placeholder="Search courses...">
+                                                <input type="text" id="course-search" aria-label="Search courses" placeholder="Search courses...">
                                             </div>
                                             <div class="courses-list" id="available-courses-list">
                                                 <!-- Courses will be populated -->
@@ -513,7 +513,7 @@
                                 <line x1="16" y1="2" x2="16" y2="6"/>
                                 <line x1="8" y1="2" x2="8" y2="6"/>
                             </svg>
-                            <select id="semester-select" onchange="changeSemester(this.value)">
+                            <select id="semester-select" aria-label="Semester" onchange="changeSemester(this.value)">
                                 <option value="fall2026">Fall 2026</option>
                                 <option value="spring2026" selected>Spring 2026</option>
                                 <option value="fall2025">Fall 2025</option>
