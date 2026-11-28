@@ -138,3 +138,17 @@ test('IT-15 students cannot use the change-password route', async () => {
   const s = await loggedIn(env, people[0].student_id, people[0].civil_id);
   assert.equal((await s.call('POST', '/api/auth/password', { current_password: 'x', new_password: 'Something-Long-1' })).status, 403);
 });
+
+test('IT-42 login also sets a readable "signed in" flag that holds no secret, and logout clears it', async () => {
+  const { env } = await makeEnv();
+  const c = new Client(env);
+  const r = await c.raw('POST', '/api/auth/login', { body: { id: ADMIN.username, password: ADMIN.password } });
+  const cookies = r.headers.getSetCookie();
+  const hint = cookies.find((x) => x.startsWith('cck_signed_in='));
+  assert.ok(hint, 'hint cookie set');
+  assert.match(hint, /^cck_signed_in=1;/);
+  assert.doesNotMatch(hint, /HttpOnly/i);
+  assert.ok(cookies.find((x) => x.startsWith('cck_session=')).includes('HttpOnly'));
+  const out = await c.raw('POST', '/api/auth/logout', { body: {} });
+  assert.ok(out.headers.getSetCookie().some((x) => /^cck_signed_in=;.*Max-Age=0/.test(x)));
+});

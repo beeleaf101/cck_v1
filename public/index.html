@@ -6,6 +6,7 @@
 <script src="js/a11y.js" defer></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CCK Institution - Timetable & Scheduling System</title>
+    <meta name="description" content="Canadian College of Kuwait student information and academic scheduling system: course registration, timetables, allocation and student records.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -82,13 +83,13 @@
 </style>
 </head>
 <body>
-    <div id="app">
+    <main id="app">
         <!-- ==================== LOGIN SCREEN ==================== -->
         <div id="login-screen" class="screen active">
             <div class="login-wrapper">
                 <div class="login-card">
                     <div class="login-logo">
-                        <img src="images/cck-logo-full.png" alt="Canadian College of Kuwait" class="cck-logo-full" style="max-width: 280px; height: auto; margin-bottom: 16px;">
+                        <img src="images/cck-logo-full.png" alt="Canadian College of Kuwait" class="cck-logo-full" width="280" height="46" style="max-width: 280px; height: auto; margin-bottom: 16px;">
                         <p class="login-subtitle">Student Information System</p>
                     </div>
                     
@@ -163,7 +164,7 @@
             <header class="portal-header">
                 <div class="header-left">
                     <div class="header-logo">
-                        <img src="images/cck-logo-small.png" alt="CCK" style="width: 40px; height: 40px; object-fit: contain;">
+                        <img src="images/cck-logo-small.png" alt="CCK" width="40" height="40" style="width: 40px; height: 40px; object-fit: contain;">
                     </div>
                     <div class="header-text">
                         <h1>Canadian College of Kuwait</h1>
@@ -257,7 +258,7 @@
                                             </svg>
                                         </div>
                                         <div class="ai-content">
-                                            <h4>AI Course Recommendations</h4>
+                                            <h3>AI Course Recommendations</h3>
                                             <p>Based on your <span id="ai-major">major</span>, GPA <span id="ai-gpa">0.00</span>, and completed prerequisites, we suggest:</p>
                                             <div class="ai-suggestions" id="ai-suggestions">
                                                 <!-- AI suggestions will be populated -->
@@ -415,7 +416,7 @@
         <div id="admin-portal" class="screen">
             <aside class="admin-sidebar">
                 <div class="sidebar-logo">
-                    <img src="images/cck-logo-small.png" alt="CCK" style="width: 40px; height: 40px; object-fit: contain;">
+                    <img src="images/cck-logo-small.png" alt="CCK" width="40" height="40" style="width: 40px; height: 40px; object-fit: contain;">
                     <div class="sidebar-brand">
                         <h2>CCK Admin</h2>
                         <span>Portal</span>
@@ -499,7 +500,7 @@
                 </nav>
             </aside>
 
-            <main class="admin-main">
+            <div class="admin-main">
                 <header class="admin-header">
                     <div class="admin-header-left">
                         <h1 id="admin-page-title">Dashboard</h1>
@@ -597,9 +598,9 @@
                         <div id="pr-root"></div>
                     </section>
                 </div>
-            </main>
+            </div><!-- /admin-main -->
         </div>
-    </div>
+    </main><!-- /app -->
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
@@ -608,7 +609,7 @@
     <div id="modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Modal</h3>
+                <h2 id="modal-title">Modal</h2>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body" id="modal-body"></div>

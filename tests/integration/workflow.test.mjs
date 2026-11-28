@@ -165,6 +165,11 @@ test('IT-39 every response carries the security headers', async () => {
   }
   const api = await c.raw('GET', '/api/health');
   assert.equal(api.headers.get('cache-control'), 'no-store');
+  const page = await c.raw('GET', '/');
+  const csp = page.headers.get('content-security-policy');
+  for (const d of ["default-src 'self'", "connect-src 'self'", "object-src 'none'", "frame-ancestors 'none'"]) assert.ok(csp.includes(d), d);
+  assert.match(page.headers.get('strict-transport-security'), /max-age=\d+/);
+  assert.equal(page.headers.get('cross-origin-opener-policy'), 'same-origin');
 });
 
 test('IT-40 bad input never causes a server error', async () => {

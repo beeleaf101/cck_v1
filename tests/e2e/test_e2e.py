@@ -44,6 +44,7 @@ def new_page(browser, tag, width=1440, height=900):
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: page_errors.append(f'[{tag}] {e}'[:300]))
     pg.on('dialog', lambda d: d.accept())
+    pg.on('console', lambda m: page_errors.append(f'[{tag}] CSP: {m.text}'[:300]) if 'Content Security Policy' in m.text else None)
     return pg
 
 

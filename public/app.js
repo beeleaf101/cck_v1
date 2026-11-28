@@ -5430,7 +5430,7 @@ window.filterAdminStudents = applyStudentFilters;
 function resetModalShell() {
     const content = document.querySelector('#modal .modal-content');
     if (!content || document.getElementById('modal-title')) return;
-    content.innerHTML = '<div class="modal-header"><h3 id="modal-title">Modal</h3><button class="modal-close">&times;</button></div><div class="modal-body" id="modal-body"></div>';
+    content.innerHTML = '<div class="modal-header"><h2 id="modal-title">Modal</h2><button class="modal-close">&times;</button></div><div class="modal-body" id="modal-body"></div>';
     content.querySelector('.modal-close').addEventListener('click', closeModal);
 }
 window.resetModalShell = resetModalShell;

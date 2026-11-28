@@ -140,3 +140,11 @@ test('UT-22 students can read only the allow-listed keys', () => {
   assert.equal(canRead({ role: 'student' }, 'cck_hod_status_v3'), false);
   assert.equal(canRead({ role: 'hod' }, 'cck_hod_status_v3'), true);
 });
+
+test('UT-23 every named export of the Worker is a function (Cloudflare refuses other exports)', async () => {
+  const mod = await import('../../src/worker.js');
+  for (const [name, value] of Object.entries(mod)) {
+    if (name === 'default') continue;
+    assert.equal(typeof value, 'function', `${name} must be a function`);
+  }
+});

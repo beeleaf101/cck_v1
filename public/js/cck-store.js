@@ -56,6 +56,8 @@
   }
 
   function loadNow() {
+    // Nobody signed in on this browser: nothing to load, so don't block the page
+    if (document.cookie.indexOf('cck_signed_in=1') === -1) return;
     try {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/api/state', false);

@@ -966,6 +966,7 @@ body {
     height: 24px;
 }
 
+.ai-content h3,
 .ai-content h4 {
     font-size: 15px;
     font-weight: 600;
@@ -2794,6 +2795,7 @@ body {
     border-bottom: 1px solid var(--gray-200);
 }
 
+.modal-header h2,
 .modal-header h3,
 .modal-header h2 {
     font-size: 18px;

@@ -24,6 +24,7 @@ report = {'screens': [], 'errors': [], 'clicked': 0, 'skipped': 0, 'downloads': 
 
 def attach(pg, tag):
     pg.on('pageerror', lambda e: report['errors'].append({'where': tag, 'error': str(e)[:300], 'at': ' | '.join((e.stack or '').split('\n')[1:3])[:300]}))
+    pg.on('console', lambda m: report['errors'].append({'where': tag, 'error': 'CSP: ' + m.text[:250]}) if 'Content Security Policy' in m.text else None)
     pg.on('dialog', lambda d: d.dismiss())
     pg.on('download', lambda d: report['downloads'].append({'where': tag, 'file': d.suggested_filename}))
 

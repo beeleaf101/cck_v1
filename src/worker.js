@@ -82,11 +82,32 @@ function json(data, status = 200, headers = {}) {
   });
 }
 
+// Content Security Policy: the pages may only load code, styles, fonts and data from this
+// site (plus Google Fonts), may only send data back to this site, and cannot be framed.
+// 'unsafe-inline' is still needed for scripts because the portals use inline handlers.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 function withSecurityHeaders(response) {
   const r = new Response(response.body, response);
   r.headers.set('x-content-type-options', 'nosniff');
   r.headers.set('x-frame-options', 'DENY');
   r.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  r.headers.set('content-security-policy', CONTENT_SECURITY_POLICY);
+  r.headers.set('strict-transport-security', 'max-age=63072000; includeSubDomains; preload');
+  r.headers.set('cross-origin-opener-policy', 'same-origin');
+  r.headers.set('cross-origin-resource-policy', 'same-origin');
+  r.headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
   return r;
 }
 
@@ -108,6 +129,17 @@ function getCookie(request, name) {
 
 function sessionCookie(token, maxAge, secure) {
   return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+}
+
+// A harmless, readable flag ("signed in on this browser") so pages can skip the blocking
+// state load when nobody is signed in. It holds no secret; the session cookie stays HttpOnly.
+function hintCookie(on, maxAge, secure) {
+  return `cck_signed_in=${on ? 1 : ''}; Path=/; SameSite=Strict; Max-Age=${on ? maxAge : 0}${secure ? '; Secure' : ''}`;
+}
+
+function withCookies(response, cookies) {
+  for (const c of cookies) response.headers.append('set-cookie', c);
+  return response;
 }
 
 const enc = new TextEncoder();
@@ -284,15 +316,15 @@ async function login(request, env) {
     env.DB.prepare('DELETE FROM login_attempts WHERE ip = ? AND login_id = ?').bind(ip, loginId.slice(0, 64)),
   ]);
   const secure = new URL(request.url).protocol === 'https:';
-  return json({ role, user, redirect: STAFF_PORTALS[role]?.page || null }, 200,
-    { 'set-cookie': sessionCookie(token, SESSION_TTL_SECONDS, secure) });
+  return withCookies(json({ role, user, redirect: STAFF_PORTALS[role]?.page || null }),
+    [sessionCookie(token, SESSION_TTL_SECONDS, secure), hintCookie(true, SESSION_TTL_SECONDS, secure)]);
 }
 
 async function logout(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
   if (token) await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
   const secure = new URL(request.url).protocol === 'https:';
-  return json({ ok: true }, 200, { 'set-cookie': sessionCookie('', 0, secure) });
+  return withCookies(json({ ok: true }), [sessionCookie('', 0, secure), hintCookie(false, 0, secure)]);
 }
 
 async function me(request, env) {
