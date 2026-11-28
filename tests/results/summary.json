@@ -1,6 +1,6 @@
 {
- "run": "2026-11-28 13:23 +03",
- "overall": "complete-failed",
+ "run": "2026-11-28 13:43 +03",
+ "overall": "complete-passed",
  "suites": [
   {
    "suite": "Unit + integration + security",
@@ -53,7 +53,7 @@
   {
    "suite": "Private data in repository",
    "tool": "scan_private_data.py",
-   "checks": "70 files",
+   "checks": "110 files",
    "failed": 0,
    "status": "Complete \u2013 Passed",
    "note": ""
@@ -86,8 +86,8 @@
    "suite": "Accessibility (WCAG 2.1 AA)",
    "tool": "axe-core 4",
    "checks": "20 screens",
-   "failed": 7,
-   "status": "Complete \u2013 7 failed",
+   "failed": 0,
+   "status": "Complete \u2013 Passed",
    "note": ""
   },
   {
@@ -96,7 +96,7 @@
    "checks": "600 requests",
    "failed": 0,
    "status": "Complete \u2013 Passed",
-   "note": "252.2 req/s"
+   "note": "267.1 req/s"
   }
  ]
 }

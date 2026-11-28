@@ -9455,7 +9455,7 @@ const PR_STYLE_TEXT = `/* Portal Review section inside index.html admin portal *
 .pr-badge-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
 .pr-badge-pill.approved{background:#DCFCE7;color:#15803D;}
 .pr-badge-pill.submitted{background:#FEF3C7;color:#B45309;}
-.pr-badge-pill.draft{background:#F1F5F9;color:#64748B;}
+.pr-badge-pill.draft{background:#F1F5F9;color:#475569;}
 .pr-badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .pr-badge-pill.approved .pr-badge-dot{background:#15803D;}
 .pr-badge-pill.submitted .pr-badge-dot{background:#B45309;}
